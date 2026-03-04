@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پنل مدیریت - مرکز نشر آثار</title>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{font-family:'Vazir',Tahoma,sans-serif;}
+.tab-active{background:#0d9488;color:white;}
+.tab-inactive{color:#94a3b8;}
+.tab-inactive:hover{background:#1e293b;}
+.color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;}
+.color-swatch.selected{border-color:white;box-shadow:0 0 0 3px #0d9488;}
+input[type=color]{width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;}
+</style>
+</head>
+<body class="text-gray-800 h-screen flex overflow-hidden bg-slate-50">
+
+<!-- Login -->
+<div id="login-screen" class="fixed inset-0 bg-gray-900/95 z-50 flex items-center justify-center">
+  <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+    <div class="w-20 h-20 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl"><i class="fas fa-lock"></i></div>
+    <h2 class="text-2xl font-black mb-6">ورود مدیریت</h2>
+    <input type="password" id="admin-pass" class="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl mb-4 text-center text-lg outline-none focus:border-teal-500" placeholder="رمز عبور" onkeypress="if(event.key==='Enter')loginAdmin()">
+    <button onclick="loginAdmin()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg transition">ورود به پنل</button>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col hidden h-full shrink-0 z-20">
+  <div class="p-5 border-b border-slate-800 flex items-center gap-3">
+    <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-lg"><i class="fas fa-cog"></i></div>
+    <div><h1 class="text-sm font-black">مدیریت سیستم</h1><p class="text-[10px] text-slate-400">مرکز نشر آثار</p></div>
+  </div>
+  <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+    <button onclick="switchTab('books')" id="tab-btn-books" class="tab-active w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-book w-5"></i>مدیریت کتاب‌ها</button>
+    <button onclick="switchTab('slider')" id="tab-btn-slider" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-images w-5"></i>اسلایدر</button>
+    <button onclick="switchTab('banners')" id="tab-btn-banners" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-ad w-5"></i>بنرها</button>
+    <button onclick="switchTab('qa')" id="tab-btn-qa" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-comments w-5"></i>پرسش و پاسخ</button>
+    <button onclick="switchTab('tickets')" id="tab-btn-tickets" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-ticket-alt w-5"></i>تیکت‌ها</button>
+    <button onclick="switchTab('users')" id="tab-btn-users" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-users w-5"></i>کاربران</button>
+    <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-palette w-5"></i>تنظیمات</button>
+  </nav>
+  <button onclick="logoutAdmin()" class="m-3 p-3 text-rose-400 hover:bg-slate-800 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i>خروج</button>
+</aside>
+
+<!-- Main -->
+<main id="main-content" class="flex-1 flex flex-col hidden h-full overflow-hidden">
+
+  <!-- BOOKS TAB -->
+  <div id="tab-books" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-plus-circle text-teal-600 ml-2"></i>افزودن کتاب جدید</h2>
+      <form id="upload-form" onsubmit="uploadBook(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان کتاب *</label><input type="text" id="book-title" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان کتاب"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نویسنده</label><input type="text" id="book-author" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نام نویسنده"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">فایل دیتابیس (SQLite) *</label><input type="file" id="book-db" accept=".sqlite,.db" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">تصویر جلد</label><input type="file" id="book-cover" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 cursor-pointer"></div>
+        <div class="md:col-span-2"><button type="submit" id="btn-upload" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-cloud-upload-alt"></i>آپلود و ذخیره کتاب</button></div>
+      </form>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-4"><h2 class="text-base font-black">کتاب‌های موجود</h2><button onclick="loadBooks()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button></div>
+      <div id="books-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+    </div>
+  </div>
+
+  <!-- SLIDER TAB -->
+  <div id="tab-slider" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-plus-circle text-teal-600 ml-2"></i>افزودن اسلاید جدید (حداکثر ۵)</h2>
+      <form id="slider-form" onsubmit="addSlider(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان (اختیاری)</label><input type="text" id="slider-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان اسلاید"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label><input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://..."></div>
+        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید *</label><input type="file" id="slider-image" accept="image/*" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
+        <div class="md:col-span-2"><button type="submit" id="btn-add-slider" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن اسلاید</button></div>
+      </form>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-4"><h2 class="text-base font-black">اسلایدهای فعلی</h2><button onclick="loadSliders()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button></div>
+      <div id="sliders-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+    </div>
+  </div>
+
+  <!-- BANNERS TAB -->
+  <div id="tab-banners" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-2"><i class="fas fa-ad text-teal-600 ml-2"></i>مدیریت بنرها</h2>
+      <p class="text-xs text-gray-500 mb-5">سه بنر در صفحه اصلی نمایش داده می‌شود. اگر لینک یا تصویر نداشته باشند، نمایش داده نمی‌شوند.</p>
+      <div id="banners-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+      <div class="mt-4"><button onclick="saveBanners()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره تغییرات بنرها</button></div>
+    </div>
+  </div>
+
+  <!-- QA TAB -->
+  <div id="tab-qa" class="hidden flex-1 h-full flex">
+    <div class="w-72 bg-white border-l border-gray-100 flex flex-col h-full shrink-0 shadow-sm">
+      <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+        <h2 class="font-black text-sm">کاربران</h2>
+        <button onclick="loadQAUsers()" class="text-teal-600 text-xs font-bold bg-teal-50 px-2 py-1 rounded-lg">بروزرسانی</button>
+      </div>
+      <div id="qa-users-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+    </div>
+    <div class="flex-1 flex flex-col h-full bg-gray-50">
+      <div class="p-4 bg-white shadow-sm border-b border-gray-100 flex items-center gap-3">
+        <div class="w-9 h-9 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center"><i class="fas fa-user text-sm"></i></div>
+        <h2 id="active-chat-username" class="font-bold text-sm">کاربری انتخاب نشده</h2>
+      </div>
+      <div id="admin-chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+        <div class="text-center text-gray-400 mt-16 text-sm">یک کاربر انتخاب کنید</div>
+      </div>
+      <div class="p-3 bg-white border-t border-gray-100 flex gap-2">
+        <input type="text" id="admin-chat-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 text-sm" placeholder="پاسخ..." disabled onkeypress="if(event.key==='Enter')sendAdminReply()">
+        <button id="admin-chat-send" onclick="sendAdminReply()" class="bg-teal-600 hover:bg-teal-700 text-white px-5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed transition" disabled>ارسال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TICKETS TAB -->
+  <div id="tab-tickets" class="hidden flex-1 h-full flex">
+    <div class="w-72 bg-white border-l border-gray-100 flex flex-col h-full shrink-0 shadow-sm">
+      <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+        <h2 class="font-black text-sm">تیکت‌ها</h2>
+        <button onclick="loadTickets()" class="text-teal-600 text-xs font-bold bg-teal-50 px-2 py-1 rounded-lg">بروزرسانی</button>
+      </div>
+      <div id="tickets-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+    </div>
+    <div class="flex-1 flex flex-col h-full bg-gray-50">
+      <div class="p-4 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center"><i class="fas fa-ticket-alt text-sm"></i></div>
+          <div><h2 id="active-ticket-subject" class="font-bold text-sm">تیکتی انتخاب نشده</h2><span id="active-ticket-status" class="text-xs text-gray-400"></span></div>
+        </div>
+        <div id="ticket-status-btns" class="hidden gap-2 flex">
+          <button onclick="changeTicketStatus('answered')" class="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-lg font-bold hover:bg-green-100">پاسخ داده شد</button>
+          <button onclick="changeTicketStatus('closed')" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-bold hover:bg-gray-200">بستن</button>
+        </div>
+      </div>
+      <div id="ticket-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+        <div class="text-center text-gray-400 mt-16 text-sm">یک تیکت انتخاب کنید</div>
+      </div>
+      <div class="p-3 bg-white border-t border-gray-100 flex gap-2">
+        <input type="text" id="ticket-reply-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 text-sm" placeholder="پاسخ..." disabled onkeypress="if(event.key==='Enter')sendTicketReply()">
+        <button id="ticket-reply-send" onclick="sendTicketReply()" class="bg-teal-600 hover:bg-teal-700 text-white px-5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed transition" disabled>ارسال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS TAB -->
+  <div id="tab-users" class="hidden flex-1 overflow-y-auto p-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-black"><i class="fas fa-users text-teal-600 ml-2"></i>مدیریت کاربران</h2>
+        <button onclick="loadUsers()" class="w-9 h-9 bg-gray-50 rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button>
+      </div>
+      <div id="users-table" class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">شناسه</th>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">نام کاربری</th>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">تاریخ ثبت</th>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">تعداد پیام</th>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">آخرین فعالیت</th>
+              <th class="text-right p-4 font-bold text-gray-500 text-xs">عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+
+    <!-- Site Info -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-info-circle text-teal-600 ml-2"></i>اطلاعات سایت</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام سایت</label><input type="text" id="s-site_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرنویس</label><input type="text" id="s-site_subtitle" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">آدرس پخش زنده</label><input type="url" id="s-live_url" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://www.aparat.com/..."></div>
+        <div class="flex items-end gap-3"><label class="block text-xs font-bold text-gray-500 mb-2 w-full">پخش زنده فعال<input type="checkbox" id="s-live_active" class="mr-2 mt-2"></label></div>
+      </div>
+    </div>
+
+    <!-- Logo -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-image text-teal-600 ml-2"></i>لوگو سایت</h2>
+      <div class="flex items-start gap-6">
+        <div class="w-24 h-24 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+          <img id="logo-preview" src="" class="w-full h-full object-contain hidden">
+          <i id="logo-placeholder" class="fas fa-image text-gray-300 text-2xl"></i>
+        </div>
+        <div class="flex-1">
+          <input type="file" id="logo-input" accept="image/*" class="hidden" onchange="previewLogo(this)">
+          <button onclick="document.getElementById('logo-input').click()" class="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-100 transition mb-2 block"><i class="fas fa-upload ml-2"></i>انتخاب لوگو</button>
+          <button onclick="uploadLogo()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 transition"><i class="fas fa-save ml-2"></i>آپلود لوگو</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colors -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-palette text-teal-600 ml-2"></i>رنگ‌بندی</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-3">رنگ اصلی</label>
+          <div class="flex items-center gap-3">
+            <input type="color" id="s-primary_color" value="#0d9488" class="rounded-lg cursor-pointer">
+            <div class="flex flex-wrap gap-2">
+              <div class="color-swatch" style="background:#0d9488" onclick="setColorSwatch('primary','#0d9488')"></div>
+              <div class="color-swatch" style="background:#2563eb" onclick="setColorSwatch('primary','#2563eb')"></div>
+              <div class="color-swatch" style="background:#7c3aed" onclick="setColorSwatch('primary','#7c3aed')"></div>
+              <div class="color-swatch" style="background:#dc2626" onclick="setColorSwatch('primary','#dc2626')"></div>
+              <div class="color-swatch" style="background:#d97706" onclick="setColorSwatch('primary','#d97706')"></div>
+              <div class="color-swatch" style="background:#1e293b" onclick="setColorSwatch('primary','#1e293b')"></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-3">رنگ ثانویه</label>
+          <div class="flex items-center gap-3">
+            <input type="color" id="s-secondary_color" value="#0f766e" class="rounded-lg cursor-pointer">
+            <div class="flex flex-wrap gap-2">
+              <div class="color-swatch" style="background:#0f766e" onclick="setColorSwatch('secondary','#0f766e')"></div>
+              <div class="color-swatch" style="background:#1d4ed8" onclick="setColorSwatch('secondary','#1d4ed8')"></div>
+              <div class="color-swatch" style="background:#6d28d9" onclick="setColorSwatch('secondary','#6d28d9')"></div>
+              <div class="color-swatch" style="background:#b91c1c" onclick="setColorSwatch('secondary','#b91c1c')"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="saveSettings()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-sm transition flex-1 text-sm"><i class="fas fa-save ml-2"></i>ذخیره تمام تنظیمات</button>
+      <button onclick="loadSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-6 py-3.5 rounded-xl text-sm"><i class="fas fa-sync-alt ml-2"></i>بازنشانی</button>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[9999]">پیام</div>
+
+<script>
+let adminToken = localStorage.getItem('adminToken');
+let activeUserId = null, activeTicketId = null;
+let adminQaInterval = null;
+let bannerData = [{},{},{}];
+
+window.onload = () => {
+  if(adminToken){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    loadBooks();
+  }
+};
+
+function showToast(msg, ok=true) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.background=ok?'#1f2937':'#dc2626';
+  t.style.opacity='1';t.style.transform='translate(-50%,-20px)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translate(-50%,0)';},3000);
+}
+
+async function loginAdmin() {
+  const p=document.getElementById('admin-pass').value;
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
+    if(r.ok){const d=await r.json();adminToken=d.token;localStorage.setItem('adminToken',adminToken);window.location.reload();}
+    else showToast('رمز عبور اشتباه!',false);
+  }catch(e){showToast('خطا در ارتباط با سرور',false);}
+}
+function logoutAdmin(){localStorage.removeItem('adminToken');window.location.reload();}
+
+function switchTab(tab) {
+  const tabs=['books','slider','banners','qa','tickets','users','settings'];
+  tabs.forEach(t=>{
+    document.getElementById('tab-'+t).classList.add('hidden');
+    document.getElementById('tab-'+t).classList.remove('flex');
+    document.getElementById('tab-btn-'+t).className='tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition';
+  });
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  if(['qa','tickets'].includes(tab)) document.getElementById('tab-'+tab).classList.add('flex');
+  document.getElementById('tab-btn-'+tab).className='tab-active w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition';
+  if(adminQaInterval){clearInterval(adminQaInterval);adminQaInterval=null;}
+  if(tab==='books') loadBooks();
+  if(tab==='slider') loadSliders();
+  if(tab==='banners') loadBanners();
+  if(tab==='qa'){loadQAUsers();adminQaInterval=setInterval(()=>{loadQAUsers();if(activeUserId)loadAdminMessages(activeUserId);},5000);}
+  if(tab==='tickets') loadTickets();
+  if(tab==='users') loadUsers();
+  if(tab==='settings') loadSettings();
+}
+
+// BOOKS
+async function uploadBook(e){
+  e.preventDefault();
+  const t=document.getElementById('book-title').value,a=document.getElementById('book-author').value;
+  const dbf=document.getElementById('book-db').files[0],cf=document.getElementById('book-cover').files[0];
+  if(!t||!dbf) return showToast('عنوان و فایل دیتابیس الزامی است',false);
+  const btn=document.getElementById('btn-upload');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
+  const fd=new FormData();
+  fd.append('title',t);fd.append('author',a);fd.append('database',dbf);
+  if(cf) fd.append('cover',cf);
+  try{
+    const r=await fetch('/api/admin/books',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('کتاب آپلود شد');document.getElementById('upload-form').reset();loadBooks();}
+    else showToast(d.error||'خطا در آپلود',false);
+  }catch(e){showToast('خطا در ارتباط',false);}
+  finally{btn.innerHTML='<i class="fas fa-cloud-upload-alt ml-2"></i>آپلود و ذخیره کتاب';btn.disabled=false;}
+}
+async function loadBooks(){
+  const r=await fetch('/api/books');const bs=await r.json();
+  const c=document.getElementById('books-list');
+  if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
+  c.innerHTML=bs.map(b=>`
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group">
+      <button onclick="deleteBook(${b.id})" class="absolute top-2 right-2 bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm border border-rose-100 z-10 text-xs"><i class="fas fa-trash"></i></button>
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-18 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
+          ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
+        </div>
+        <div>
+          <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
+          <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
+          <span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded mt-1 inline-block">${b.page_count} صفحه</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+async function deleteBook(id){
+  if(!confirm('حذف شود؟')) return;
+  const r=await fetch('/api/admin/books/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+  if(r.ok){showToast('حذف شد');loadBooks();}
+  else showToast('خطا',false);
+}
+
+// SLIDER
+async function addSlider(e){
+  e.preventDefault();
+  const img=document.getElementById('slider-image').files[0];
+  if(!img) return showToast('تصویر الزامی است',false);
+  const fd=new FormData();
+  fd.append('slider_image',img);
+  fd.append('title',document.getElementById('slider-title').value);
+  fd.append('link',document.getElementById('slider-link').value);
+  const btn=document.getElementById('btn-add-slider');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/admin/sliders',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('اسلاید اضافه شد');document.getElementById('slider-form').reset();loadSliders();}
+    else showToast(d.error||'خطا',false);
+  }catch(e){showToast('خطا',false);}
+  finally{btn.innerHTML='<i class="fas fa-plus ml-2"></i>افزودن اسلاید';btn.disabled=false;}
+}
+async function loadSliders(){
+  const r=await fetch('/api/admin/sliders',{headers:{'x-admin-token':adminToken}});
+  const slides=await r.json();
+  const c=document.getElementById('sliders-list');
+  if(!slides||!slides.length){c.innerHTML='<div class="col-span-5 text-center py-8 text-gray-400 text-sm">اسلایدی یافت نشد</div>';return;}
+  c.innerHTML=slides.map(s=>`
+    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative group">
+      <button onclick="deleteSlider(${s.id})" class="absolute top-2 right-2 bg-white/90 text-rose-500 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 text-xs"><i class="fas fa-trash"></i></button>
+      <img src="${s.image}" class="w-full aspect-video object-cover">
+      <div class="p-2"><p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}</div>
+    </div>
+  `).join('');
+}
+async function deleteSlider(id){
+  if(!confirm('حذف شود؟')) return;
+  const r=await fetch('/api/admin/sliders/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+  if(r.ok){showToast('حذف شد');loadSliders();}
+  else showToast('خطا',false);
+}
+
+// BANNERS
+async function loadBanners(){
+  const r=await fetch('/api/admin/banners',{headers:{'x-admin-token':adminToken}});
+  const bns=await r.json();
+  bannerData=[{},{},{}];
+  bns.forEach(b=>{if(b.position>=1&&b.position<=3)bannerData[b.position-1]=b;});
+  const c=document.getElementById('banners-list');
+  c.innerHTML=[1,2,3].map(pos=>{
+    const b=bns.find(x=>x.position===pos)||{};
+    return `
+    <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col gap-3" id="banner-card-${pos}">
+      <h3 class="font-bold text-sm text-gray-700">بنر ${pos}</h3>
+      <div class="aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer relative" onclick="document.getElementById('banner-img-${pos}').click()">
+        ${b.image&&b.image.length>2?`<img id="banner-preview-${pos}" src="${b.image}" class="w-full h-full object-cover">`:`<div id="banner-preview-${pos}" class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-image text-3xl mb-1"></i><br><span class="text-xs">کلیک برای انتخاب تصویر</span></div>`}
+        <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-sm font-bold">تغییر تصویر</div>
+      </div>
+      <input type="file" id="banner-img-${pos}" accept="image/*" class="hidden" onchange="previewBanner(${pos},this)">
+      <input type="text" id="banner-link-${pos}" value="${b.link||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="لینک بنر (https://...)">
+      <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
+        <input type="checkbox" id="banner-active-${pos}" ${b.active?'checked':''} class="rounded"> فعال
+      </label>
+    </div>`;
+  }).join('');
+}
+function previewBanner(pos,input){
+  if(!input.files[0]) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const prev=document.getElementById('banner-preview-'+pos);
+    if(prev.tagName==='IMG'){prev.src=e.target.result;}
+    else{const img=document.createElement('img');img.id='banner-preview-'+pos;img.src=e.target.result;img.className='w-full h-full object-cover';prev.replaceWith(img);}
+  };r.readAsDataURL(input.files[0]);
+}
+async function saveBanners(){
+  for(let pos=1;pos<=3;pos++){
+    const img=document.getElementById('banner-img-'+pos).files[0];
+    const link=document.getElementById('banner-link-'+pos).value;
+    const active=document.getElementById('banner-active-'+pos).checked;
+    if(!img&&!link) continue;
+    const fd=new FormData();
+    fd.append('link',link);
+    fd.append('active',active?'1':'0');
+    if(img) fd.append('banner_image',img);
+    await fetch('/api/admin/banners/'+pos,{method:'PUT',headers:{'x-admin-token':adminToken},body:fd});
+  }
+  showToast('بنرها ذخیره شدند');loadBanners();
+}
+
+// QA
+async function loadQAUsers(){
+  const r=await fetch('/api/admin/qa/users',{headers:{'x-admin-token':adminToken}});
+  const users=await r.json();
+  const c=document.getElementById('qa-users-list');
+  if(!users.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
+  c.innerHTML=users.map(u=>{
+    const act=activeUserId==u.id;
+    const d=new Date(u.last_date).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+    return `<button onclick="selectUser(${u.id},'${u.username}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-teal-50 border-teal-200':'bg-white border-gray-100 hover:bg-gray-50'} flex items-center gap-2">
+      <div class="w-8 h-8 ${act?'bg-teal-200 text-teal-700':'bg-gray-100 text-gray-400'} rounded-full flex items-center justify-center text-xs shrink-0"><i class="fas fa-user"></i></div>
+      <div class="flex-1 min-w-0">
+        <div class="flex justify-between items-center mb-0.5">
+          <h4 class="font-bold text-xs truncate">${u.username}</h4>
+          <span class="text-[10px] text-gray-400 shrink-0">${d}</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <p class="text-[10px] text-gray-500 truncate flex-1">${u.last_message||'...'}</p>
+          ${u.unread>0?`<span class="bg-teal-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shrink-0">${u.unread}</span>`:''}
+        </div>
+      </div>
+    </button>`;
+  }).join('');
+}
+async function selectUser(id,name){
+  activeUserId=id;
+  document.getElementById('active-chat-username').textContent=name;
+  const inp=document.getElementById('admin-chat-input'),btn=document.getElementById('admin-chat-send');
+  inp.disabled=false;inp.placeholder='پاسخ به '+name+'...';
+  btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');
+  await loadAdminMessages(id);loadQAUsers();
+}
+async function loadAdminMessages(uid){
+  const r=await fetch('/api/admin/qa/messages/'+uid,{headers:{'x-admin-token':adminToken}});
+  const msgs=await r.json();
+  const c=document.getElementById('admin-chat-messages');
+  if(!msgs.length){c.innerHTML='<p class="text-center text-gray-400 text-xs mt-8">هیچ پیامی وجود ندارد</p>';return;}
+  c.innerHTML=msgs.map(m=>{
+    const isAdmin=m.sender_type==='admin';
+    const d=new Date(m.created_at).toLocaleString('fa-IR');
+    return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
+      <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
+        <p>${m.text}</p>
+        <span class="text-[9px] text-gray-400 mt-1 block">${d}</span>
+      </div>
+    </div>`;
+  }).join('');
+  c.scrollTop=c.scrollHeight;
+}
+async function sendAdminReply(){
+  const inp=document.getElementById('admin-chat-input');
+  const t=inp.value.trim();if(!t||!activeUserId) return;
+  inp.value='';
+  const r=await fetch('/api/admin/qa/messages/'+activeUserId,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({text:t})});
+  if(r.ok) loadAdminMessages(activeUserId);
+  else showToast('خطا در ارسال',false);
+}
+
+// TICKETS
+async function loadTickets(){
+  const r=await fetch('/api/admin/tickets',{headers:{'x-admin-token':adminToken}});
+  const ts=await r.json();
+  const c=document.getElementById('tickets-list');
+  if(!ts.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">تیکتی وجود ندارد</p>';return;}
+  const statusMap={open:{text:'باز',cls:'bg-blue-50 text-blue-600'},answered:{text:'پاسخ داده شد',cls:'bg-green-50 text-green-600'},closed:{text:'بسته',cls:'bg-gray-100 text-gray-400'}};
+  c.innerHTML=ts.map(t=>{
+    const s=statusMap[t.status]||statusMap.open;
+    const act=activeTicketId==t.id;
+    return `<button onclick="selectTicket(${t.id},'${t.subject.replace(/'/g,"\\'")}','${t.status}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'} flex flex-col gap-1">
+      <div class="flex items-center justify-between">
+        <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
+        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0">${s.text}</span>
+      </div>
+      <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
+      ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
+    </button>`;
+  }).join('');
+}
+async function selectTicket(id,subject,status){
+  activeTicketId=id;
+  document.getElementById('active-ticket-subject').textContent=subject;
+  document.getElementById('active-ticket-status').textContent={open:'باز',answered:'پاسخ داده شد',closed:'بسته'}[status]||'';
+  const inp=document.getElementById('ticket-reply-input'),btn=document.getElementById('ticket-reply-send');
+  const statusBtns=document.getElementById('ticket-status-btns');
+  if(status!=='closed'){inp.disabled=false;btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');statusBtns.classList.remove('hidden');}
+  else{inp.disabled=true;btn.disabled=true;statusBtns.classList.add('hidden');}
+  const r=await fetch('/api/admin/tickets/'+id+'/messages',{headers:{'x-admin-token':adminToken}});
+  const msgs=await r.json();
+  const c=document.getElementById('ticket-messages');
+  if(!msgs.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
+  c.innerHTML=msgs.map(m=>{
+    const isAdmin=m.sender_type==='admin';
+    return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
+      <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
+        <p>${m.text}</p>
+        <span class="text-[9px] text-gray-400 mt-1 block">${new Date(m.created_at).toLocaleString('fa-IR')}</span>
+      </div>
+    </div>`;
+  }).join('');
+  c.scrollTop=c.scrollHeight;
+  loadTickets();
+}
+async function sendTicketReply(){
+  const inp=document.getElementById('ticket-reply-input');
+  const t=inp.value.trim();if(!t||!activeTicketId) return;
+  inp.value='';
+  const r=await fetch('/api/admin/tickets/'+activeTicketId+'/reply',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({text:t})});
+  if(r.ok) selectTicket(activeTicketId,document.getElementById('active-ticket-subject').textContent,'answered');
+  else showToast('خطا در ارسال',false);
+}
+async function changeTicketStatus(status){
+  const r=await fetch('/api/admin/tickets/'+activeTicketId+'/status',{method:'PUT',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({status})});
+  if(r.ok){showToast('وضعیت تغییر کرد');loadTickets();}
+}
+
+// USERS
+async function loadUsers(){
+  const r=await fetch('/api/admin/users',{headers:{'x-admin-token':adminToken}});
+  const users=await r.json();
+  const tb=document.getElementById('users-tbody');
+  if(!users.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-10 text-gray-400">کاربری یافت نشد</td></tr>';return;}
+  tb.innerHTML=users.map(u=>`
+    <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+      <td class="p-4 text-xs text-gray-400">#${u.id}</td>
+      <td class="p-4 font-bold text-sm">${u.username}</td>
+      <td class="p-4 text-xs text-gray-400">${new Date(u.created_at).toLocaleDateString('fa-IR')}</td>
+      <td class="p-4 text-xs"><span class="bg-teal-50 text-teal-700 px-2 py-1 rounded-full">${u.msg_count||0} پیام</span></td>
+      <td class="p-4 text-xs text-gray-400">${u.last_active?new Date(u.last_active).toLocaleDateString('fa-IR'):'-'}</td>
+      <td class="p-4"><button onclick="deleteUser(${u.id},'${u.username}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition"><i class="fas fa-trash ml-1"></i>حذف</button></td>
+    </tr>
+  `).join('');
+}
+async function deleteUser(id,name){
+  if(!confirm(`کاربر "${name}" حذف شود؟`)) return;
+  const r=await fetch('/api/admin/users/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
+  if(r.ok){showToast('کاربر حذف شد');loadUsers();}
+  else showToast('خطا',false);
+}
+
+// SETTINGS
+async function loadSettings(){
+  const r=await fetch('/api/admin/settings',{headers:{'x-admin-token':adminToken}});
+  const s=await r.json();
+  ['site_name','site_subtitle','primary_color','secondary_color','live_url'].forEach(k=>{
+    const el=document.getElementById('s-'+k);
+    if(el) el.value=s[k]||'';
+  });
+  const liveActive=document.getElementById('s-live_active');
+  if(liveActive) liveActive.checked=s.live_active==='1';
+  if(s.logo_url){
+    const prev=document.getElementById('logo-preview');
+    const ph=document.getElementById('logo-placeholder');
+    if(prev&&ph){prev.src=s.logo_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
+  }
+}
+async function saveSettings(){
+  const data={
+    site_name:document.getElementById('s-site_name').value,
+    site_subtitle:document.getElementById('s-site_subtitle').value,
+    primary_color:document.getElementById('s-primary_color').value,
+    secondary_color:document.getElementById('s-secondary_color').value,
+    live_url:document.getElementById('s-live_url').value,
+    live_active:document.getElementById('s-live_active').checked?'1':'0',
+  };
+  const r=await fetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify(data)});
+  if(r.ok) showToast('تنظیمات ذخیره شد');
+  else showToast('خطا در ذخیره',false);
+}
+function setColorSwatch(type,color){
+  document.getElementById('s-'+(type==='primary'?'primary':'secondary')+'_color').value=color;
+}
+
+async function uploadLogo(){
+  const f=document.getElementById('logo-input').files[0];
+  if(!f) return showToast('ابتدا لوگو انتخاب کنید',false);
+  const fd=new FormData();fd.append('logo',f);
+  const r=await fetch('/api/admin/logo',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
+  const d=await r.json();
+  if(r.ok&&d.success){showToast('لوگو آپلود شد');}
+  else showToast(d.error||'خطا',false);
+}
+function previewLogo(input){
+  if(!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('logo-preview'),ph=document.getElementById('logo-placeholder');
+    prev.src=e.target.result;prev.classList.remove('hidden');ph.classList.add('hidden');
+  };reader.readAsDataURL(input.files[0]);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+node_modules/
+.env
+*.sqlite
+books/*.db
+books/*.sqlite
+public/covers/*.jpg
+public/covers/*.png
+public/banners/*.jpg
+public/banners/*.png
+public/sliders/*.jpg
+public/sliders/*.png
+public/logos/*.jpg
+public/logos/*.png
+book_app_extracted/
+book_app_v2.zip
+npm-debug.log
+.DS_Store

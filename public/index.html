@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>مرکز نشر آثار</title>
+    
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" media="all">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css" rel="stylesheet" type="text/css" media="all">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { vazir: ['Vazir', 'sans-serif'], shabnam: ['Shabnam', 'sans-serif'], tahoma: ['Tahoma', 'sans-serif'] },
+                        colors: {
+                            brand: { 50:'#f0fdfa', 100:'#ccfbf1', 200:'#99f6e4', 300:'#5eead4', 400:'#2dd4bf', 500:'#14b8a6', 600:'#0d9488', 700:'#0f766e', 800:'#115e59', 900:'#134e4a' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root { --safe-bottom: 20px; --title-color: inherit; --line-height: 2.2; }
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+             :root { --safe-bottom: env(safe-area-inset-bottom); }
+        }
+        
+        * { -webkit-tap-highlight-color: transparent; }
+        body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margin: 0; padding: 0; }
+
+        .hidden { display: none !important; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        #bottom-nav { padding-bottom: var(--safe-bottom); border-radius: 24px 24px 0 0; }
+        .nav-item { transition: all .3s ease; flex: 1; }
+        .nav-item.active i { color: #0d9488; transform: translateY(-2px); }
+        .nav-item.active span { color: #0d9488; font-weight: 800; }
+
+        .screen { display:none; }
+        .screen.active { display:flex;flex-direction:column; animation: fadeIn 0.4s ease forwards; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes inlineSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+        .glass{background:rgba(255,255,255,0.92);backdrop-filter:blur(16px)}
+        .theme-light{background-color:#fff;color:#334155}
+        .theme-sepia{background-color:#fcfaf8;color:#4a3f35}
+        .theme-dark{background-color:#0f172a;color:#cbd5e1}
+        .theme-dark .glass{background:rgba(30,41,59,0.92)}
+        .theme-sepia .glass{background:rgba(244,236,216,0.92)}
+        .reader-text{line-height:var(--line-height);user-select:text;text-align:justify}
+        .reader-text h2{color:var(--title-color)!important}
+        .fade-transform{transition:transform .4s cubic-bezier(.16,1,.3,1),opacity .4s ease}
+        .slide-up-hide{transform:translateY(-100%);opacity:0}
+        .slide-down-hide{transform:translateY(100%);opacity:0}
+
+        #reader-overlay, #toc-overlay {
+            position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+            margin: 0 auto; max-width: 42rem; 
+            z-index: 200; display: none; flex-direction: column;
+            box-shadow: 0 0 40px rgba(0,0,0,0.08);
+        }
+        #reader-overlay.open, #toc-overlay.open { display: flex; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .auth-input { transition: all 0.3s ease; }
+        .auth-input:focus { border-color: #0d9488; box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1); }
+
+        .h_iframe-aparat_embed_frame { position: relative; } 
+        .h_iframe-aparat_embed_frame .ratio { display: block; width: 100%; height: auto; } 
+        .h_iframe-aparat_embed_frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* WORDPRESS CONTENT STYLE & READING MODE */
+        .wp-content { text-align: justify; line-height: var(--line-height); }
+        .wp-content p { margin-bottom: 1.2em; }
+        .wp-content img { max-width: 100%; height: auto; border-radius: 16px; margin: 1.5em auto; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .wp-content a { color: #0d9488; text-decoration: none; font-weight: bold; }
+        .wp-content h1, .wp-content h2, .wp-content h3 { font-weight: 900; margin-top: 1.5em; margin-bottom: 0.5em; color: var(--title-color, inherit) !important; }
+        .wp-content h2 { font-size: 1.25rem; }
+        .wp-content ul, .wp-content ol { margin-right: 1.5rem; margin-bottom: 1.2em; }
+        .wp-content li { margin-bottom: 0.5em; }
+        .wp-content blockquote { border-right: 4px solid #0d9488; padding-right: 1rem; color: #64748b; font-style: italic; background: rgba(13, 148, 136, 0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1.2em; }
+
+        /* AUDIO FIXES */
+        .wp-content .mejs-container, .wp-content .mejs-controls, .wp-content .mejs-offscreen, .wp-content .mejs-time, .wp-content .wp-audio-shortcode { display: none !important; }
+
+        /* Theme Styles for Reading Mode */
+        .reading-mode { transition: background-color 0.4s ease, color 0.4s ease; }
+        .reading-mode.theme-dark { background-color: #0f172a !important; color: #cbd5e1 !important; }
+        .reading-mode.theme-dark header { background: rgba(30,41,59,0.92) !important; border-color: rgba(255,255,255,0.05) !important; }
+        .reading-mode.theme-dark h1, .reading-mode.theme-dark h2 { color: #f1f5f9 !important; }
+        .reading-mode.theme-dark button { background: rgba(255,255,255,0.1) !important; color: #cbd5e1 !important; }
+        
+        .reading-mode.theme-sepia { background-color: #fcfaf8 !important; color: #4a3f35 !important; }
+        .reading-mode.theme-sepia header { background: rgba(244,236,216,0.92) !important; border-color: rgba(0,0,0,0.05) !important; }
+        .reading-mode.theme-sepia h1, .reading-mode.theme-sepia h2 { color: #4a3f35 !important; }
+        .reading-mode.theme-sepia button { background: rgba(0,0,0,0.05) !important; color: #4a3f35 !important; }
+
+        .reading-mode.theme-light { background-color: #ffffff !important; color: #334155 !important; }
+        .reading-mode.theme-light header { background: rgba(255,255,255,0.92) !important; border-color: rgba(0,0,0,0.05) !important; }
+        .reading-mode.theme-light h1, .reading-mode.theme-light h2 { color: #1f2937 !important; }
+        .reading-mode.theme-light button { background: #f9fafb !important; color: #6b7280 !important; }
+    </style>
+</head>
+<body class="font-vazir antialiased text-gray-800">
+
+<!-- LOADING -->
+<div id="loading-screen" style="position: fixed; inset: 0; z-index: 9999; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
+    <div id="loading-spinner" style="width: 60px; height: 60px; border: 5px solid #ccfbf1; border-top: 5px solid #0d9488; border-radius: 50%; animation: inlineSpin 1s linear infinite; margin-bottom: 24px;"></div>
+    <h2 style="font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; font-family: Vazir, Tahoma, sans-serif;">مرکز نشر آثار</h2>
+    <p id="loading-text" style="font-size: 14px; color: #6b7280; font-family: Vazir, Tahoma, sans-serif; text-align: center; line-height: 1.8;">
+        در حال آماده‌سازی و دریافت اطلاعات...<br>
+    </p>
+</div>
+
+<!-- APP WRAPPER -->
+<div id="app-wrapper" class="absolute inset-0 flex flex-col w-full max-w-2xl mx-auto bg-gray-50 shadow-2xl overflow-hidden hidden">
+
+    <!-- SCREENS WRAPPER -->
+    <div class="flex-1 overflow-hidden relative flex flex-col">
+
+        <!-- ============================================== -->
+        <!-- 0. صفحه ورود / ثبت‌نام -->
+        <!-- ============================================== -->
+        <div id="screen-auth" class="screen flex-col bg-white h-full">
+            <div class="flex-1 overflow-y-auto px-8 pb-10 pt-16 flex flex-col items-center relative">
+                <button onclick="navToScreen('home')" class="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="w-24 h-24 bg-brand-50 rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-brand-100">
+                    <i class="fas fa-user-circle text-5xl text-brand-600"></i>
+                </div>
+                <h1 class="text-2xl font-black text-gray-900 mb-1" dir="ltr">Welcome back</h1>
+                <p class="text-sm text-gray-500 mb-10" dir="ltr">Sign in with your account</p>
+
+                <div class="w-full space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-2 px-1">نام کاربری</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" class="auth-input w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-2xl focus:ring-brand-500 block p-4 pl-10 outline-none" placeholder="نام کاربری خود را وارد کنید">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-2 px-1">رمز عبور</label>
+                        <div class="relative">
+                            <i class="fas fa-eye absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"></i>
+                            <input type="password" class="auth-input w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-2xl focus:ring-brand-500 block p-4 pl-10 outline-none" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="flex justify-start px-1">
+                        <button class="text-xs font-bold text-brand-600 hover:text-brand-700">رمزتان را گم کرده‌اید؟</button>
+                    </div>
+                </div>
+
+                <button onclick="loginDummy()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-2xl text-sm px-5 py-4 mt-8 transition-colors shadow-lg shadow-brand-500/30">
+                    ورود به حساب
+                </button>
+                <button class="w-full bg-white border-2 border-brand-100 hover:border-brand-200 text-brand-600 font-bold rounded-2xl text-sm px-5 py-3.5 mt-3 transition-colors">
+                    ثبت نام
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 1. داشبورد اصلی (Home) -->
+        <!-- ============================================== -->
+        <div id="screen-home" class="screen active flex-col bg-gray-50 h-full">
+            <header class="shrink-0 pt-10 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navToScreen('auth')">
+                    <div class="w-11 h-11 bg-brand-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
+                        <i class="fas fa-user text-brand-600"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-[15px] font-black text-gray-800">مرکز نشر آثار</h1>
+                        <h2 class="text-[11px] font-bold text-brand-600">آیت الله دستغیب</h2>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition relative">
+                        <i class="far fa-bell"></i>
+                        <span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto pb-10">
+                <div class="px-6 mt-4 mb-4" onclick="navToScreen('live')">
+                    <div class="bg-gradient-to-r from-red-600 to-rose-500 rounded-3xl p-4 flex items-center justify-between shadow-lg shadow-red-500/30 text-white cursor-pointer active:scale-95 transition-transform">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-100 opacity-50"></span>
+                                <i class="fas fa-broadcast-tower"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-sm">پخش زنده مراسم</h3>
+                                <p class="text-[10px] text-red-100 opacity-90">برای مشاهده کلیک کنید</p>
+                            </div>
+                        </div>
+                        <span class="bg-white text-red-600 text-[10px] font-black tracking-widest px-3 py-1 rounded-full shadow-sm">LIVE</span>
+                    </div>
+                </div>
+
+                <div class="px-6 mb-6">
+                    <div class="relative bg-gradient-to-br from-brand-700 to-brand-500 rounded-3xl p-6 overflow-hidden shadow-lg shadow-brand-600/20 text-white">
+                        <i class="fas fa-quran absolute -left-6 -bottom-6 text-9xl opacity-10 transform -rotate-12"></i>
+                        <div class="relative z-10">
+                            <span class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-black tracking-wider mb-3 inline-block">جدیدترین اثر</span>
+                            <h3 class="font-black text-xl mb-1">تفسیر سوره قصص</h3>
+                            <p class="text-xs text-white/80 mb-5 max-w-[200px] leading-relaxed">جلسه اول - بررسی و تبیین آیات ابتدایی سوره مبارکه قصص</p>
+                            <button class="bg-white text-brand-700 px-5 py-2.5 rounded-xl text-xs font-black shadow-sm flex items-center gap-2 hover:bg-gray-50 active:scale-95 transition-transform w-max">
+                                <i class="fas fa-play"></i> پخش صوت
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4 px-6 mb-8">
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="navToScreen('library')">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-brand-600 text-xl transition-transform active:scale-90">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-gray-600">کتابخانه</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="navToScreen('media')">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-rose-500 text-xl transition-transform active:scale-90">
+                            <i class="fas fa-photo-film"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-gray-600">رسانه</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="navToScreen('lectures')">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-amber-500 text-xl transition-transform active:scale-90">
+                            <i class="fas fa-microphone-alt"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-gray-600">سخنرانی</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="navToScreen('qa')">
+                        <div class="w-14 h-14 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center text-blue-500 text-xl transition-transform active:scale-90">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-gray-600">سوال</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 class="text-sm font-black text-gray-800">کتابخانه آثار</h3>
+                        <button onclick="navToScreen('library')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">ورود به کتابخانه</button>
+                    </div>
+                    <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 2. کتابخانه (Library) -->
+        <!-- ============================================== -->
+        <div id="screen-library" class="screen flex-col bg-gray-50 h-full">
+            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div>
+                        <h1 class="font-black text-xl text-gray-800">کتابخانه</h1>
+                        <p class="text-[10px] text-gray-400 mt-0.5" id="lib-count">در حال بارگذاری...</p>
+                    </div>
+                </div>
+                <a href="/admin" class="w-9 h-9 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-cog"></i></a>
+            </header>
+            <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6">
+                <div id="books-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-5"></div>
+                <div id="lib-empty" class="hidden flex-col items-center justify-center py-32 opacity-60">
+                    <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500 text-sm font-bold">کتابخانه خالی است</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 3. رسانه (Media) -->
+        <!-- ============================================== -->
+        <div id="screen-media" class="screen flex-col bg-gray-50 h-full relative">
+            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <h1 class="font-black text-xl text-gray-800">رسانه</h1>
+                    </div>
+                </div>
+                
+                <!-- تب‌های ناوبری مدیا -->
+                <div class="flex bg-gray-100 p-1 rounded-xl">
+                    <button onclick="switchMediaTab('video')" id="tab-media-video" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-brand-600 transition-all">فیلم</button>
+                    <button onclick="switchMediaTab('audio')" id="tab-media-audio" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">صوت</button>
+                    <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">عکس</button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto relative p-6">
+                <!-- وضعیت بارگذاری -->
+                <div id="media-loading" class="hidden flex-col items-center justify-center py-20 opacity-70">
+                    <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>
+                    <p class="text-xs font-bold text-gray-500 tracking-wide">در حال دریافت اطلاعات...</p>
+                </div>
+
+                <!-- 1. فیلم -->
+                <div id="media-content-video">
+                    <div id="wp-media-playlists-view" class="grid grid-cols-2 gap-4"></div>
+                    
+                    <div id="wp-media-videos-view" class="hidden flex-col gap-3">
+                        <div class="flex items-center gap-2 mb-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button onclick="backToWPMediaPlaylists()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="wp-media-playlist-title" class="font-bold text-sm text-gray-800 truncate">لیست ویدیوها</h2>
+                        </div>
+                        <div id="wp-media-videos-list" class="flex flex-col gap-3"></div>
+                    </div>
+                    
+                    <div id="wp-media-single-view" class="hidden flex-col gap-4">
+                        <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button onclick="backToWPMediaVideos()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="wp-media-video-title" class="font-bold text-xs text-gray-800 line-clamp-1">پخش ویدیو</h2>
+                        </div>
+                        <div id="wp-media-player-container" class="w-full flex flex-col gap-4"></div>
+                        <div id="wp-media-post-content" class="wp-content bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- 2. صوت (WebView) -->
+                <div id="media-content-audio" class="hidden flex-col w-full h-[65vh] rounded-3xl overflow-hidden shadow-sm border border-gray-200 bg-white">
+                    <div class="flex items-center justify-between p-3 bg-brand-50 border-b border-brand-100 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-headphones text-brand-600 ml-1"></i>
+                            <h2 class="font-bold text-sm text-brand-800">آرشیو صوتی سایت</h2>
+                        </div>
+                        <button onclick="document.getElementById('audio-webview').src = document.getElementById('audio-webview').src" class="w-8 h-8 bg-white rounded-full text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <iframe id="audio-webview" onload="injectCSSIntoWebView()" src="https://dastgheibqoba.info/category/%d8%a2%d8%b1%d8%b4%db%8c%d9%88-%d8%b5%d9%88%d8%aa/?webview=1" class="w-full flex-1 border-none bg-gray-50" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                </div>
+
+                <!-- 3. عکس -->
+                <div id="media-content-photo" class="hidden">
+                    <div id="wp-photo-playlists-view" class="grid grid-cols-2 gap-4"></div>
+                    
+                    <div id="wp-photo-posts-view" class="hidden flex-col gap-3">
+                        <div class="flex items-center gap-2 mb-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button onclick="backToWPPhotoPlaylists()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="wp-photo-playlist-title" class="font-bold text-sm text-gray-800 truncate">لیست گالری‌ها</h2>
+                        </div>
+                        <div id="wp-photo-posts-list" class="flex flex-col gap-3"></div>
+                    </div>
+                    
+                    <div id="wp-photo-single-view" class="hidden flex-col gap-4">
+                        <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button onclick="backToWPPhotoPosts()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="wp-photo-post-title" class="font-bold text-xs text-gray-800 line-clamp-1">تصاویر</h2>
+                        </div>
+                        <div id="wp-photo-gallery-container" class="grid grid-cols-2 gap-3 mt-2"></div>
+                        <div id="wp-photo-post-content" class="wp-content bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2 hidden"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- مودال نمایش تمام صفحه عکس -->
+            <div id="image-modal" class="fixed inset-0 z-[300] hidden bg-black/95 backdrop-blur-sm flex-col items-center justify-center" onclick="closeImageModal()">
+                <button class="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition"><i class="fas fa-times text-lg"></i></button>
+                <img id="fullscreen-image" src="" class="max-w-full max-h-full object-contain p-4 transition-transform duration-300 transform scale-95">
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 4. سوال -->
+        <!-- ============================================== -->
+        <div id="screen-qa" class="screen flex-col bg-gray-50 h-full">
+            <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
+                <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
+            </header>
+            
+            <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+                <div class="text-center my-2 text-[10px] text-gray-400 font-bold bg-gray-200/50 rounded-full w-max mx-auto px-3 py-1">۸ اسفند ۱۴۰۳ ساعت ۰۵:۱۱ ب.ظ</div>
+                <div class="bg-blue-50 text-blue-600 text-[11px] font-bold p-3 rounded-2xl text-center border border-blue-100 mx-8">شما گفتگویی را شروع کردید</div>
+            </div>
+
+            <div class="p-4 bg-white border-t border-gray-100 flex gap-2 items-center">
+                <button class="w-10 h-10 bg-gray-50 rounded-full text-gray-500 shrink-0 hover:bg-gray-100 transition"><i class="fas fa-paperclip"></i></button>
+                <input type="text" class="flex-1 bg-gray-50 border-none rounded-full h-10 px-4 text-sm outline-none" placeholder="نوشتن سوال یا پیام...">
+                <button class="w-10 h-10 bg-brand-600 rounded-full text-white shrink-0 shadow-md hover:bg-brand-700 transition" onclick="showToast('پیام ارسال شد')">
+                    <i class="fas fa-paper-plane text-xs transform -translate-x-0.5 translate-y-0.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 5. سخنرانی‌ها (Lectures) -->
+        <!-- ============================================== -->
+        <div id="screen-lectures" class="screen flex-col bg-gray-50 relative h-full">
+            <header id="lectures-header" class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <button id="btn-lectures-back" onclick="wpNavBack()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div class="min-w-0 flex-1">
+                        <h1 id="lectures-header-title" class="font-black text-xl text-gray-800 truncate transition-colors duration-300">سخنرانی‌ها</h1>
+                    </div>
+                </div>
+                <button id="btn-lectures-settings" onclick="openSettings()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm">
+                    <i class="fas fa-font"></i>
+                </button>
+            </header>
+            
+            <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6 relative">
+                <div id="lectures-loading" class="hidden flex-col items-center justify-center py-20 opacity-70">
+                    <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>
+                    <p class="text-xs font-bold text-gray-500 tracking-wide">در حال دریافت اطلاعات...</p>
+                </div>
+
+                <div id="lectures-categories-view" class="grid grid-cols-2 gap-4"></div>
+                <div id="lectures-posts-view" class="hidden flex-col gap-3"></div>
+
+                <div id="lectures-single-view" class="hidden flex-col pb-10">
+                    <div id="single-post-image" class="w-full bg-gray-100 rounded-2xl mb-6 overflow-hidden hidden shadow-sm flex items-center justify-center">
+                        <img src="" class="max-w-full h-auto max-h-96 object-contain">
+                    </div>
+                    <h2 id="single-post-title" class="text-2xl font-black mb-3 leading-snug" style="color: var(--title-color, inherit);">عنوان</h2>
+                    <div class="flex items-center gap-2 mb-8 text-[11px] font-bold opacity-60">
+                        <i class="far fa-calendar"></i>
+                        <span id="single-post-date">تاریخ</span>
+                    </div>
+                    <div id="single-post-content" class="wp-content"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 6. پخش زنده (Live) -->
+        <!-- ============================================== -->
+        <div id="screen-live" class="screen flex-col bg-gray-50 h-full">
+            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2.5 w-2.5">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                        </span>
+                        <h1 class="font-black text-xl text-gray-800">پخش زنده</h1>
+                    </div>
+                </div>
+            </header>
+            <div class="flex-1 overflow-y-auto pb-10 pt-6">
+                <div class="px-6">
+                    <div class="bg-white rounded-3xl overflow-hidden shadow-lg shadow-red-500/10 border border-red-100">
+                        <div class="w-full relative bg-black">
+                            <div class="h_iframe-aparat_embed_frame"> 
+                                <span style="display: block;padding-top: 57%"></span>
+                                <iframe id="live-iframe" scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src=""></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <nav id="bottom-nav" class="shrink-0 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,.04)] z-50">
+        <div class="flex items-center justify-around px-2 pt-3 pb-2 h-16">
+            <button class="nav-item active flex flex-col items-center justify-center gap-1" data-nav="home" onclick="navToScreen('home')">
+                <i class="fas fa-home text-xl text-gray-400"></i>
+                <span class="text-[10px] font-bold text-gray-400">خانه</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center gap-1" data-nav="library" onclick="navToScreen('library')">
+                <i class="fas fa-book text-xl text-gray-400"></i>
+                <span class="text-[10px] font-bold text-gray-400">کتابخانه</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center gap-1" data-nav="media" onclick="navToScreen('media')">
+                <i class="fas fa-photo-film text-xl text-gray-400"></i>
+                <span class="text-[10px] font-bold text-gray-400">رسانه</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center gap-1" data-nav="qa" onclick="navToScreen('qa')">
+                <i class="fas fa-question-circle text-xl text-gray-400"></i>
+                <span class="text-[10px] font-bold text-gray-400">سوال</span>
+            </button>
+            <button class="nav-item flex flex-col items-center justify-center gap-1" data-nav="lectures" onclick="navToScreen('lectures')">
+                <i class="fas fa-microphone-alt text-xl text-gray-400"></i>
+                <span class="text-[10px] font-bold text-gray-400">سخنرانی‌ها</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<!-- ============================================== -->
+<!-- OVERLAYS (TOC & READER) -->
+<!-- ============================================== -->
+
+<!-- TOC OVERLAY -->
+<div id="toc-overlay" class="theme-light">
+    <header class="shrink-0 pt-12 pb-2 px-6 bg-white border-b border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3 min-w-0">
+                <button onclick="closeToc()" class="w-10 h-10 bg-gray-50 text-gray-500 rounded-2xl flex items-center justify-center shrink-0">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <h1 class="font-black text-lg text-gray-800 truncate" id="toc-book-title">کتاب</h1>
+            </div>
+        </div>
+        <div class="flex space-x-reverse space-x-2 bg-gray-100 p-1 rounded-xl mb-2">
+            <button onclick="switchTab('toc')" id="tab-btn-toc" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-brand-600">فهرست</button>
+            <button onclick="switchTab('bookmarks')" id="tab-btn-bookmarks" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">نشان‌ها</button>
+            <button onclick="switchTab('notes')" id="tab-btn-notes" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500">یادداشت‌ها</button>
+        </div>
+    </header>
+    <div class="flex-1 overflow-y-auto px-6 pb-10 pt-4">
+        <div id="tab-content-toc">
+            <div class="bg-gradient-to-br from-brand-900 to-brand-800 rounded-[2rem] p-6 text-white shadow-lg mb-6 cursor-pointer" onclick="resumeReading()">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="w-12 h-16 bg-white/10 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-book text-xl text-white/80"></i>
+                    </div>
+                    <span class="bg-white/20 text-xs font-bold px-3 py-1 rounded-full">در حال مطالعه</span>
+                </div>
+                <h2 id="book-main-title" class="text-lg font-bold mb-3 line-clamp-1">...</h2>
+                <div class="flex justify-between text-xs text-brand-100 mb-2 font-medium">
+                    <span id="toc-progress-text">0٪</span>
+                    <span id="toc-page-info">صفحه 1</span>
+                </div>
+                <div class="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
+                    <div id="toc-progress-bar" class="bg-brand-400 h-full rounded-full transition-all duration-700" style="width:0%"></div>
+                </div>
+            </div>
+            <h3 class="text-sm font-bold text-gray-500 mb-3 px-1"><i class="fas fa-list-ul ml-1"></i> فصول کتاب</h3>
+            <div id="main-toc-container" class="space-y-3"></div>
+        </div>
+        <div id="tab-content-bookmarks" class="hidden">
+            <div id="bookmarks-container" class="space-y-3"></div>
+        </div>
+        <div id="tab-content-notes" class="hidden">
+            <div id="notes-container" class="space-y-3"></div>
+        </div>
+    </div>
+</div>
+
+<!-- READER OVERLAY -->
+<div id="reader-overlay" class="theme-light">
+    <header id="reader-header" class="fixed top-0 inset-x-0 h-16 glass border-b border-gray-200/50 flex items-center justify-between px-4 z-[210] fade-transform mx-auto max-w-2xl">
+        <div class="flex items-center flex-1 min-w-0">
+            <button onclick="closeReader()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100/50 text-gray-600 ml-3 shrink-0">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+            <div class="truncate pr-1">
+                <h1 id="chapter-title" class="text-[10px] font-bold text-brand-600 uppercase tracking-wider mb-0.5 truncate">فصل</h1>
+                <h2 id="header-title" class="font-bold text-sm text-gray-800 truncate">نام صفحه</h2>
+            </div>
+        </div>
+        <div class="flex items-center space-x-reverse space-x-1 shrink-0 relative">
+            <button onclick="openSearch()" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500"><i class="fas fa-search"></i></button>
+            <button onclick="openSettings()" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500"><i class="fas fa-font"></i></button>
+            <button onclick="togglePageMenu()" class="w-10 h-10 flex items-center justify-center rounded-full text-gray-500"><i class="fas fa-ellipsis-v"></i></button>
+            <div id="page-action-menu" class="hidden absolute top-12 left-0 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                <button onclick="toggleBookmark()" class="w-full text-right px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center border-b border-gray-100">
+                    <i id="menu-bookmark-icon" class="far fa-bookmark ml-3 w-4 text-center"></i> نشان‌گذاری
+                </button>
+                <button onclick="openNoteModal()" class="w-full text-right px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center border-b border-gray-100">
+                    <i class="fas fa-pen-alt ml-3 w-4 text-center"></i> درج یادداشت
+                </button>
+                <button onclick="copyPageText()" class="w-full text-right px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
+                    <i class="far fa-copy ml-3 w-4 text-center"></i> کپی متن
+                </button>
+            </div>
+        </div>
+    </header>
+    <main id="content-container" class="flex-1 overflow-y-auto overflow-x-hidden pt-20 pb-28">
+        <div class="max-w-xl mx-auto px-6 sm:px-10">
+            <div id="text-content" class="reader-text text-lg text-gray-800 pb-10"></div>
+        </div>
+    </main>
+    <footer id="reader-footer" class="fixed bottom-0 inset-x-0 glass border-t border-gray-200/50 z-[210] fade-transform mx-auto max-w-2xl" style="padding-bottom:var(--safe-bottom);">
+        <div class="h-20 flex items-center justify-between px-4">
+            <button onclick="nextPage()" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-600 shadow-sm border border-gray-100 hover:bg-gray-100"><i class="fas fa-chevron-right"></i></button>
+            <div class="flex-1 px-5 flex flex-col items-center justify-center">
+                <span id="page-counter" class="text-[11px] font-bold text-gray-400 mb-2 tracking-widest" dir="ltr">1 / 100</span>
+                <input type="range" id="page-slider" min="0" max="100" value="0" class="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand-600 outline-none">
+            </div>
+            <button onclick="prevPage()" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-600 shadow-sm border border-gray-100 hover:bg-gray-100"><i class="fas fa-chevron-left"></i></button>
+        </div>
+    </footer>
+</div>
+
+<!-- MODALS -->
+<div id="note-modal" class="fixed inset-y-0 inset-x-0 mx-auto max-w-2xl z-[250] hidden flex-col bg-black/50 backdrop-blur-sm justify-end shadow-2xl">
+    <div class="bg-white rounded-t-[2rem] p-6 shadow-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-800">درج یادداشت</h3>
+            <button onclick="closeNoteModal()" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500"><i class="fas fa-times"></i></button>
+        </div>
+        <textarea id="note-textarea" rows="4" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-gray-800 outline-none focus:border-brand-500 transition" placeholder="یادداشت..."></textarea>
+        <button onclick="saveNote()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl">ذخیره</button>
+    </div>
+</div>
+
+<div id="search-modal" class="fixed inset-y-0 inset-x-0 mx-auto max-w-2xl z-[240] hidden flex-col bg-gray-50 shadow-2xl">
+    <div class="h-16 bg-white border-b border-gray-200 flex items-center px-4 shrink-0">
+        <button onclick="closeSearch()" class="w-10 h-10 flex items-center justify-center text-gray-500"><i class="fas fa-arrow-right"></i></button>
+        <input type="text" id="search-input" placeholder="جستجو..." class="flex-1 border-none bg-transparent outline-none px-4 text-gray-800 font-medium">
+        <button onclick="performSearch()" class="w-10 h-10 flex items-center justify-center text-brand-600 bg-brand-50 rounded-full"><i class="fas fa-search"></i></button>
+    </div>
+    <div id="search-results" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-overlay" onclick="closeSettings()" class="fixed inset-y-0 inset-x-0 mx-auto max-w-2xl bg-black/30 backdrop-blur-sm z-[230] hidden opacity-0 transition-opacity"></div>
+<div id="settings-modal" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] shadow-2xl z-[235] transform translate-y-full transition-transform max-w-md mx-auto" style="padding-bottom:var(--safe-bottom);">
+    <div class="p-6 pb-2 max-h-[80vh] overflow-y-auto">
+        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+        <div class="mb-6">
+            <span class="text-sm font-bold text-gray-800 block mb-3">نوع قلم</span>
+            <div class="flex bg-gray-50 p-1 rounded-xl">
+                <button onclick="setFont('vazir')" id="font-btn-vazir" class="flex-1 py-2 text-sm rounded-lg font-vazir bg-white shadow-sm font-bold text-brand-600">وزیر</button>
+                <button onclick="setFont('shabnam')" id="font-btn-shabnam" class="flex-1 py-2 text-sm rounded-lg font-shabnam text-gray-500">شبنم</button>
+                <button onclick="setFont('tahoma')" id="font-btn-tahoma" class="flex-1 py-2 text-sm rounded-lg font-tahoma text-gray-500">تاهوما</button>
+            </div>
+        </div>
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm font-bold text-gray-800">اندازه متن</span>
+                <span id="font-size-display" class="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1 rounded-full">16px</span>
+            </div>
+            <div class="flex items-center bg-gray-50 p-1.5 rounded-2xl">
+                <button onclick="changeFontSize(1)" class="flex-1 py-2 flex justify-center bg-white rounded-xl shadow-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus"></i></button>
+                <div class="w-2"></div>
+                <button onclick="changeFontSize(-1)" class="flex-1 py-2 flex justify-center bg-white rounded-xl shadow-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-minus"></i></button>
+            </div>
+        </div>
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-sm font-bold text-gray-800">فاصله خطوط</span>
+                <span id="line-height-display" class="text-xs font-bold bg-gray-100 text-gray-600 px-3 py-1 rounded-full">2.2</span>
+            </div>
+            <div class="flex items-center bg-gray-50 p-1.5 rounded-2xl">
+                <button onclick="changeLineHeight(0.2)" class="flex-1 py-2 flex justify-center bg-white rounded-xl shadow-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-plus"></i></button>
+                <div class="w-2"></div>
+                <button onclick="changeLineHeight(-0.2)" class="flex-1 py-2 flex justify-center bg-white rounded-xl shadow-sm text-gray-700 hover:bg-gray-100"><i class="fas fa-minus"></i></button>
+            </div>
+        </div>
+        <div class="mb-6">
+            <span class="text-sm font-bold text-gray-800 block mb-3">رنگ تیترها</span>
+            <div class="flex space-x-reverse space-x-3">
+                <button onclick="setTitleColor('inherit')" class="w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white ring-2 ring-transparent focus:ring-gray-800"></button>
+                <button onclick="setTitleColor('#0d9488')" class="w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white"></button>
+                <button onclick="setTitleColor('#2563eb')" class="w-10 h-10 rounded-full bg-blue-600 shadow-sm border-2 border-white"></button>
+                <button onclick="setTitleColor('#e11d48')" class="w-10 h-10 rounded-full bg-rose-600 shadow-sm border-2 border-white"></button>
+                <button onclick="setTitleColor('#1e3a8a')" class="w-10 h-10 rounded-full bg-blue-900 shadow-sm border-2 border-white"></button>
+            </div>
+        </div>
+        <div class="mb-4">
+            <span class="text-sm font-bold text-gray-800 block mb-3">تم</span>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="setTheme('light')" id="theme-btn-light" class="py-3 rounded-xl border-2 border-brand-500 bg-white text-gray-800 font-bold text-sm shadow-sm"><i class="fas fa-sun text-yellow-500 mb-1 block text-lg"></i>روز</button>
+                <button onclick="setTheme('sepia')" id="theme-btn-sepia" class="py-3 rounded-xl border-2 border-transparent bg-[#f4ecd8] text-[#5c4b37] font-bold text-sm shadow-sm"><i class="fas fa-book-open text-amber-700 mb-1 block text-lg"></i>مطالعه</button>
+                <button onclick="setTheme('dark')" id="theme-btn-dark" class="py-3 rounded-xl border-2 border-transparent bg-gray-900 text-white font-bold text-sm shadow-sm"><i class="fas fa-moon text-blue-300 mb-1 block text-lg"></i>شب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[300]">پیام</div>
+
+<script>
+window.addEventListener('load', () => {
+    if (typeof tailwind === 'undefined') {
+        const txt = document.getElementById('loading-text');
+        const spn = document.getElementById('loading-spinner');
+        if (txt) txt.innerHTML = '<span style="color:#ef4444;font-size:16px;">❌ اینترنت شما مسدود است!</span><br><br>لطفاً فیلترشکن خود را روشن کرده و صفحه را رفرش کنید.';
+        if (spn) spn.style.display = 'none';
+    }
+});
+
+// ====================================================
+// متغیرهای سراسری سیستم
+// ====================================================
+let allBooks=[], currentBookId=null, bookData=[], currentIndex=0;
+let fontSize=16, currentTheme='light', currentFont='vazir', lineHeight=2.2;
+let uiVisible=true, bookmarks=[], notes={};
+let touchStartX=0, touchEndX=0;
+
+const WP_API_URL = 'https://dastgheibqoba.info/wp-json/wp/v2';
+let allWPCats = [];
+let wpState = { view: 'main', mainCat: { id: null, name: '' }, currentCat: { id: null, name: '' } };
+const TARGET_MAIN_CATS = ['تفسیر قرآن', 'محرم الحرام', 'مناسبت ها', 'رمضان المبارک'];
+let cachedPosts = [];
+
+let wpMediaPlaylists = [];
+let wpMediaState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
+let cachedMediaPosts = [];
+
+let wpPhotoPlaylists = [];
+let wpPhotoState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
+let cachedPhotoPosts = [];
+
+// ====================================================
+// تزریق استایل برای حذف هدر و فوتر سایت وردپرسی در قاب
+// ====================================================
+function injectCSSIntoWebView() {
+    const iframe = document.getElementById('audio-webview');
+    if(!iframe) return;
+    try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        if (iframeDoc) {
+            const style = iframeDoc.createElement('style');
+            style.innerHTML = `
+                header, footer, #masthead, #colophon, 
+                .site-header, .site-footer, 
+                .elementor-location-header, .elementor-location-footer,
+                .main-header, .main-footer, nav.main-navigation 
+                { display: none !important; }
+                body { padding-top: 0 !important; margin-top: 0 !important; }
+            `;
+            iframeDoc.head.appendChild(style);
+        }
+    } catch (e) {
+        console.warn("CORS limitation for iframe styling. Make sure WP script is added.");
+    }
+}
+
+// ====================================================
+// موتور استخراج رسانه قدرتمند (Regex Nuke)
+// ====================================================
+function extractMediaFromPost(post) {
+    const postString = JSON.stringify(post).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+    
+    let videos = [];
+    let audios = [];
+    let iframes = [];
+    let images = [];
+
+    // استخراج لینک‌های مستقیم صوتی و ویدیویی
+    const mediaRegex = /https?:\/\/[^\s"'<>]+\.(mp3|m4a|wav|ogg|mp4|mkv|webm)(?:\?[^\s"'<>]*)?/gi;
+    const matches = postString.match(mediaRegex) || [];
+    matches.forEach(url => {
+        const lower = url.toLowerCase();
+        if (lower.includes('.mp4') || lower.includes('.mkv') || lower.includes('.webm')) videos.push(url);
+        else audios.push(url);
+    });
+
+    // استخراج کدهای آپارات
+    const aparatRegex = /aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/)([a-zA-Z0-9]+)/gi;
+    let amatch;
+    while ((amatch = aparatRegex.exec(postString)) !== null) {
+        iframes.push(`https://www.aparat.com/video/video/embed/videohash/${amatch[1]}/vt/frame`);
+    }
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = post.content.rendered;
+
+    // استخراج تمامی تصاویر از متن
+    tempDiv.querySelectorAll('img').forEach(img => {
+        if(img.src && !img.src.includes('emoji')) images.push(img.src);
+    });
+
+    // حذف کامل تگ‌های مربوط به رسانه‌ها از متن برای پاکسازی
+    const removeSelectors = [
+        '.wp-playlist', '.wp-playlist-script', 'audio', 'video', 'iframe', 'img',
+        '.mejs-container', '.mejs-controls', '.wp-audio-shortcode', '.wp-video-shortcode',
+        '.audio-player', 'figure.wp-block-audio', 'figure.wp-block-video', 'figure.wp-block-embed', 'figure.wp-block-image', 'figure.wp-block-gallery'
+    ];
+    tempDiv.querySelectorAll(removeSelectors.join(', ')).forEach(el => el.remove());
+
+    // حذف لینک‌های متنی دانلود رسانه
+    tempDiv.querySelectorAll('a').forEach(a => {
+        const href = (a.getAttribute('href') || '').toLowerCase();
+        if(href.match(/\.(mp3|mp4|m4a|wav|ogg|mkv|webm)(\?|$)/)) a.remove();
+    });
+
+    // پاکسازی دقیق و مستقیم کلمات مزاحم با Regex بر روی رشته‌ی HTML
+    let cleanHtml = tempDiv.innerHTML;
+    cleanHtml = cleanHtml.replace(/\b(Play|Stop|Pause|Mute|Unmute|00:00)\b/gi, '');
+    cleanHtml = cleanHtml.replace(/پخش|توقف|لیست پخش|صدا/g, '');
+    cleanHtml = cleanHtml.replace(/متن تفسیر/g, '');
+    cleanHtml = cleanHtml.replace(/صوت جلسه[:\s]*/g, '');
+    cleanHtml = cleanHtml.replace(/دریافت فایل صوتی/g, '');
+
+    tempDiv.innerHTML = cleanHtml;
+    
+    // پاکسازی فاصله‌ها و پاراگراف‌های خالی
+    tempDiv.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6, strong, b, em').forEach(el => {
+        if (el.innerHTML.trim() === '' || el.innerHTML === '&nbsp;' || el.textContent.trim() === '') el.remove();
+    });
+
+    return {
+        iframes: [...new Set(iframes)],
+        videos: [...new Set(videos)],
+        audios: [...new Set(audios)],
+        images: [...new Set(images)],
+        cleanHtml: tempDiv.innerHTML
+    };
+}
+
+// ====================================================
+// توابع عمومی و سخنرانی
+// ====================================================
+
+async function initWP() {
+    if (allWPCats.length === 0) await fetchWPCategories();
+    else showWPMainCategories();
+}
+
+function setWPLoading(show) {
+    const loading = document.getElementById('lectures-loading');
+    if(!loading) return;
+    if (show) { loading.classList.remove('hidden'); loading.classList.add('flex'); }
+    else { loading.classList.add('hidden'); loading.classList.remove('flex'); }
+}
+
+async function fetchWPCategories() {
+    setWPLoading(true);
+    const catView = document.getElementById('lectures-categories-view');
+    try {
+        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+        if (!res.ok) throw new Error('API ERROR');
+        allWPCats = await res.json();
+        if(!Array.isArray(allWPCats) || allWPCats.length === 0) return;
+        showWPMainCategories();
+    } catch (e) {
+        catView.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-12 text-gray-400"><i class="fas fa-wifi text-4xl mb-3 opacity-50"></i><p class="text-sm font-bold">خطا در دریافت اطلاعات</p><button onclick="fetchWPCategories()" class="mt-4 bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold shadow-sm">تلاش مجدد</button></div>`;
+    } finally { setWPLoading(false); }
+}
+
+function renderCategoryGrid(cats, isMainView = false) {
+    if (cats.length === 0) return '<div class="col-span-2 text-center py-10 text-gray-500 font-bold text-sm">هیچ موردی یافت نشد.</div>';
+    const colors = ['text-amber-500 bg-amber-50', 'text-teal-500 bg-teal-50', 'text-blue-500 bg-blue-50', 'text-rose-500 bg-rose-50', 'text-purple-500 bg-purple-50'];
+    return cats.map((c, i) => {
+        const colorCls = colors[i % colors.length];
+        const safeName = c.name ? c.name.replace(/'/g, "\\'") : 'بدون نام';
+        const isTargetMain = TARGET_MAIN_CATS.includes(c.name.trim());
+        const countBadge = (isMainView || isTargetMain || c.count === 0) ? '' : `<span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">${c.count} نوشته</span>`;
+        return `<div onclick="handleCategoryClick(${c.id}, '${safeName}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-brand-100 transition active:scale-95 text-center"><div class="w-14 h-14 ${colorCls} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-folder-open"></i></div><h3 class="font-bold text-xs text-gray-800 text-center line-clamp-2 leading-relaxed">${c.name}</h3>${countBadge}</div>`;
+    }).join('');
+}
+
+function showWPMainCategories() {
+    exitReadingMode();
+    wpState.view = 'main';
+    document.getElementById('lectures-header-title').textContent = 'سخنرانی‌ها';
+    document.getElementById('lectures-posts-view').classList.add('hidden');
+    document.getElementById('lectures-posts-view').classList.remove('flex');
+    document.getElementById('lectures-single-view').classList.add('hidden');
+    document.getElementById('lectures-single-view').classList.remove('flex');
+    const catView = document.getElementById('lectures-categories-view');
+    catView.classList.remove('hidden');
+
+    let mainCats = allWPCats.filter(c => TARGET_MAIN_CATS.includes(c.name.trim()));
+    if (mainCats.length === 0) mainCats = allWPCats.filter(c => c.parent === 0 && c.count > 0);
+    catView.innerHTML = renderCategoryGrid(mainCats, true);
+}
+
+function handleCategoryClick(catId, catName) {
+    const children = allWPCats.filter(c => c.parent === catId && c.count > 0);
+    if (wpState.view === 'main') wpState.mainCat = { id: catId, name: catName };
+    if (children.length > 0) showWPSubCategories(catId, catName, children);
+    else showWPPostsView(catId, catName);
+}
+
+function showWPSubCategories(parentId, parentName, children) {
+    exitReadingMode();
+    wpState.view = 'sub';
+    document.getElementById('lectures-header-title').textContent = parentName;
+    document.getElementById('lectures-posts-view').classList.add('hidden');
+    document.getElementById('lectures-posts-view').classList.remove('flex');
+    document.getElementById('lectures-single-view').classList.add('hidden');
+    document.getElementById('lectures-single-view').classList.remove('flex');
+    const catView = document.getElementById('lectures-categories-view');
+    catView.classList.remove('hidden');
+    catView.innerHTML = renderCategoryGrid(children, false);
+}
+
+async function showWPPostsView(catId, catName) {
+    exitReadingMode();
+    wpState.view = 'posts';
+    wpState.currentCat = { id: catId, name: catName };
+    document.getElementById('lectures-categories-view').classList.add('hidden');
+    document.getElementById('lectures-single-view').classList.add('hidden');
+    document.getElementById('lectures-single-view').classList.remove('flex');
+    const postsView = document.getElementById('lectures-posts-view');
+    postsView.classList.remove('hidden');
+    postsView.classList.add('flex');
+    postsView.innerHTML = '';
+    document.getElementById('lectures-header-title').textContent = catName;
+    
+    setWPLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts?categories=${catId}&_embed=1&per_page=30`);
+        if (!res.ok) throw new Error('API ERROR');
+        cachedPosts = await res.json();
+        
+        if(!Array.isArray(cachedPosts) || cachedPosts.length === 0) {
+            postsView.innerHTML = `<div class="text-center py-20 text-gray-400 text-sm font-bold">هیچ نوشته‌ای در این بخش یافت نشد.</div>`;
+        } else {
+            postsView.innerHTML = cachedPosts.map(post => {
+                let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+                const date = new Date(post.date).toLocaleDateString('fa-IR');
+                return `<div onclick="showWPSingleView(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">${imgUrl ? `<img src="${imgUrl}" class="w-20 h-20 rounded-xl object-contain bg-gray-100 shadow-sm shrink-0">` : `<div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-brand-300 text-2xl"></i></div>`}<div class="flex flex-col justify-center min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-2">${post.title.rendered}</h4><span class="text-[10px] text-gray-400 font-medium"><i class="far fa-calendar ml-1"></i>${date}</span></div></div>`;
+            }).join('');
+        }
+    } catch (e) {
+        postsView.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-gray-400"><p class="text-sm font-bold">خطا در دریافت نوشته‌ها</p><button onclick="showWPPostsView(${catId}, '${catName}')" class="mt-4 bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold shadow-sm">تلاش مجدد</button></div>`;
+    }
+    setWPLoading(false);
+}
+
+function exitReadingMode() {
+    const screen = document.getElementById('screen-lectures');
+    if (screen) screen.classList.remove('reading-mode');
+    const btnSet = document.getElementById('btn-lectures-settings');
+    if (btnSet) btnSet.classList.add('hidden');
+}
+
+function showWPSingleView(postId) {
+    const post = cachedPosts.find(p => p.id === postId);
+    if (!post) return;
+
+    wpState.view = 'single';
+    const screen = document.getElementById('screen-lectures');
+    if (screen) screen.classList.add('reading-mode');
+    const btnSet = document.getElementById('btn-lectures-settings');
+    if (btnSet) btnSet.classList.remove('hidden');
+    
+    document.getElementById('lectures-categories-view').classList.add('hidden');
+    document.getElementById('lectures-posts-view').classList.remove('flex');
+    document.getElementById('lectures-posts-view').classList.add('hidden');
+    
+    const singleView = document.getElementById('lectures-single-view');
+    singleView.classList.remove('hidden');
+    singleView.classList.add('flex');
+    
+    const tempTitle = document.createElement('div');
+    tempTitle.innerHTML = post.title.rendered;
+    document.getElementById('lectures-header-title').textContent = tempTitle.textContent || tempTitle.innerText || 'بدون عنوان';
+    document.getElementById('single-post-title').innerHTML = post.title.rendered;
+    document.getElementById('single-post-date').textContent = new Date(post.date).toLocaleDateString('fa-IR');
+    
+    const media = extractMediaFromPost(post);
+    let finalHtml = '';
+    
+    media.iframes.forEach(src => { finalHtml += `<div class="h_iframe-aparat_embed_frame mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-200"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`; });
+    media.videos.forEach(src => { finalHtml += `<video controls src="${src}" class="w-full rounded-2xl mb-6 shadow-sm bg-black"></video>`; });
+    
+    if (media.audios.length > 0) {
+        finalHtml += `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
+        finalHtml += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>فایل صوتی ضمیمه</h3>`;
+        media.audios.forEach((src) => {
+            finalHtml += `<audio controls src="${src}" class="w-full h-11 mb-3 outline-none"></audio>`;
+            finalHtml += `<a href="${src}" target="_blank" download class="inline-flex items-center justify-center bg-white text-brand-600 px-4 py-2.5 rounded-xl text-[11px] font-bold mb-2 shadow-sm border border-gray-200 hover:bg-gray-50 transition" style="text-decoration: none;"><i class="fas fa-download ml-2"></i> دانلود فایل صوتی</a><br>`;
+        });
+        finalHtml += `</div>`;
+    }
+    
+    finalHtml += media.cleanHtml;
+    
+    document.getElementById('single-post-content').innerHTML = finalHtml;
+    document.getElementById('single-post-content').style.fontSize = fontSize + 'px';
+    
+    let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+    const imgContainer = document.getElementById('single-post-image');
+    if (imgUrl) { imgContainer.classList.remove('hidden'); imgContainer.querySelector('img').src = imgUrl; } 
+    else { imgContainer.classList.add('hidden'); }
+}
+
+function wpNavBack() {
+    if (wpState.view === 'single') showWPPostsView(wpState.currentCat.id, wpState.currentCat.name);
+    else if (wpState.view === 'posts') {
+        if (wpState.mainCat.id && wpState.mainCat.id !== wpState.currentCat.id) {
+            const children = allWPCats.filter(c => c.parent === wpState.mainCat.id && c.count > 0);
+            showWPSubCategories(wpState.mainCat.id, wpState.mainCat.name, children);
+        } else showWPMainCategories();
+    } else if (wpState.view === 'sub') showWPMainCategories();
+    else navToScreen('home');
+}
+
+// ====================================================
+// توابع بخش رسانه (ویدیو، صوت، عکس)
+// ====================================================
+
+function switchMediaTab(tab) {
+    const tabs = ['video', 'audio', 'photo'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tab-media-' + t);
+        const content = document.getElementById('media-content-' + t);
+        if (!btn || !content) return;
+        if(t === tab) {
+            btn.classList.add('bg-white', 'shadow-sm', 'text-brand-600');
+            btn.classList.remove('text-gray-500');
+            content.classList.remove('hidden');
+            if(t === 'photo' || t === 'audio') content.classList.add('flex'); else content.classList.add('block'); 
+        } else {
+            btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-600');
+            btn.classList.add('text-gray-500');
+            content.classList.add('hidden');
+            content.classList.remove('block', 'flex');
+        }
+    });
+    
+    const vc = document.getElementById('wp-media-player-container');
+    if(tab !== 'video' && vc) vc.innerHTML = '';
+
+    if (tab === 'video' && wpMediaPlaylists.length === 0) fetchWPMediaPlaylists();
+    if (tab === 'photo' && wpPhotoPlaylists.length === 0) fetchWPPhotoPlaylists();
+}
+
+function setMediaLoading(show) {
+    const loading = document.getElementById('media-loading');
+    const videoContent = document.getElementById('media-content-video');
+    const photoContent = document.getElementById('media-content-photo');
+    if(!loading) return;
+    if (show) { 
+        loading.classList.remove('hidden'); loading.classList.add('flex');
+        if(videoContent) { videoContent.style.opacity = '0.3'; videoContent.style.pointerEvents = 'none'; }
+        if(photoContent) { photoContent.style.opacity = '0.3'; photoContent.style.pointerEvents = 'none'; }
+    } else { 
+        loading.classList.add('hidden'); loading.classList.remove('flex'); 
+        if(videoContent) { videoContent.style.opacity = '1'; videoContent.style.pointerEvents = 'auto'; }
+        if(photoContent) { photoContent.style.opacity = '1'; photoContent.style.pointerEvents = 'auto'; }
+    }
+}
+
+async function initMedia() { switchMediaTab('video'); }
+
+// --- بخش فیلم ---
+async function fetchWPMediaPlaylists() {
+    setMediaLoading(true);
+    const plView = document.getElementById('wp-media-playlists-view');
+    try {
+        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+        if(!res.ok) throw new Error('WP API Error');
+        const cats = await res.json();
+        
+        const targetNames = ['ویدئو کلیپ', 'ویدیو کلیپ', 'ویدیوکلیپ', 'ویدئوکلیپ', 'ویدیوها', 'ویدئوها', 'ویدیو', 'فیلم'];
+        const mainVideoCat = cats.find(c => targetNames.includes(c.name.trim()) || c.slug.includes('video'));
+        
+        let displayCats = mainVideoCat ? cats.filter(c => (c.id === mainVideoCat.id || c.parent === mainVideoCat.id) && c.count > 0) : cats.filter(c => c.count > 0);
+
+        if(displayCats.length > 0) {
+            wpMediaPlaylists = displayCats;
+            plView.innerHTML = displayCats.map((pl, i) => {
+                const colors = ['text-rose-500 bg-rose-50', 'text-blue-500 bg-blue-50', 'text-emerald-500 bg-emerald-50', 'text-amber-500 bg-amber-50'];
+                return `<div onclick="showWPMediaVideos('${pl.id}', '${pl.name.replace(/'/g, "\\'")}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95 text-center"><div class="w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-play-circle"></i></div><h3 class="font-bold text-xs text-gray-800 line-clamp-2">${pl.name}</h3></div>`;
+            }).join('');
+        } else plView.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-500 font-bold text-sm">دسته‌بندی ویدیوها یافت نشد.</div>';
+    } catch(e) { plView.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400"><p class="text-sm font-bold">خطا در دریافت اطلاعات</p><button onclick="fetchWPMediaPlaylists()" class="mt-4 bg-rose-50 text-rose-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; } 
+    finally { setMediaLoading(false); }
+}
+
+async function showWPMediaVideos(categoryId, title) {
+    wpMediaState.view = 'videos';
+    document.getElementById('wp-media-playlists-view').classList.add('hidden');
+    document.getElementById('wp-media-single-view').classList.add('hidden');
+    document.getElementById('wp-media-single-view').classList.remove('flex');
+    const videosView = document.getElementById('wp-media-videos-view');
+    videosView.classList.remove('hidden'); videosView.classList.add('flex');
+    
+    const listContainer = document.getElementById('wp-media-videos-list');
+    listContainer.innerHTML = '';
+    document.getElementById('wp-media-playlist-title').textContent = title;
+    
+    setMediaLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts?categories=${categoryId}&_embed=1&per_page=50`);
+        const data = await res.json();
+        
+        let validPosts = [];
+        if(data && data.length > 0) {
+            data.forEach(post => {
+                const mediaInfo = extractMediaFromPost(post);
+                if (mediaInfo.iframes.length > 0 || mediaInfo.videos.length > 0) {
+                    post.extractedMedia = mediaInfo;
+                    validPosts.push(post);
+                }
+            });
+        }
+        
+        cachedMediaPosts = validPosts;
+        
+        if(validPosts.length > 0) {
+            listContainer.innerHTML = validPosts.map(post => {
+                let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+                return `
+                <div onclick="playWPMediaVideo(${post.id}, '${post.title.rendered.replace(/'/g, "\\'")}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
+                    <div class="w-24 h-16 bg-gray-200 rounded-xl overflow-hidden relative shadow-sm shrink-0">
+                        ${imgUrl ? `<img src="${imgUrl}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-rose-50 flex items-center justify-center"><i class="fas fa-video text-rose-300 text-xl"></i></div>`}
+                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center"><i class="fas fa-play text-white text-lg opacity-90 drop-shadow-md"></i></div>
+                    </div>
+                    <div class="flex flex-col justify-center min-w-0 flex-1"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1.5">${post.title.rendered}</h4></div>
+                </div>`;
+            }).join('');
+        } else listContainer.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs font-bold">هیچ ویدیویی در این بخش یافت نشد.</div>`;
+    } catch(e) { listContainer.innerHTML = `<div class="text-center py-10 text-gray-400"><button onclick="showWPMediaVideos('${categoryId}', '${title}')" class="bg-gray-100 px-4 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; } 
+    finally { setMediaLoading(false); }
+}
+
+function playWPMediaVideo(postId, title) {
+    const post = cachedMediaPosts.find(p => p.id === postId);
+    if(!post || !post.extractedMedia) return;
+
+    wpMediaState.view = 'single';
+    document.getElementById('wp-media-videos-view').classList.add('hidden');
+    document.getElementById('wp-media-videos-view').classList.remove('flex');
+    const singleView = document.getElementById('wp-media-single-view');
+    singleView.classList.remove('hidden'); singleView.classList.add('flex');
+    
+    document.getElementById('wp-media-video-title').innerHTML = title;
+    
+    let playerHtml = '';
+    post.extractedMedia.iframes.forEach(src => playerHtml += `<div class="h_iframe-aparat_embed_frame mb-4"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`);
+    post.extractedMedia.videos.forEach(src => playerHtml += `<video controls src="${src}" style="width:100%; border-radius:12px; margin-bottom:15px;"></video>`);
+    
+    document.getElementById('wp-media-player-container').innerHTML = playerHtml;
+    
+    const contentContainer = document.getElementById('wp-media-post-content');
+    if (post.extractedMedia.cleanHtml.trim() !== '') {
+        contentContainer.innerHTML = post.extractedMedia.cleanHtml;
+        contentContainer.style.display = 'block';
+    } else {
+        contentContainer.style.display = 'none';
+    }
+}
+
+function backToWPMediaPlaylists() {
+    wpMediaState.view = 'playlists';
+    document.getElementById('wp-media-videos-view').classList.add('hidden');
+    document.getElementById('wp-media-videos-view').classList.remove('flex');
+    document.getElementById('wp-media-playlists-view').classList.remove('hidden');
+}
+
+function backToWPMediaVideos() {
+    wpMediaState.view = 'videos';
+    document.getElementById('wp-media-single-view').classList.add('hidden');
+    document.getElementById('wp-media-single-view').classList.remove('flex');
+    document.getElementById('wp-media-videos-view').classList.remove('hidden');
+    document.getElementById('wp-media-videos-view').classList.add('flex');
+    document.getElementById('wp-media-player-container').innerHTML = '';
+}
+
+// --- بخش عکس ---
+async function fetchWPPhotoPlaylists() {
+    setMediaLoading(true);
+    const plView = document.getElementById('wp-photo-playlists-view');
+    try {
+        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+        if(!res.ok) throw new Error('WP API Error');
+        const cats = await res.json();
+        
+        const targetNames = ['تصاویر', 'عکس', 'گالری', 'گالری تصاویر', 'عکس ها', 'گزارش تصویری'];
+        const mainPhotoCat = cats.find(c => targetNames.includes(c.name.trim()) || c.slug.includes('gallery') || c.slug.includes('photo') || c.slug.includes('image'));
+        
+        let displayCats = mainPhotoCat ? cats.filter(c => (c.id === mainPhotoCat.id || c.parent === mainPhotoCat.id) && c.count > 0) : cats.filter(c => c.count > 0);
+
+        if(displayCats.length > 0) {
+            wpPhotoPlaylists = displayCats;
+            plView.innerHTML = displayCats.map((pl, i) => {
+                const colors = ['text-emerald-500 bg-emerald-50', 'text-cyan-500 bg-cyan-50', 'text-teal-500 bg-teal-50', 'text-green-500 bg-green-50'];
+                return `<div onclick="showWPPhotoPosts('${pl.id}', '${pl.name.replace(/'/g, "\\'")}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95 text-center"><div class="w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-images transform -translate-y-0.5"></i></div><h3 class="font-bold text-xs text-gray-800 line-clamp-2">${pl.name}</h3></div>`;
+            }).join('');
+        } else plView.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-500 font-bold text-sm">دسته‌بندی تصاویر یافت نشد.</div>';
+    } catch(e) { plView.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400"><button onclick="fetchWPPhotoPlaylists()" class="mt-4 bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; } 
+    finally { setMediaLoading(false); }
+}
+
+async function showWPPhotoPosts(categoryId, title) {
+    wpPhotoState.view = 'posts';
+    document.getElementById('wp-photo-playlists-view').classList.add('hidden');
+    document.getElementById('wp-photo-single-view').classList.add('hidden');
+    document.getElementById('wp-photo-single-view').classList.remove('flex');
+    const postsView = document.getElementById('wp-photo-posts-view');
+    postsView.classList.remove('hidden'); postsView.classList.add('flex');
+    
+    const listContainer = document.getElementById('wp-photo-posts-list');
+    listContainer.innerHTML = '';
+    document.getElementById('wp-photo-playlist-title').textContent = title;
+    
+    setMediaLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts?categories=${categoryId}&_embed=1&per_page=50`);
+        const data = await res.json();
+        
+        let validPosts = [];
+        if(data && data.length > 0) {
+            data.forEach(post => {
+                const mediaInfo = extractMediaFromPost(post);
+                
+                if (post._embedded && post._embedded['wp:featuredmedia']) {
+                    mediaInfo.images.unshift(post._embedded['wp:featuredmedia'][0].source_url);
+                }
+                mediaInfo.images = [...new Set(mediaInfo.images)];
+                
+                if (mediaInfo.images.length > 0) {
+                    post.extractedMedia = mediaInfo;
+                    validPosts.push(post);
+                }
+            });
+        }
+        
+        cachedPhotoPosts = validPosts;
+        
+        if(validPosts.length > 0) {
+            listContainer.innerHTML = validPosts.map(post => {
+                const date = new Date(post.date).toLocaleDateString('fa-IR');
+                const firstImage = post.extractedMedia.images[0];
+                return `
+                <div onclick="showWPPhotoGallery(${post.id}, '${post.title.rendered.replace(/'/g, "\\'")}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden shrink-0 shadow-inner">
+                        <img src="${firstImage}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex flex-col justify-center min-w-0 flex-1">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1.5">${post.title.rendered}</h4>
+                        <span class="text-[10px] font-medium text-gray-400"><i class="far fa-calendar ml-1"></i>${date} - ${post.extractedMedia.images.length} تصویر</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } else listContainer.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs font-bold">هیچ گالری در این بخش یافت نشد.</div>`;
+    } catch(e) { listContainer.innerHTML = `<div class="text-center py-10 text-gray-400"><button onclick="showWPPhotoPosts('${categoryId}', '${title}')" class="bg-gray-100 px-4 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; } 
+    finally { setMediaLoading(false); }
+}
+
+function showWPPhotoGallery(postId, title) {
+    const post = cachedPhotoPosts.find(p => p.id === postId);
+    if(!post || !post.extractedMedia) return;
+
+    wpPhotoState.view = 'single';
+    document.getElementById('wp-photo-posts-view').classList.add('hidden');
+    document.getElementById('wp-photo-posts-view').classList.remove('flex');
+    const singleView = document.getElementById('wp-photo-single-view');
+    singleView.classList.remove('hidden'); singleView.classList.add('flex');
+    
+    document.getElementById('wp-photo-post-title').innerHTML = title;
+    
+    const container = document.getElementById('wp-photo-gallery-container');
+    container.innerHTML = post.extractedMedia.images.map(src => `
+        <div class="rounded-2xl overflow-hidden bg-gray-100 shadow-sm border border-gray-200 aspect-square cursor-pointer" onclick="openImageModal('${src}')">
+            <img src="${src}" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+    `).join('');
+
+    const contentContainer = document.getElementById('wp-photo-post-content');
+    if (post.extractedMedia.cleanHtml.trim() !== '') {
+        contentContainer.innerHTML = post.extractedMedia.cleanHtml;
+        contentContainer.style.display = 'block';
+    } else {
+        contentContainer.style.display = 'none';
+    }
+}
+
+function backToWPPhotoPlaylists() {
+    wpPhotoState.view = 'playlists';
+    document.getElementById('wp-photo-posts-view').classList.add('hidden');
+    document.getElementById('wp-photo-posts-view').classList.remove('flex');
+    document.getElementById('wp-photo-playlists-view').classList.remove('hidden');
+}
+
+function backToWPPhotoPosts() {
+    wpPhotoState.view = 'posts';
+    document.getElementById('wp-photo-single-view').classList.add('hidden');
+    document.getElementById('wp-photo-single-view').classList.remove('flex');
+    document.getElementById('wp-photo-posts-view').classList.remove('hidden');
+    document.getElementById('wp-photo-posts-view').classList.add('flex');
+}
+
+function openImageModal(src) {
+    const modal = document.getElementById('image-modal');
+    const img = document.getElementById('fullscreen-image');
+    img.src = src;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => img.classList.remove('scale-95'), 10);
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('image-modal');
+    const img = document.getElementById('fullscreen-image');
+    img.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        img.src = '';
+    }, 300);
+}
+
+// --------------------------------------------------
+// ناوبری اصلی
+// --------------------------------------------------
+function navToScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const targetScreen = document.getElementById('screen-' + name);
+    if (targetScreen) targetScreen.classList.add('active');
+    
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navBtn = document.querySelector(`[data-nav="${name}"]`);
+    if (navBtn) navBtn.classList.add('active');
+
+    const liveIframe = document.getElementById('live-iframe');
+    if (liveIframe) {
+        if (name === 'live') {
+            if (!liveIframe.src) liveIframe.src = "https://www.aparat.com/embed/live/dastgheib";
+        } else {
+            liveIframe.src = "";
+        }
+    }
+
+    if (name === 'lectures') initWP();
+    if (name === 'media') initMedia();
+    else {
+        const wpPlayer = document.getElementById('wp-media-player-container');
+        if (wpPlayer) wpPlayer.innerHTML = "";
+    }
+}
+
+async function init() {
+    const safetyTimeout = setTimeout(() => {
+        hideLoading();
+        const appWr = document.getElementById('app-wrapper');
+        if(appWr) appWr.classList.remove('hidden');
+    }, 2500);
+
+    try {
+        try { loadSettings(); } catch(e) { console.warn('Settings err:', e); }
+        try { 
+            const r = await fetch('/api/books'); 
+            allBooks = await r.json(); 
+            if(!Array.isArray(allBooks)) allBooks = [];
+        } catch(e) { 
+            console.warn('Books err:', e);
+            allBooks=[]; 
+        }
+        try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
+    } catch(e) {
+        console.error("Critical Init Error:", e);
+    } finally {
+        clearTimeout(safetyTimeout);
+        if (typeof tailwind !== 'undefined') {
+            hideLoading();
+            const appWr = document.getElementById('app-wrapper');
+            if(appWr) appWr.classList.remove('hidden');
+        }
+    }
+}
+
+function hideLoading() {
+    const el = document.getElementById('loading-screen');
+    if(!el) return;
+    el.style.opacity='0';
+    el.style.pointerEvents='none';
+    setTimeout(()=> {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+    }, 500);
+}
+
+function loginDummy() {
+    showToast('با موفقیت وارد شدید!');
+    navToScreen('home');
+}
+
+function renderLibrary() {
+    const grid=document.getElementById('books-grid'), empty=document.getElementById('lib-empty'), count=document.getElementById('lib-count');
+    const homeContainer=document.getElementById('home-books-container');
+    if(!grid || !homeContainer || !empty) return;
+
+    count.textContent = allBooks.length ? allBooks.length+' عنوان کتاب' : '';
+    if (!allBooks.length) { 
+        grid.innerHTML=''; 
+        homeContainer.innerHTML=''; 
+        empty.classList.remove('hidden');
+        empty.classList.add('flex');
+        return; 
+    }
+    empty.classList.add('hidden');
+    empty.classList.remove('flex');
+    
+    const colors=['from-brand-600 to-brand-400','from-blue-600 to-sky-400','from-rose-600 to-pink-400','from-amber-500 to-orange-400','from-blue-900 to-blue-700'];
+    
+    const renderCard = (book, i, isHome=false) => {
+        const saved=parseInt(localStorage.getItem('book_'+book.id+'_page')||'0');
+        const progress=saved&&book.page_count?Math.round((saved/book.page_count)*100):0;
+        const widthClass = isHome ? 'w-32 shrink-0 snap-center' : 'w-full';
+        
+        return `<div onclick="openBook(${book.id})" class="${widthClass} cursor-pointer group active:scale-95 transition-transform">
+            <div class="relative rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-2 aspect-[3/4]">
+                ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover">`
+                    :`<div class="w-full h-full bg-gradient-to-br ${colors[i%colors.length]} flex items-center justify-center p-3"><span class="text-white text-center font-black text-xs leading-tight drop-shadow-md">${book.title}</span></div>`}
+                ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-2 py-1.5"><div class="w-full bg-white/20 rounded-full h-1 overflow-hidden"><div class="bg-brand-400 h-full rounded-full" style="width:${progress}%"></div></div><span class="text-[9px] text-white/90 mt-1 block">${progress}٪</span></div>`:''}
+            </div>
+            <h3 class="font-bold text-[11px] text-gray-800 truncate px-1">${book.title}</h3>
+            <p class="text-[9px] text-gray-400 px-1 mt-0.5">${book.author||'ناشناس'}</p>
+        </div>`;
+    };
+
+    grid.innerHTML = allBooks.map((b,i)=>renderCard(b,i,false)).join('');
+    homeContainer.innerHTML = allBooks.slice(0, 5).map((b,i)=>renderCard(b,i,true)).join('') + 
+        `<div class="shrink-0 w-4"></div>`; 
+}
+
+async function openBook(bookId) {
+    const ls=document.getElementById('loading-screen'); 
+    ls.style.display='flex';
+    ls.classList.remove('hidden'); 
+    ls.style.opacity='1';
+    try {
+        const r = await fetch('/api/books/'+bookId+'/pages');
+        
+        let rows;
+        try {
+            rows = await r.json();
+        } catch(err) {
+            throw new Error('پاسخ سرور نامعتبر است (احتمالاً فایل دیتابیس خراب است)');
+        }
+
+        if (!r.ok) {
+            throw new Error(rows.error || 'مشکل در ارتباط با سرور دیتابیس');
+        }
+
+        if (!Array.isArray(rows)) {
+            throw new Error('ساختار اطلاعات (جداول) کتاب نامعتبر است');
+        }
+
+        if (rows.length === 0) {
+            throw new Error('این کتاب هیچ محتوایی ندارد یا خالی است');
+        }
+
+        currentBookId=bookId;
+        bookData=rows.map((item,index)=>({
+            index: index,
+            name: item.name || 'بدون عنوان',
+            text: item.text || '',
+            season: item.season || 'بدون فصل'
+        }));
+
+        loadBookUserData(); 
+        buildTOC();
+        
+        const slider=document.getElementById('page-slider'); 
+        if(slider) slider.max=bookData.length-1;
+        
+        currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');
+        if(currentIndex>=bookData.length || isNaN(currentIndex)) currentIndex=0;
+        
+        const book=allBooks.find(b=>b.id == bookId);
+        document.getElementById('toc-book-title').textContent=book?book.title:'کتاب';
+        document.getElementById('book-main-title').textContent=book?book.title:'کتاب';
+        
+        hideLoading(); 
+        openToc();
+    } catch(e) { 
+        console.error("Open Book Error:", e);
+        hideLoading(); 
+        showToast('خطا: ' + e.message); 
+    }
+}
+
+function openToc() { 
+    updateTocProgressUI(); 
+    buildBookmarksTab(); 
+    buildNotesTab();
+    document.getElementById('toc-overlay').classList.add('open'); 
+}
+function closeToc() { document.getElementById('toc-overlay').classList.remove('open'); }
+function openReader() { document.getElementById('reader-overlay').classList.add('open'); }
+function closeReader() { document.getElementById('reader-overlay').classList.remove('open'); openToc(); }
+
+function buildTOC() {
+    const container=document.getElementById('main-toc-container'); if(!container||!bookData.length) return;
+    let seasons={};
+    bookData.forEach((p,i)=>{ const s=p.season||'بدون فصل'; if(!seasons[s]) seasons[s]=[]; seasons[s].push({...p,originalIndex:i}); });
+    let html='';
+    Object.keys(seasons).forEach(season=>{
+        const pages=seasons[season];
+        html+=`<div class="mb-2"><div class="flex items-center gap-2 mb-2 px-1"><i class="fas fa-folder text-brand-500 text-xs"></i><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${season}</span><span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">${pages.length}</span></div>`;
+        pages.forEach(p=>{ html+=`<button onclick="goToPage(${p.originalIndex})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 truncate shadow-sm"><span class="text-gray-300 text-xs ml-2">${p.originalIndex+1}.</span> ${p.name}</button>`; });
+        html+='</div>';
+    });
+    container.innerHTML=html;
+}
+
+function updateTocProgressUI() {
+    if(!bookData.length) return;
+    const pct=Math.round(((currentIndex+1)/bookData.length)*100);
+    const bar=document.getElementById('toc-progress-bar'), text=document.getElementById('toc-progress-text'), info=document.getElementById('toc-page-info');
+    if(bar) bar.style.width=pct+'%'; if(text) text.textContent=pct+'٪'; if(info) info.textContent='صفحه '+(currentIndex+1)+' از '+bookData.length;
+}
+
+function resumeReading() { if(bookData.length) goToPage(currentIndex); }
+
+function switchTab(tab) {
+    const tabs = ['toc', 'bookmarks', 'notes'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tab-btn-' + t);
+        const content = document.getElementById('tab-content-' + t);
+        if(!btn || !content) return;
+        
+        if (t === tab) {
+            btn.classList.add('bg-white', 'shadow-sm', 'text-brand-600');
+            btn.classList.remove('text-gray-500');
+            content.classList.remove('hidden');
+            if (t === 'bookmarks') buildBookmarksTab();
+            if (t === 'notes') buildNotesTab();
+        } else {
+            btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-600');
+            btn.classList.add('text-gray-500');
+            content.classList.add('hidden');
+        }
+    });
+}
+
+function goToPage(index) {
+    if(index<0||index>=bookData.length) return;
+    currentIndex=index; const page=bookData[currentIndex];
+    let htmlText=page.text;
+    if(!htmlText.includes('<p>')&&!htmlText.includes('<br>')) htmlText=htmlText.replace(/\n/g,'<br><br>');
+    htmlText=htmlText.replace(/\[(\d+)\]/g,'<sup class="text-brand-600 font-bold mx-0.5">[$1]</sup>');
+    let finalHTML=`<h2 class="text-3xl font-black mb-8 pb-4 border-b-2 border-brand-100 leading-snug">${page.name}</h2>`+htmlText;
+    if(notes[currentIndex]) finalHTML+=`<div class="mt-12 pt-6 border-t border-dashed border-gray-300 bg-gray-50 p-4 rounded-2xl"><h3 class="text-sm font-bold text-gray-500 mb-2"><i class="fas fa-pen-alt ml-1"></i> یادداشت:</h3><p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${notes[currentIndex]}</p></div>`;
+    const tc=document.getElementById('text-content');
+    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';}
+    document.getElementById('header-title').textContent=page.name;
+    document.getElementById('chapter-title').textContent=page.season||'';
+    document.getElementById('page-counter').textContent=(currentIndex+1)+' / '+bookData.length;
+    const slider=document.getElementById('page-slider'); if(slider) slider.value=currentIndex;
+    const cc=document.getElementById('content-container'); if(cc) cc.scrollTop=0;
+    const bmi=document.getElementById('menu-bookmark-icon');
+    if(bmi) bmi.className=bookmarks.includes(currentIndex)?'fas fa-bookmark ml-3 w-4 text-center text-brand-600':'far fa-bookmark ml-3 w-4 text-center';
+    if(currentBookId) localStorage.setItem('book_'+currentBookId+'_page',currentIndex);
+    closeToc(); openReader();
+}
+
+function nextPage(){goToPage(currentIndex-1);}
+function prevPage(){goToPage(currentIndex+1);}
+
+function toggleReaderUI(){
+    const h=document.getElementById('reader-header'),f=document.getElementById('reader-footer');
+    uiVisible=!uiVisible; h.classList.toggle('slide-up-hide',!uiVisible); f.classList.toggle('slide-down-hide',!uiVisible);
+}
+
+function setupSwipe(){
+    const el=document.getElementById('content-container'); if(!el) return;
+    el.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX;},{passive:true});
+    el.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;const d=touchStartX-touchEndX;if(Math.abs(d)>60){if(d>0)nextPage();else prevPage();}},{passive:true});
+    el.addEventListener('click',()=>{if(window.getSelection().toString().length>0)return;toggleReaderUI();document.getElementById('page-action-menu').classList.add('hidden');});
+}
+
+function loadBookUserData(){if(!currentBookId)return;bookmarks=JSON.parse(localStorage.getItem('book_'+currentBookId+'_bookmarks')||'[]');notes=JSON.parse(localStorage.getItem('book_'+currentBookId+'_notes')||'{}');}
+function saveBookUserData(){if(!currentBookId)return;localStorage.setItem('book_'+currentBookId+'_bookmarks',JSON.stringify(bookmarks));localStorage.setItem('book_'+currentBookId+'_notes',JSON.stringify(notes));}
+function toggleBookmark(){const idx=bookmarks.indexOf(currentIndex);if(idx>-1){bookmarks.splice(idx,1);showToast('نشان حذف شد');}else{bookmarks.push(currentIndex);showToast('نشان‌گذاری شد');}saveBookUserData();const bmi=document.getElementById('menu-bookmark-icon');if(bmi)bmi.className=bookmarks.includes(currentIndex)?'fas fa-bookmark ml-3 w-4 text-center text-brand-600':'far fa-bookmark ml-3 w-4 text-center';document.getElementById('page-action-menu').classList.add('hidden');}
+function buildBookmarksTab(){
+    const c=document.getElementById('bookmarks-container');if(!c)return;
+    if(!bookmarks.length){
+        c.innerHTML='<div class="text-center py-12"><i class="far fa-bookmark text-4xl text-gray-200 mb-3"></i><p class="text-gray-400 text-sm">هنوز نشانی اضافه نشده</p></div>';
+        return;
+    }
+    c.innerHTML=bookmarks.sort((a,b)=>a-b).map(idx=>{
+        const p=bookData[idx];if(!p)return'';
+        return`<button onclick="goToPage(${idx})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 flex items-center shadow-sm"><i class="fas fa-bookmark text-brand-500 ml-3 text-xs"></i><span class="truncate">${p.name}</span><span class="text-xs text-gray-300 mr-auto">صفحه ${idx+1}</span></button>`;
+    }).join('');
+}
+function buildNotesTab() {
+    const c = document.getElementById('notes-container'); if(!c) return;
+    const noteKeys = Object.keys(notes).map(Number).sort((a,b) => a-b);
+    if(!noteKeys.length){
+        c.innerHTML='<div class="text-center py-12"><i class="far fa-sticky-note text-4xl text-gray-200 mb-3"></i><p class="text-gray-400 text-sm">هنوز یادداشتی اضافه نشده</p></div>';
+        return;
+    }
+    c.innerHTML = noteKeys.map(idx => {
+        const p = bookData[idx]; if(!p) return '';
+        const noteText = notes[idx].length > 40 ? notes[idx].substring(0, 40) + '...' : notes[idx];
+        return `<button onclick="goToPage(${idx})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 flex flex-col shadow-sm">
+                    <div class="flex items-center w-full mb-2">
+                        <i class="fas fa-pen-alt text-brand-500 ml-2 text-xs"></i>
+                        <span class="font-bold truncate">${p.name}</span>
+                        <span class="text-[10px] text-gray-300 mr-auto">صفحه ${idx+1}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 leading-relaxed text-right line-clamp-2">${noteText}</p>
+                </button>`;
+    }).join('');
+}
+function openNoteModal(){document.getElementById('page-action-menu').classList.add('hidden');document.getElementById('note-textarea').value=notes[currentIndex]||'';document.getElementById('note-modal').classList.remove('hidden');document.getElementById('note-modal').classList.add('flex');}
+function closeNoteModal(){document.getElementById('note-modal').classList.add('hidden');document.getElementById('note-modal').classList.remove('flex');}
+function saveNote(){const v=document.getElementById('note-textarea').value.trim();if(v)notes[currentIndex]=v;else delete notes[currentIndex];saveBookUserData();closeNoteModal();goToPage(currentIndex);showToast('یادداشت ذخیره شد');}
+
+function openSearch(){document.getElementById('search-modal').classList.remove('hidden');document.getElementById('search-modal').classList.add('flex');document.getElementById('search-input').focus();}
+function closeSearch(){document.getElementById('search-modal').classList.add('hidden');document.getElementById('search-modal').classList.remove('flex');}
+function performSearch(){const q=document.getElementById('search-input').value.trim().toLowerCase();if(!q)return;const results=bookData.filter(p=>p.name.toLowerCase().includes(q)||p.text.toLowerCase().includes(q));const c=document.getElementById('search-results');if(!results.length){c.innerHTML='<div class="text-center py-12 text-gray-400"><p>نتیجه‌ای یافت نشد</p></div>';return;}c.innerHTML=results.map(p=>{const s=p.text.replace(/<[^>]*>/g,'').substring(0,100);return`<button onclick="goToPage(${p.index});closeSearch()" class="w-full text-right p-4 bg-white rounded-xl border border-gray-100 hover:bg-brand-50 transition shadow-sm"><h4 class="font-bold text-sm text-gray-800 mb-1">${p.name}</h4><p class="text-xs text-gray-400 line-clamp-2">${s}...</p></button>`;}).join('');}
+
+function loadSettings() {
+    fontSize = parseInt(localStorage.getItem('reader_fontSize') || '16');
+    lineHeight = parseFloat(localStorage.getItem('reader_lineHeight') || '2.2');
+    currentTheme = localStorage.getItem('reader_theme') || 'light';
+    currentFont = localStorage.getItem('reader_font') || 'vazir';
+    const sc = localStorage.getItem('reader_titleColor');
+    if (sc) document.documentElement.style.setProperty('--title-color', sc);
+    document.documentElement.style.setProperty('--line-height', lineHeight);
+    applyTheme();
+    applyFont();
+    
+    const tc = document.getElementById('text-content');
+    if (tc) tc.style.fontSize = fontSize + 'px';
+    const wpc = document.getElementById('single-post-content');
+    if (wpc) wpc.style.fontSize = fontSize + 'px';
+    document.getElementById('font-size-display').textContent = fontSize + 'px';
+    document.getElementById('line-height-display').textContent = lineHeight.toFixed(1);
+}
+
+function openSettings() {
+    document.getElementById('settings-overlay').classList.remove('hidden');
+    setTimeout(() => { document.getElementById('settings-overlay').style.opacity = '1'; }, 10);
+    document.getElementById('settings-modal').style.transform = 'translateY(0)';
+}
+
+function closeSettings() {
+    document.getElementById('settings-overlay').style.opacity = '0';
+    document.getElementById('settings-modal').style.transform = 'translateY(100%)';
+    setTimeout(() => { document.getElementById('settings-overlay').classList.add('hidden'); }, 300);
+}
+
+function setTheme(t) {
+    currentTheme = t;
+    localStorage.setItem('reader_theme', t);
+    applyTheme();
+}
+
+function applyTheme() {
+    ['reader-overlay', 'toc-overlay', 'screen-lectures'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
+        el.classList.add('theme-' + currentTheme);
+    });
+    ['light', 'sepia', 'dark'].forEach(t => {
+        const b = document.getElementById('theme-btn-' + t);
+        if (b) {
+            b.classList.toggle('border-brand-500', t === currentTheme);
+            b.classList.toggle('border-transparent', t !== currentTheme);
+        }
+    });
+}
+
+function setFont(f) {
+    currentFont = f;
+    localStorage.setItem('reader_font', f);
+    applyFont();
+}
+
+function applyFont() {
+    const tc = document.getElementById('text-content');
+    if (tc) {
+        tc.classList.remove('font-vazir', 'font-shabnam', 'font-tahoma');
+        tc.classList.add('font-' + currentFont);
+    }
+    const wpc = document.getElementById('single-post-content');
+    if (wpc) {
+        wpc.classList.remove('font-vazir', 'font-shabnam', 'font-tahoma');
+        wpc.classList.add('font-' + currentFont);
+    }
+    
+    ['vazir', 'shabnam', 'tahoma'].forEach(f => {
+        const b = document.getElementById('font-btn-' + f);
+        if (!b) return;
+        if (f === currentFont) {
+            b.classList.add('bg-brand-50', 'shadow-sm', 'font-bold', 'text-brand-600', 'border', 'border-brand-200');
+            b.classList.remove('text-gray-500', 'bg-white');
+        } else {
+            b.classList.remove('bg-brand-50', 'shadow-sm', 'font-bold', 'text-brand-600', 'border', 'border-brand-200');
+            b.classList.add('text-gray-500', 'bg-white');
+        }
+    });
+}
+
+function changeFontSize(d) {
+    fontSize = Math.max(14, Math.min(32, fontSize + d * 2));
+    localStorage.setItem('reader_fontSize', fontSize);
+    const tc = document.getElementById('text-content');
+    if (tc) tc.style.fontSize = fontSize + 'px';
+    const wpc = document.getElementById('single-post-content');
+    if (wpc) wpc.style.fontSize = fontSize + 'px';
+    document.getElementById('font-size-display').textContent = fontSize + 'px';
+}
+
+function changeLineHeight(d) {
+    lineHeight = Math.max(1.0, Math.min(4.0, lineHeight + d));
+    localStorage.setItem('reader_lineHeight', lineHeight);
+    document.documentElement.style.setProperty('--line-height', lineHeight);
+    document.getElementById('line-height-display').textContent = lineHeight.toFixed(1);
+}
+
+function setTitleColor(c) {
+    document.documentElement.style.setProperty('--title-color', c);
+    localStorage.setItem('reader_titleColor', c);
+}
+
+function togglePageMenu(){document.getElementById('page-action-menu').classList.toggle('hidden');}
+function copyPageText(){const p=bookData[currentIndex];if(!p)return;navigator.clipboard.writeText(p.name+'\n\n'+p.text.replace(/<[^>]*>/g,'')).then(()=>showToast('متن کپی شد'));document.getElementById('page-action-menu').classList.add('hidden');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';t.style.pointerEvents='auto';t.style.transform='translate(-50%, -20px)';setTimeout(()=>{t.style.opacity='0';t.style.pointerEvents='none';t.style.transform='translate(-50%, 0)';},2500);}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const si=document.getElementById('search-input');if(si)si.addEventListener('keypress',e=>{if(e.key==='Enter')performSearch();});
+    const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
+    setupSwipe();
+});
+
+init();
+</script>
+</body>
+</html>
