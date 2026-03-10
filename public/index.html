@@ -1508,6 +1508,7 @@ function navToScreen(name) {
         if (c) c.innerHTML = '';
     }
 
+    if (name === 'home') loadBanners();
     if (name === 'lectures') initWP();
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
@@ -1606,17 +1607,23 @@ function startSliderAuto() {
 // بنرها صفحه اصلی
 // ====================================================
 async function loadBanners() {
-    const res = await fetch('/api/banners');
-    const banners = await res.json();
-    if (!Array.isArray(banners)) return;
     const container = document.getElementById('home-banners');
     if (!container) return;
-    const active = banners.filter(b => b.active == 1 && b.image && b.image.trim().length > 2);
-    container.innerHTML = active.map(b =>
-        `<div class="rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" onclick="${b.link ? `window.open('${b.link}','_blank')` : ''}">
-            <img src="${b.image}" class="w-full object-cover max-h-28" alt="${b.title||''}">
-         </div>`
-    ).join('');
+    try {
+        const res = await fetch('/api/banners', { cache: 'no-store' });
+        if (!res.ok) return;
+        const banners = await res.json();
+        if (!Array.isArray(banners)) return;
+        const active = banners.filter(b => +b.active === 1 && b.image && b.image.trim().length > 2);
+        container.innerHTML = active.map(b => {
+            const onclick = b.link ? `onclick="window.open('${b.link.replace(/'/g,"\\'")}','_blank')"` : '';
+            return `<div class="rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" ${onclick}>
+                <img src="${b.image}" class="w-full object-cover" style="max-height:120px;" alt="${b.title||''}">
+            </div>`;
+        }).join('');
+    } catch(e) {
+        console.warn('Banners load error:', e);
+    }
 }
 
 // ====================================================
