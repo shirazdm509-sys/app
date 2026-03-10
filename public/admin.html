@@ -253,8 +253,31 @@ let activeUserId = null, activeTicketId = null;
 let adminQaInterval = null;
 let bannerData = [{},{},{}];
 
-window.onload = () => {
+// Wrapper for all admin API calls - handles 401 automatically
+async function adminFetch(url, options={}) {
+  options.headers = Object.assign({'x-admin-token': adminToken}, options.headers||{});
+  const r = await fetch(url, options);
+  if(r.status === 401) {
+    localStorage.removeItem('adminToken');
+    adminToken = null;
+    showToast('نشست منقضی شده. لطفاً دوباره وارد شوید.', false);
+    setTimeout(() => window.location.reload(), 1500);
+    throw new Error('401 Unauthorized');
+  }
+  return r;
+}
+
+window.onload = async () => {
   if(adminToken){
+    // Validate token before showing panel
+    try {
+      const r = await fetch('/api/admin/settings', {headers:{'x-admin-token':adminToken}});
+      if(r.status === 401) {
+        localStorage.removeItem('adminToken');
+        adminToken = null;
+        return; // stays on login screen
+      }
+    } catch(e) {}
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('main-content').classList.remove('hidden');
@@ -312,38 +335,42 @@ async function uploadBook(e){
   fd.append('title',t);fd.append('author',a);fd.append('database',dbf);
   if(cf) fd.append('cover',cf);
   try{
-    const r=await fetch('/api/admin/books',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
+    const r=await adminFetch('/api/admin/books',{method:'POST',body:fd});
     const d=await r.json();
     if(r.ok&&d.success){showToast('کتاب آپلود شد');document.getElementById('upload-form').reset();loadBooks();}
     else showToast(d.error||'خطا در آپلود',false);
-  }catch(e){showToast('خطا در ارتباط',false);}
+  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا در ارتباط',false);}
   finally{btn.innerHTML='<i class="fas fa-cloud-upload-alt ml-2"></i>آپلود و ذخیره کتاب';btn.disabled=false;}
 }
 async function loadBooks(){
-  const r=await fetch('/api/books');const bs=await r.json();
-  const c=document.getElementById('books-list');
-  if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
-  c.innerHTML=bs.map(b=>`
-    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group">
-      <button onclick="deleteBook(${b.id})" class="absolute top-2 right-2 bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm border border-rose-100 z-10 text-xs"><i class="fas fa-trash"></i></button>
-      <div class="flex items-center gap-3">
-        <div class="w-14 h-18 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
-          ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
-        </div>
-        <div>
-          <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
-          <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
-          <span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded mt-1 inline-block">${b.page_count} صفحه</span>
+  try{
+    const r=await fetch('/api/books');const bs=await r.json();
+    const c=document.getElementById('books-list');
+    if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
+    c.innerHTML=bs.map(b=>`
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group">
+        <button onclick="deleteBook(${b.id})" class="absolute top-2 right-2 bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm border border-rose-100 z-10 text-xs"><i class="fas fa-trash"></i></button>
+        <div class="flex items-center gap-3">
+          <div class="w-14 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
+            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
+          </div>
+          <div>
+            <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
+            <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
+            <span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded mt-1 inline-block">${b.page_count} صفحه</span>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+  }catch(e){}
 }
 async function deleteBook(id){
   if(!confirm('حذف شود؟')) return;
-  const r=await fetch('/api/admin/books/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
-  if(r.ok){showToast('حذف شد');loadBooks();}
-  else showToast('خطا',false);
+  try{
+    const r=await adminFetch('/api/admin/books/'+id,{method:'DELETE'});
+    if(r.ok){showToast('حذف شد');loadBooks();}
+    else showToast('خطا',false);
+  }catch(e){}
 }
 
 // SLIDER
@@ -358,48 +385,58 @@ async function addSlider(e){
   const btn=document.getElementById('btn-add-slider');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
   try{
-    const r=await fetch('/api/admin/sliders',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
+    const r=await adminFetch('/api/admin/sliders',{method:'POST',body:fd});
     const d=await r.json();
     if(r.ok&&d.success){showToast('اسلاید اضافه شد');document.getElementById('slider-form').reset();loadSliders();}
     else showToast(d.error||'خطا',false);
-  }catch(e){showToast('خطا',false);}
+  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا',false);}
   finally{btn.innerHTML='<i class="fas fa-plus ml-2"></i>افزودن اسلاید';btn.disabled=false;}
 }
 async function loadSliders(){
-  const r=await fetch('/api/admin/sliders',{headers:{'x-admin-token':adminToken}});
-  const slides=await r.json();
-  const c=document.getElementById('sliders-list');
-  if(!slides||!slides.length){c.innerHTML='<div class="col-span-5 text-center py-8 text-gray-400 text-sm">اسلایدی یافت نشد</div>';return;}
-  c.innerHTML=slides.map(s=>`
-    <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative group">
-      <button onclick="deleteSlider(${s.id})" class="absolute top-2 right-2 bg-white/90 text-rose-500 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 text-xs"><i class="fas fa-trash"></i></button>
-      <img src="${s.image}" class="w-full aspect-video object-cover">
-      <div class="p-2"><p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}</div>
-    </div>
-  `).join('');
+  try{
+    const r=await adminFetch('/api/admin/sliders');
+    const slides=await r.json();
+    const c=document.getElementById('sliders-list');
+    if(!Array.isArray(slides)||!slides.length){c.innerHTML='<div class="col-span-5 text-center py-8 text-gray-400 text-sm">اسلایدی یافت نشد</div>';return;}
+    c.innerHTML=slides.map(s=>`
+      <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative group">
+        <button onclick="deleteSlider(${s.id})" class="absolute top-2 right-2 bg-white/90 text-rose-500 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 text-xs"><i class="fas fa-trash"></i></button>
+        <img src="${s.image}" class="w-full aspect-video object-cover">
+        <div class="p-2"><p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}</div>
+      </div>
+    `).join('');
+  }catch(e){}
 }
 async function deleteSlider(id){
   if(!confirm('حذف شود؟')) return;
-  const r=await fetch('/api/admin/sliders/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
-  if(r.ok){showToast('حذف شد');loadSliders();}
-  else showToast('خطا',false);
+  try{
+    const r=await adminFetch('/api/admin/sliders/'+id,{method:'DELETE'});
+    if(r.ok){showToast('حذف شد');loadSliders();}
+    else showToast('خطا',false);
+  }catch(e){}
 }
 
 // BANNERS
 async function loadBanners(){
-  const r=await fetch('/api/admin/banners',{headers:{'x-admin-token':adminToken}});
-  const bns=await r.json();
-  bannerData=[{},{},{}];
-  bns.forEach(b=>{if(b.position>=1&&b.position<=3)bannerData[b.position-1]=b;});
+  try{
+    const r=await adminFetch('/api/admin/banners');
+    const bns=await r.json();
+    if(!Array.isArray(bns)){renderBannerCards([]);return;}
+    bannerData=[{},{},{}];
+    bns.forEach(b=>{if(b.position>=1&&b.position<=3)bannerData[b.position-1]=b;});
+    renderBannerCards(bns);
+  }catch(e){renderBannerCards([]);}
+}
+function renderBannerCards(bns){
   const c=document.getElementById('banners-list');
   c.innerHTML=[1,2,3].map(pos=>{
-    const b=bns.find(x=>x.position===pos)||{};
+    const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
     return `
     <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col gap-3" id="banner-card-${pos}">
       <h3 class="font-bold text-sm text-gray-700">بنر ${pos}</h3>
       <div class="aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer relative" onclick="document.getElementById('banner-img-${pos}').click()">
-        ${b.image&&b.image.length>2?`<img id="banner-preview-${pos}" src="${b.image}" class="w-full h-full object-cover">`:`<div id="banner-preview-${pos}" class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-image text-3xl mb-1"></i><br><span class="text-xs">کلیک برای انتخاب تصویر</span></div>`}
-        <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-sm font-bold">تغییر تصویر</div>
+        ${b.image&&b.image.length>2?`<img id="banner-preview-${pos}" src="${b.image}" class="w-full h-full object-cover">`:`<div id="banner-preview-${pos}" class="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-1"><i class="fas fa-image text-3xl"></i><span class="text-xs">کلیک برای انتخاب تصویر</span></div>`}
+        <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-sm font-bold rounded-xl">تغییر تصویر</div>
       </div>
       <input type="file" id="banner-img-${pos}" accept="image/*" class="hidden" onchange="previewBanner(${pos},this)">
       <input type="text" id="banner-link-${pos}" value="${b.link||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="لینک بنر (https://...)">
@@ -419,43 +456,46 @@ function previewBanner(pos,input){
   };r.readAsDataURL(input.files[0]);
 }
 async function saveBanners(){
+  let saved=0;
   for(let pos=1;pos<=3;pos++){
     const img=document.getElementById('banner-img-'+pos).files[0];
     const link=document.getElementById('banner-link-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
-    if(!img&&!link) continue;
     const fd=new FormData();
     fd.append('link',link);
     fd.append('active',active?'1':'0');
     if(img) fd.append('banner_image',img);
-    await fetch('/api/admin/banners/'+pos,{method:'PUT',headers:{'x-admin-token':adminToken},body:fd});
+    try{await adminFetch('/api/admin/banners/'+pos,{method:'PUT',body:fd});saved++;}catch(e){}
   }
-  showToast('بنرها ذخیره شدند');loadBanners();
+  if(saved>0)showToast('بنرها ذخیره شدند');
+  loadBanners();
 }
 
 // QA
 async function loadQAUsers(){
-  const r=await fetch('/api/admin/qa/users',{headers:{'x-admin-token':adminToken}});
-  const users=await r.json();
-  const c=document.getElementById('qa-users-list');
-  if(!users.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
-  c.innerHTML=users.map(u=>{
-    const act=activeUserId==u.id;
-    const d=new Date(u.last_date).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
-    return `<button onclick="selectUser(${u.id},'${u.username}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-teal-50 border-teal-200':'bg-white border-gray-100 hover:bg-gray-50'} flex items-center gap-2">
-      <div class="w-8 h-8 ${act?'bg-teal-200 text-teal-700':'bg-gray-100 text-gray-400'} rounded-full flex items-center justify-center text-xs shrink-0"><i class="fas fa-user"></i></div>
-      <div class="flex-1 min-w-0">
-        <div class="flex justify-between items-center mb-0.5">
-          <h4 class="font-bold text-xs truncate">${u.username}</h4>
-          <span class="text-[10px] text-gray-400 shrink-0">${d}</span>
+  try{
+    const r=await adminFetch('/api/admin/qa/users');
+    const users=await r.json();
+    const c=document.getElementById('qa-users-list');
+    if(!Array.isArray(users)||!users.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
+    c.innerHTML=users.map(u=>{
+      const act=activeUserId==u.id;
+      const d=new Date(u.last_date).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+      return `<button onclick="selectUser(${u.id},'${u.username}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-teal-50 border-teal-200':'bg-white border-gray-100 hover:bg-gray-50'} flex items-center gap-2">
+        <div class="w-8 h-8 ${act?'bg-teal-200 text-teal-700':'bg-gray-100 text-gray-400'} rounded-full flex items-center justify-center text-xs shrink-0"><i class="fas fa-user"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-center mb-0.5">
+            <h4 class="font-bold text-xs truncate">${u.username}</h4>
+            <span class="text-[10px] text-gray-400 shrink-0">${d}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <p class="text-[10px] text-gray-500 truncate flex-1">${u.last_message||'...'}</p>
+            ${u.unread>0?`<span class="bg-teal-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shrink-0">${u.unread}</span>`:''}
+          </div>
         </div>
-        <div class="flex items-center gap-1">
-          <p class="text-[10px] text-gray-500 truncate flex-1">${u.last_message||'...'}</p>
-          ${u.unread>0?`<span class="bg-teal-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shrink-0">${u.unread}</span>`:''}
-        </div>
-      </div>
-    </button>`;
-  }).join('');
+      </button>`;
+    }).join('');
+  }catch(e){}
 }
 async function selectUser(id,name){
   activeUserId=id;
@@ -466,50 +506,56 @@ async function selectUser(id,name){
   await loadAdminMessages(id);loadQAUsers();
 }
 async function loadAdminMessages(uid){
-  const r=await fetch('/api/admin/qa/messages/'+uid,{headers:{'x-admin-token':adminToken}});
-  const msgs=await r.json();
-  const c=document.getElementById('admin-chat-messages');
-  if(!msgs.length){c.innerHTML='<p class="text-center text-gray-400 text-xs mt-8">هیچ پیامی وجود ندارد</p>';return;}
-  c.innerHTML=msgs.map(m=>{
-    const isAdmin=m.sender_type==='admin';
-    const d=new Date(m.created_at).toLocaleString('fa-IR');
-    return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
-      <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
-        <p>${m.text}</p>
-        <span class="text-[9px] text-gray-400 mt-1 block">${d}</span>
-      </div>
-    </div>`;
-  }).join('');
-  c.scrollTop=c.scrollHeight;
+  try{
+    const r=await adminFetch('/api/admin/qa/messages/'+uid);
+    const msgs=await r.json();
+    const c=document.getElementById('admin-chat-messages');
+    if(!Array.isArray(msgs)||!msgs.length){c.innerHTML='<p class="text-center text-gray-400 text-xs mt-8">هیچ پیامی وجود ندارد</p>';return;}
+    c.innerHTML=msgs.map(m=>{
+      const isAdmin=m.sender_type==='admin';
+      const d=new Date(m.created_at).toLocaleString('fa-IR');
+      return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
+        <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
+          <p>${m.text}</p>
+          <span class="text-[9px] text-gray-400 mt-1 block">${d}</span>
+        </div>
+      </div>`;
+    }).join('');
+    c.scrollTop=c.scrollHeight;
+  }catch(e){}
 }
 async function sendAdminReply(){
   const inp=document.getElementById('admin-chat-input');
   const t=inp.value.trim();if(!t||!activeUserId) return;
   inp.value='';
-  const r=await fetch('/api/admin/qa/messages/'+activeUserId,{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({text:t})});
-  if(r.ok) loadAdminMessages(activeUserId);
-  else showToast('خطا در ارسال',false);
+  try{
+    const r=await adminFetch('/api/admin/qa/messages/'+activeUserId,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});
+    if(r.ok) loadAdminMessages(activeUserId);
+    else showToast('خطا در ارسال',false);
+  }catch(e){}
 }
 
 // TICKETS
 async function loadTickets(){
-  const r=await fetch('/api/admin/tickets',{headers:{'x-admin-token':adminToken}});
-  const ts=await r.json();
-  const c=document.getElementById('tickets-list');
-  if(!ts.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">تیکتی وجود ندارد</p>';return;}
-  const statusMap={open:{text:'باز',cls:'bg-blue-50 text-blue-600'},answered:{text:'پاسخ داده شد',cls:'bg-green-50 text-green-600'},closed:{text:'بسته',cls:'bg-gray-100 text-gray-400'}};
-  c.innerHTML=ts.map(t=>{
-    const s=statusMap[t.status]||statusMap.open;
-    const act=activeTicketId==t.id;
-    return `<button onclick="selectTicket(${t.id},'${t.subject.replace(/'/g,"\\'")}','${t.status}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'} flex flex-col gap-1">
-      <div class="flex items-center justify-between">
-        <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
-        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0">${s.text}</span>
-      </div>
-      <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
-      ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
-    </button>`;
-  }).join('');
+  try{
+    const r=await adminFetch('/api/admin/tickets');
+    const ts=await r.json();
+    const c=document.getElementById('tickets-list');
+    if(!Array.isArray(ts)||!ts.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">تیکتی وجود ندارد</p>';return;}
+    const statusMap={open:{text:'باز',cls:'bg-blue-50 text-blue-600'},answered:{text:'پاسخ داده شد',cls:'bg-green-50 text-green-600'},closed:{text:'بسته',cls:'bg-gray-100 text-gray-400'}};
+    c.innerHTML=ts.map(t=>{
+      const s=statusMap[t.status]||statusMap.open;
+      const act=activeTicketId==t.id;
+      return `<button onclick="selectTicket(${t.id},'${t.subject.replace(/'/g,"\\'")}','${t.status}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'} flex flex-col gap-1">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
+          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0">${s.text}</span>
+        </div>
+        <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
+        ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
+      </button>`;
+    }).join('');
+  }catch(e){}
 }
 async function selectTicket(id,subject,status){
   activeTicketId=id;
@@ -519,74 +565,84 @@ async function selectTicket(id,subject,status){
   const statusBtns=document.getElementById('ticket-status-btns');
   if(status!=='closed'){inp.disabled=false;btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');statusBtns.classList.remove('hidden');}
   else{inp.disabled=true;btn.disabled=true;statusBtns.classList.add('hidden');}
-  const r=await fetch('/api/admin/tickets/'+id+'/messages',{headers:{'x-admin-token':adminToken}});
-  const msgs=await r.json();
-  const c=document.getElementById('ticket-messages');
-  if(!msgs.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
-  c.innerHTML=msgs.map(m=>{
-    const isAdmin=m.sender_type==='admin';
-    return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
-      <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
-        <p>${m.text}</p>
-        <span class="text-[9px] text-gray-400 mt-1 block">${new Date(m.created_at).toLocaleString('fa-IR')}</span>
-      </div>
-    </div>`;
-  }).join('');
-  c.scrollTop=c.scrollHeight;
-  loadTickets();
+  try{
+    const r=await adminFetch('/api/admin/tickets/'+id+'/messages');
+    const msgs=await r.json();
+    const c=document.getElementById('ticket-messages');
+    if(!Array.isArray(msgs)||!msgs.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
+    c.innerHTML=msgs.map(m=>{
+      const isAdmin=m.sender_type==='admin';
+      return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
+        <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
+          <p>${m.text}</p>
+          <span class="text-[9px] text-gray-400 mt-1 block">${new Date(m.created_at).toLocaleString('fa-IR')}</span>
+        </div>
+      </div>`;
+    }).join('');
+    c.scrollTop=c.scrollHeight;
+    loadTickets();
+  }catch(e){}
 }
 async function sendTicketReply(){
   const inp=document.getElementById('ticket-reply-input');
   const t=inp.value.trim();if(!t||!activeTicketId) return;
   inp.value='';
-  const r=await fetch('/api/admin/tickets/'+activeTicketId+'/reply',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({text:t})});
+  const r=await adminFetch('/api/admin/tickets/'+activeTicketId+'/reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})});
   if(r.ok) selectTicket(activeTicketId,document.getElementById('active-ticket-subject').textContent,'answered');
   else showToast('خطا در ارسال',false);
 }
 async function changeTicketStatus(status){
-  const r=await fetch('/api/admin/tickets/'+activeTicketId+'/status',{method:'PUT',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify({status})});
-  if(r.ok){showToast('وضعیت تغییر کرد');loadTickets();}
+  try{
+    const r=await adminFetch('/api/admin/tickets/'+activeTicketId+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+    if(r.ok){showToast('وضعیت تغییر کرد');loadTickets();}
+  }catch(e){}
 }
 
 // USERS
 async function loadUsers(){
-  const r=await fetch('/api/admin/users',{headers:{'x-admin-token':adminToken}});
-  const users=await r.json();
-  const tb=document.getElementById('users-tbody');
-  if(!users.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-10 text-gray-400">کاربری یافت نشد</td></tr>';return;}
-  tb.innerHTML=users.map(u=>`
-    <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
-      <td class="p-4 text-xs text-gray-400">#${u.id}</td>
-      <td class="p-4 font-bold text-sm">${u.username}</td>
-      <td class="p-4 text-xs text-gray-400">${new Date(u.created_at).toLocaleDateString('fa-IR')}</td>
-      <td class="p-4 text-xs"><span class="bg-teal-50 text-teal-700 px-2 py-1 rounded-full">${u.msg_count||0} پیام</span></td>
-      <td class="p-4 text-xs text-gray-400">${u.last_active?new Date(u.last_active).toLocaleDateString('fa-IR'):'-'}</td>
-      <td class="p-4"><button onclick="deleteUser(${u.id},'${u.username}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition"><i class="fas fa-trash ml-1"></i>حذف</button></td>
-    </tr>
-  `).join('');
+  try{
+    const r=await adminFetch('/api/admin/users');
+    const users=await r.json();
+    const tb=document.getElementById('users-tbody');
+    if(!Array.isArray(users)||!users.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-10 text-gray-400">کاربری یافت نشد</td></tr>';return;}
+    tb.innerHTML=users.map(u=>`
+      <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+        <td class="p-4 text-xs text-gray-400">#${u.id}</td>
+        <td class="p-4 font-bold text-sm">${u.username}</td>
+        <td class="p-4 text-xs text-gray-400">${new Date(u.created_at).toLocaleDateString('fa-IR')}</td>
+        <td class="p-4 text-xs"><span class="bg-teal-50 text-teal-700 px-2 py-1 rounded-full">${u.msg_count||0} پیام</span></td>
+        <td class="p-4 text-xs text-gray-400">${u.last_active?new Date(u.last_active).toLocaleDateString('fa-IR'):'-'}</td>
+        <td class="p-4"><button onclick="deleteUser(${u.id},'${u.username}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold bg-rose-50 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition"><i class="fas fa-trash ml-1"></i>حذف</button></td>
+      </tr>
+    `).join('');
+  }catch(e){}
 }
 async function deleteUser(id,name){
   if(!confirm(`کاربر "${name}" حذف شود؟`)) return;
-  const r=await fetch('/api/admin/users/'+id,{method:'DELETE',headers:{'x-admin-token':adminToken}});
-  if(r.ok){showToast('کاربر حذف شد');loadUsers();}
-  else showToast('خطا',false);
+  try{
+    const r=await adminFetch('/api/admin/users/'+id,{method:'DELETE'});
+    if(r.ok){showToast('کاربر حذف شد');loadUsers();}
+    else showToast('خطا',false);
+  }catch(e){}
 }
 
 // SETTINGS
 async function loadSettings(){
-  const r=await fetch('/api/admin/settings',{headers:{'x-admin-token':adminToken}});
-  const s=await r.json();
-  ['site_name','site_subtitle','primary_color','secondary_color','live_url'].forEach(k=>{
-    const el=document.getElementById('s-'+k);
-    if(el) el.value=s[k]||'';
-  });
-  const liveActive=document.getElementById('s-live_active');
-  if(liveActive) liveActive.checked=s.live_active==='1';
-  if(s.logo_url){
-    const prev=document.getElementById('logo-preview');
-    const ph=document.getElementById('logo-placeholder');
-    if(prev&&ph){prev.src=s.logo_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
-  }
+  try{
+    const r=await adminFetch('/api/admin/settings');
+    const s=await r.json();
+    ['site_name','site_subtitle','primary_color','secondary_color','live_url'].forEach(k=>{
+      const el=document.getElementById('s-'+k);
+      if(el) el.value=s[k]||'';
+    });
+    const liveActive=document.getElementById('s-live_active');
+    if(liveActive) liveActive.checked=s.live_active==='1';
+    if(s.logo_url){
+      const prev=document.getElementById('logo-preview');
+      const ph=document.getElementById('logo-placeholder');
+      if(prev&&ph){prev.src=s.logo_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
+    }
+  }catch(e){}
 }
 async function saveSettings(){
   const data={
@@ -597,9 +653,11 @@ async function saveSettings(){
     live_url:document.getElementById('s-live_url').value,
     live_active:document.getElementById('s-live_active').checked?'1':'0',
   };
-  const r=await fetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':adminToken},body:JSON.stringify(data)});
-  if(r.ok) showToast('تنظیمات ذخیره شد');
-  else showToast('خطا در ذخیره',false);
+  try{
+    const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(r.ok) showToast('تنظیمات ذخیره شد');
+    else showToast('خطا در ذخیره',false);
+  }catch(e){}
 }
 function setColorSwatch(type,color){
   document.getElementById('s-'+(type==='primary'?'primary':'secondary')+'_color').value=color;
@@ -609,10 +667,12 @@ async function uploadLogo(){
   const f=document.getElementById('logo-input').files[0];
   if(!f) return showToast('ابتدا لوگو انتخاب کنید',false);
   const fd=new FormData();fd.append('logo',f);
-  const r=await fetch('/api/admin/logo',{method:'POST',headers:{'x-admin-token':adminToken},body:fd});
-  const d=await r.json();
-  if(r.ok&&d.success){showToast('لوگو آپلود شد');}
-  else showToast(d.error||'خطا',false);
+  try{
+    const r=await adminFetch('/api/admin/logo',{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('لوگو آپلود شد');}
+    else showToast(d.error||'خطا',false);
+  }catch(e){}
 }
 function previewLogo(input){
   if(!input.files[0]) return;

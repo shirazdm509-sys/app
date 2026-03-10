@@ -402,27 +402,36 @@
         </div>
 
         <!-- ============================================== -->
-        <!-- 4. سوال -->
+        <!-- 4. سوال / تیکت -->
         <!-- ============================================== -->
         <div id="screen-qa" class="screen flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
-                <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-                <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
+            <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
+                    <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
+                </div>
+                <button onclick="showQAForm()" class="bg-brand-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"><i class="fas fa-plus ml-1"></i>سوال جدید</button>
             </header>
-            
-            <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-                <div class="text-center my-2 text-[10px] text-gray-400 font-bold bg-gray-200/50 rounded-full w-max mx-auto px-3 py-1">۸ اسفند ۱۴۰۳ ساعت ۰۵:۱۱ ب.ظ</div>
-                <div class="bg-blue-50 text-blue-600 text-[11px] font-bold p-3 rounded-2xl text-center border border-blue-100 mx-8">شما گفتگویی را شروع کردید</div>
+
+            <!-- فرم ارسال تیکت -->
+            <div id="qa-form" class="hidden flex-col gap-3 p-5 bg-white border-b border-gray-100 shadow-sm shrink-0">
+                <h3 class="font-bold text-sm text-gray-800">ارسال سوال جدید</h3>
+                <input type="text" id="qa-name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="نام شما (اختیاری)">
+                <input type="text" id="qa-subject" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="موضوع سوال *">
+                <textarea id="qa-message" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 resize-none" placeholder="متن سوال خود را بنویسید *"></textarea>
+                <div class="flex gap-2">
+                    <button onclick="submitQATicket()" class="flex-1 bg-brand-600 text-white font-bold py-3 rounded-xl text-sm"><i class="fas fa-paper-plane ml-2"></i>ارسال سوال</button>
+                    <button onclick="hideQAForm()" class="w-12 bg-gray-100 rounded-xl text-gray-500 font-bold"><i class="fas fa-times"></i></button>
+                </div>
             </div>
 
-            <div class="p-4 bg-white border-t border-gray-100 flex gap-2 items-center">
-                <button class="w-10 h-10 bg-gray-50 rounded-full text-gray-500 shrink-0 hover:bg-gray-100 transition"><i class="fas fa-paperclip"></i></button>
-                <input type="text" class="flex-1 bg-gray-50 border-none rounded-full h-10 px-4 text-sm outline-none" placeholder="نوشتن سوال یا پیام...">
-                <button class="w-10 h-10 bg-brand-600 rounded-full text-white shrink-0 shadow-md hover:bg-brand-700 transition" onclick="showToast('پیام ارسال شد')">
-                    <i class="fas fa-paper-plane text-xs transform -translate-x-0.5 translate-y-0.5"></i>
-                </button>
+            <!-- لیست تیکت‌ها از localStorage -->
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="qa-tickets-list">
+                <div class="text-center py-16 text-gray-400">
+                    <i class="fas fa-comments text-5xl mb-4 opacity-30"></i>
+                    <p class="text-sm font-bold mb-2">هنوز سوالی ارسال نشده</p>
+                    <p class="text-xs opacity-70">از دکمه «سوال جدید» استفاده کنید</p>
+                </div>
             </div>
         </div>
 
@@ -1433,6 +1442,7 @@ function navToScreen(name) {
     if (name === 'lectures') initWP();
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
+    if (name === 'qa') renderQATickets();
     if (name === 'media') initMedia();
     else {
         const wpPlayer = document.getElementById('wp-media-player-container');
@@ -2172,6 +2182,77 @@ function renderWPSingle(post, screen) {
     const imgC = document.getElementById(`${prefix}-single-image`);
     if (imgUrl) { imgC.classList.remove('hidden'); imgC.querySelector('img').src = imgUrl; }
     else { imgC.classList.add('hidden'); }
+}
+
+// ====================================================
+// بخش پرسش و پاسخ (سیستم تیکت)
+// ====================================================
+let qaTickets = JSON.parse(localStorage.getItem('qa_tickets') || '[]');
+
+function showQAForm() {
+    const f = document.getElementById('qa-form');
+    f.classList.remove('hidden');
+    f.classList.add('flex');
+}
+function hideQAForm() {
+    const f = document.getElementById('qa-form');
+    f.classList.add('hidden');
+    f.classList.remove('flex');
+}
+
+async function submitQATicket() {
+    const name = document.getElementById('qa-name').value.trim();
+    const subject = document.getElementById('qa-subject').value.trim();
+    const message = document.getElementById('qa-message').value.trim();
+    if (!subject || !message) { showToast('موضوع و متن سوال الزامی است'); return; }
+    try {
+        const res = await fetch('/api/tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: name || 'کاربر مهمان', subject, message })
+        });
+        const d = await res.json();
+        if (res.ok && d.success) {
+            const ticket = { id: d.ticket_id, subject, message, status: 'open', date: new Date().toISOString(), name: name || 'کاربر مهمان' };
+            qaTickets.unshift(ticket);
+            localStorage.setItem('qa_tickets', JSON.stringify(qaTickets));
+            document.getElementById('qa-name').value = '';
+            document.getElementById('qa-subject').value = '';
+            document.getElementById('qa-message').value = '';
+            hideQAForm();
+            renderQATickets();
+            showToast('سوال شما ارسال شد');
+        } else {
+            showToast(d.error || 'خطا در ارسال');
+        }
+    } catch(e) {
+        showToast('خطا در اتصال به سرور');
+    }
+}
+
+function renderQATickets() {
+    const c = document.getElementById('qa-tickets-list');
+    if (!c) return;
+    if (!qaTickets.length) {
+        c.innerHTML = `<div class="text-center py-16 text-gray-400"><i class="fas fa-comments text-5xl mb-4 opacity-30"></i><p class="text-sm font-bold mb-2">هنوز سوالی ارسال نشده</p><p class="text-xs opacity-70">از دکمه «سوال جدید» استفاده کنید</p></div>`;
+        return;
+    }
+    const statusMap = { open: { text: 'در انتظار پاسخ', cls: 'bg-blue-50 text-blue-600' }, answered: { text: 'پاسخ داده شد', cls: 'bg-green-50 text-green-600' }, closed: { text: 'بسته شد', cls: 'bg-gray-100 text-gray-500' } };
+    c.innerHTML = qaTickets.map(t => {
+        const s = statusMap[t.status] || statusMap.open;
+        const date = new Date(t.date).toLocaleDateString('fa-IR');
+        return `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div class="flex items-start justify-between mb-2">
+                <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
+                <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${s.cls}">${s.text}</span>
+            </div>
+            <p class="text-xs text-gray-500 mb-3 line-clamp-2">${t.message}</p>
+            <div class="flex items-center justify-between text-[10px] text-gray-400">
+                <span><i class="far fa-calendar ml-1"></i>${date}</span>
+                <span>تیکت #${t.id}</span>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 // ====================================================
