@@ -2334,7 +2334,8 @@ async function loadQAConversationMessages(ticketId) {
             c.scrollTop = c.scrollHeight;
             // Show hint if API returned error object (ticket not found on server)
             if (msgs && !Array.isArray(msgs)) {
-                c.innerHTML += `<div class="text-center mt-4 text-xs text-amber-500 bg-amber-50 rounded-xl p-3">پیام‌های سرور در دسترس نیست. پیام ذخیره‌شده نمایش داده می‌شود.</div>`;
+                const errDetail = msgs.error || JSON.stringify(msgs);
+                c.innerHTML += `<div class="text-center mt-4 text-xs text-amber-500 bg-amber-50 rounded-xl p-3">⚠ خطای سرور: ${errDetail}<br><small class="opacity-70">ticket_id=${ticketId} | status=${msgsRes.status}</small></div>`;
             }
         } else {
             c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
