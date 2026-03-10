@@ -2287,44 +2287,66 @@ async function refreshQAConversation() {
     if (activeQATicketId) await loadQAConversationMessages(activeQATicketId);
 }
 
+function renderMsgBubble(text, senderType, timeStr) {
+    const isAdmin = senderType === 'admin';
+    return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}">
+        <div class="max-w-[80%] ${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
+            ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
+            <p class="text-sm leading-relaxed">${text}</p>
+            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1 block">${timeStr}</span>` : ''}
+        </div>
+    </div>`;
+}
+
 async function loadQAConversationMessages(ticketId) {
     const c = document.getElementById('qa-conv-messages');
     c.innerHTML = `<div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
+
+    // Find local ticket data as fallback
+    const localTicket = qaTickets.find(x => x.id == ticketId);
+
     try {
-        // Fetch ticket status
         const [ticketRes, msgsRes] = await Promise.all([
             fetch('/api/tickets/' + ticketId),
             fetch('/api/tickets/' + ticketId + '/messages')
         ]);
-        const ticket = await ticketRes.json();
-        const msgs = await msgsRes.json();
 
-        // Update status in local storage
+        let ticket = null, msgs = null;
+        try { ticket = await ticketRes.json(); } catch(e) {}
+        try { msgs = await msgsRes.json(); } catch(e) {}
+
+        // Update status
         if (ticket && ticket.status) {
-            const t = qaTickets.find(x => x.id === ticketId);
-            if (t) { t.status = ticket.status; localStorage.setItem('qa_tickets', JSON.stringify(qaTickets)); }
+            if (localTicket) { localTicket.status = ticket.status; localStorage.setItem('qa_tickets', JSON.stringify(qaTickets)); }
             const statusMap = { open: 'در انتظار پاسخ', answered: 'پاسخ داده شد', closed: 'بسته شد' };
             document.getElementById('qa-conv-status').textContent = statusMap[ticket.status] || '';
         }
 
-        if (!Array.isArray(msgs) || msgs.length === 0) {
-            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
+        if (Array.isArray(msgs) && msgs.length > 0) {
+            c.innerHTML = msgs.map(m => renderMsgBubble(m.text, m.sender_type, new Date(m.created_at).toLocaleString('fa-IR'))).join('');
+            c.scrollTop = c.scrollHeight;
             return;
         }
-        c.innerHTML = msgs.map(m => {
-            const isAdmin = m.sender_type === 'admin';
-            const time = new Date(m.created_at).toLocaleString('fa-IR');
-            return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}">
-                <div class="max-w-[80%] ${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
-                    ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
-                    <p class="text-sm leading-relaxed">${m.text}</p>
-                    <span class="text-[9px] text-gray-400 mt-1 block">${time}</span>
-                </div>
-            </div>`;
-        }).join('');
-        c.scrollTop = c.scrollHeight;
+
+        // API returned empty or error — show local message as fallback
+        if (localTicket && localTicket.message) {
+            c.innerHTML = renderMsgBubble(localTicket.message, 'user', new Date(localTicket.date).toLocaleString('fa-IR'));
+            c.scrollTop = c.scrollHeight;
+            // Show hint if API returned error object (ticket not found on server)
+            if (msgs && !Array.isArray(msgs)) {
+                c.innerHTML += `<div class="text-center mt-4 text-xs text-amber-500 bg-amber-50 rounded-xl p-3">پیام‌های سرور در دسترس نیست. پیام ذخیره‌شده نمایش داده می‌شود.</div>`;
+            }
+        } else {
+            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
+        }
     } catch(e) {
-        c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
+        // Network error — show local message if available
+        if (localTicket && localTicket.message) {
+            c.innerHTML = renderMsgBubble(localTicket.message, 'user', new Date(localTicket.date).toLocaleString('fa-IR'));
+            c.innerHTML += `<div class="text-center mt-4 text-xs text-red-400 bg-red-50 rounded-xl p-3">خطا در اتصال به سرور</div>`;
+        } else {
+            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
+        }
     }
 }
 
