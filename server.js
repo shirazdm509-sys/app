@@ -64,6 +64,7 @@ function initDb() {
             ['logo_url',''],
             ['live_url',''],
             ['live_active','0'],
+            ['live_embed',''],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);

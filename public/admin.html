@@ -183,7 +183,10 @@ input[type=color]{width:48px;height:36px;border:none;border-radius:8px;cursor:po
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام سایت</label><input type="text" id="s-site_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرنویس</label><input type="text" id="s-site_subtitle" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">آدرس پخش زنده</label><input type="url" id="s-live_url" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://www.aparat.com/..."></div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">کد امبد پخش زنده <span class="text-gray-400 font-normal">(کد HTML کامل را از آپارات یا سایر پلتفرم‌ها paste کنید)</span></label>
+          <textarea id="s-live_embed" rows="5" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 font-mono text-xs resize-y" placeholder="کد embed را اینجا paste کنید..."></textarea>
+        </div>
         <div class="flex items-end gap-3"><label class="block text-xs font-bold text-gray-500 mb-2 w-full">پخش زنده فعال<input type="checkbox" id="s-live_active" class="mr-2 mt-2"></label></div>
       </div>
     </div>
@@ -631,7 +634,7 @@ async function loadSettings(){
   try{
     const r=await adminFetch('/api/admin/settings');
     const s=await r.json();
-    ['site_name','site_subtitle','primary_color','secondary_color','live_url'].forEach(k=>{
+    ['site_name','site_subtitle','primary_color','secondary_color','live_embed'].forEach(k=>{
       const el=document.getElementById('s-'+k);
       if(el) el.value=s[k]||'';
     });
@@ -650,7 +653,7 @@ async function saveSettings(){
     site_subtitle:document.getElementById('s-site_subtitle').value,
     primary_color:document.getElementById('s-primary_color').value,
     secondary_color:document.getElementById('s-secondary_color').value,
-    live_url:document.getElementById('s-live_url').value,
+    live_embed:document.getElementById('s-live_embed').value,
     live_active:document.getElementById('s-live_active').checked?'1':'0',
   };
   try{
