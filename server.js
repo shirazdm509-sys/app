@@ -229,6 +229,22 @@ app.post('/api/tickets',(req,res)=>{
     });
 });
 
+// دریافت پیام‌های یک تیکت (عمومی - برای کاربر)
+app.get('/api/tickets/:id/messages',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT text,sender_type,created_at FROM ticket_messages WHERE ticket_id=? ORDER BY created_at ASC',[id],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+app.get('/api/tickets/:id',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT id,subject,status,updated_at FROM tickets WHERE id=?',[id],(err,row)=>{
+        if(err||!row) return res.status(404).json({error:'یافت نشد'});
+        res.json(row);
+    });
+});
+
 // === ADMIN APIS ===
 app.post('/api/admin/login',(req,res)=>{
     if(req.body.password===ADMIN_PASSWORD) res.json({success:true,token:ADMIN_PASSWORD});

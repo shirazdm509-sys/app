@@ -425,13 +425,20 @@
                 </div>
             </div>
 
-            <!-- لیست تیکت‌ها از localStorage -->
-            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="qa-tickets-list">
-                <div class="text-center py-16 text-gray-400">
-                    <i class="fas fa-comments text-5xl mb-4 opacity-30"></i>
-                    <p class="text-sm font-bold mb-2">هنوز سوالی ارسال نشده</p>
-                    <p class="text-xs opacity-70">از دکمه «سوال جدید» استفاده کنید</p>
-                </div>
+            <!-- لیست تیکت‌ها -->
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="qa-tickets-list"></div>
+
+            <!-- نمایش مکالمه یک تیکت -->
+            <div id="qa-conversation" class="hidden absolute inset-0 bg-gray-50 flex-col z-10">
+                <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
+                    <button onclick="closeQAConversation()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
+                    <div>
+                        <h1 id="qa-conv-title" class="font-black text-base text-gray-800 truncate">سوال</h1>
+                        <span id="qa-conv-status" class="text-xs text-brand-600 font-bold"></span>
+                    </div>
+                    <button onclick="refreshQAConversation()" class="mr-auto w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                </header>
+                <div id="qa-conv-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
             </div>
         </div>
 
@@ -1442,7 +1449,7 @@ function navToScreen(name) {
     if (name === 'lectures') initWP();
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
-    if (name === 'qa') renderQATickets();
+    if (name === 'qa') { renderQATickets(); refreshAllTicketStatuses(); }
     if (name === 'media') initMedia();
     else {
         const wpPlayer = document.getElementById('wp-media-player-container');
@@ -2241,7 +2248,7 @@ function renderQATickets() {
     c.innerHTML = qaTickets.map(t => {
         const s = statusMap[t.status] || statusMap.open;
         const date = new Date(t.date).toLocaleDateString('fa-IR');
-        return `<div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        return `<div onclick="openQAConversation(${t.id},'${t.subject.replace(/'/g,"\\'")}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
             <div class="flex items-start justify-between mb-2">
                 <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
                 <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${s.cls}">${s.text}</span>
@@ -2249,10 +2256,88 @@ function renderQATickets() {
             <p class="text-xs text-gray-500 mb-3 line-clamp-2">${t.message}</p>
             <div class="flex items-center justify-between text-[10px] text-gray-400">
                 <span><i class="far fa-calendar ml-1"></i>${date}</span>
-                <span>تیکت #${t.id}</span>
+                <span class="flex items-center gap-1"><i class="fas fa-chevron-left text-[8px]"></i>تیکت #${t.id}</span>
             </div>
         </div>`;
     }).join('');
+}
+
+let activeQATicketId = null;
+
+async function openQAConversation(ticketId, subject) {
+    activeQATicketId = ticketId;
+    document.getElementById('qa-conv-title').textContent = subject;
+    document.getElementById('qa-conv-status').textContent = '';
+    const conv = document.getElementById('qa-conversation');
+    conv.classList.remove('hidden');
+    conv.classList.add('flex');
+    await loadQAConversationMessages(ticketId);
+}
+
+function closeQAConversation() {
+    activeQATicketId = null;
+    const conv = document.getElementById('qa-conversation');
+    conv.classList.add('hidden');
+    conv.classList.remove('flex');
+    // Refresh ticket statuses
+    refreshAllTicketStatuses();
+}
+
+async function refreshQAConversation() {
+    if (activeQATicketId) await loadQAConversationMessages(activeQATicketId);
+}
+
+async function loadQAConversationMessages(ticketId) {
+    const c = document.getElementById('qa-conv-messages');
+    c.innerHTML = `<div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
+    try {
+        // Fetch ticket status
+        const [ticketRes, msgsRes] = await Promise.all([
+            fetch('/api/tickets/' + ticketId),
+            fetch('/api/tickets/' + ticketId + '/messages')
+        ]);
+        const ticket = await ticketRes.json();
+        const msgs = await msgsRes.json();
+
+        // Update status in local storage
+        if (ticket && ticket.status) {
+            const t = qaTickets.find(x => x.id === ticketId);
+            if (t) { t.status = ticket.status; localStorage.setItem('qa_tickets', JSON.stringify(qaTickets)); }
+            const statusMap = { open: 'در انتظار پاسخ', answered: 'پاسخ داده شد', closed: 'بسته شد' };
+            document.getElementById('qa-conv-status').textContent = statusMap[ticket.status] || '';
+        }
+
+        if (!Array.isArray(msgs) || msgs.length === 0) {
+            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
+            return;
+        }
+        c.innerHTML = msgs.map(m => {
+            const isAdmin = m.sender_type === 'admin';
+            const time = new Date(m.created_at).toLocaleString('fa-IR');
+            return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}">
+                <div class="max-w-[80%] ${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
+                    ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
+                    <p class="text-sm leading-relaxed">${m.text}</p>
+                    <span class="text-[9px] text-gray-400 mt-1 block">${time}</span>
+                </div>
+            </div>`;
+        }).join('');
+        c.scrollTop = c.scrollHeight;
+    } catch(e) {
+        c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
+    }
+}
+
+async function refreshAllTicketStatuses() {
+    // Silently refresh statuses from server
+    for (const t of qaTickets) {
+        try {
+            const r = await fetch('/api/tickets/' + t.id);
+            if (r.ok) { const d = await r.json(); if (d.status) t.status = d.status; }
+        } catch(e) {}
+    }
+    localStorage.setItem('qa_tickets', JSON.stringify(qaTickets));
+    renderQATickets();
 }
 
 // ====================================================
