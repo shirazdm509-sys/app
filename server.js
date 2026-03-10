@@ -67,6 +67,8 @@ function initDb() {
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
+        // Migration: add user_id to tickets if not exists
+        mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
     });
 }
 
@@ -219,13 +221,25 @@ app.post('/api/qa/messages',userAuth,(req,res)=>{
 });
 
 // === API TICKETS ===
-app.post('/api/tickets',(req,res)=>{
-    const u=san(req.body.username),s=san(req.body.subject),m=san(req.body.message);
+app.get('/api/tickets',userAuth,(req,res)=>{
+    mainDb.all(
+        `SELECT id,subject,status,updated_at,(SELECT text FROM ticket_messages WHERE ticket_id=tickets.id ORDER BY created_at ASC LIMIT 1) as first_message FROM tickets WHERE user_id=? ORDER BY updated_at DESC`,
+        [req.userId],(err,rows)=>{
+            if(err) return res.status(500).json({error:err.message});
+            res.json(rows||[]);
+        }
+    );
+});
+app.post('/api/tickets',userAuth,(req,res)=>{
+    const s=san(req.body.subject),m=san(req.body.message);
     if(!s||!m) return res.status(400).json({error:'موضوع و پیام الزامی است'});
-    mainDb.run('INSERT INTO tickets (username,subject) VALUES (?,?)',[u||'ناشناس',s],function(err){
-        if(err) return res.status(500).json({error:err.message});
-        const tid=this.lastID;
-        mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"user")',[tid,m],()=>res.json({success:true,ticket_id:tid}));
+    mainDb.get('SELECT username FROM users WHERE id=?',[req.userId],(err,user)=>{
+        const uname=user?user.username:'کاربر';
+        mainDb.run('INSERT INTO tickets (username,subject,user_id) VALUES (?,?,?)',[uname,s,req.userId],function(err){
+            if(err) return res.status(500).json({error:err.message});
+            const tid=this.lastID;
+            mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"user")',[tid,m],()=>res.json({success:true,ticket_id:tid}));
+        });
     });
 });
 

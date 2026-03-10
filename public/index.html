@@ -410,13 +410,16 @@
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
                 </div>
-                <button onclick="showQAForm()" class="bg-brand-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"><i class="fas fa-plus ml-1"></i>سوال جدید</button>
+                <div class="flex items-center gap-2">
+                    <span id="qa-username-badge" class="text-xs text-gray-500 font-bold hidden"></span>
+                    <button id="qa-logout-btn" onclick="qaLogout()" class="hidden text-xs text-red-500 font-bold px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 transition"><i class="fas fa-sign-out-alt ml-1"></i>خروج</button>
+                    <button id="qa-new-btn" onclick="showQAForm()" class="hidden bg-brand-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm"><i class="fas fa-plus ml-1"></i>سوال جدید</button>
+                </div>
             </header>
 
             <!-- فرم ارسال تیکت -->
             <div id="qa-form" class="hidden flex-col gap-3 p-5 bg-white border-b border-gray-100 shadow-sm shrink-0">
                 <h3 class="font-bold text-sm text-gray-800">ارسال سوال جدید</h3>
-                <input type="text" id="qa-name" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="نام شما (اختیاری)">
                 <input type="text" id="qa-subject" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="موضوع سوال *">
                 <textarea id="qa-message" rows="3" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500 resize-none" placeholder="متن سوال خود را بنویسید *"></textarea>
                 <div class="flex gap-2">
@@ -439,6 +442,38 @@
                     <button onclick="refreshQAConversation()" class="mr-auto w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-xs"></i></button>
                 </header>
                 <div id="qa-conv-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
+            </div>
+
+            <!-- اورلی ورود / ثبت‌نام -->
+            <div id="qa-auth" class="hidden absolute inset-0 bg-gray-50 flex-col z-20">
+                <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
+                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500"><i class="fas fa-arrow-right"></i></button>
+                    <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
+                </header>
+                <div class="flex-1 overflow-y-auto p-5 flex flex-col justify-center gap-4 max-w-sm mx-auto w-full">
+                    <div class="text-center mb-2">
+                        <div class="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-user-circle text-3xl text-brand-500"></i>
+                        </div>
+                        <h2 class="font-black text-lg text-gray-800">ورود / ثبت‌نام</h2>
+                        <p class="text-sm text-gray-500 mt-1">برای ارسال سوال ابتدا وارد شوید</p>
+                    </div>
+                    <div class="flex bg-gray-100 rounded-xl p-1 gap-1">
+                        <button id="qa-tab-login" onclick="qaAuthTab('login')" class="flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-brand-600 transition">ورود</button>
+                        <button id="qa-tab-register" onclick="qaAuthTab('register')" class="flex-1 py-2 rounded-lg text-sm font-bold text-gray-500 transition">ثبت‌نام</button>
+                    </div>
+                    <div id="qa-auth-login" class="flex flex-col gap-3">
+                        <input type="text" id="qa-login-username" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="نام کاربری">
+                        <input type="password" id="qa-login-password" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="رمز عبور">
+                        <button onclick="qaLogin()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl text-sm"><i class="fas fa-sign-in-alt ml-2"></i>ورود</button>
+                    </div>
+                    <div id="qa-auth-register" class="hidden flex-col gap-3">
+                        <input type="text" id="qa-reg-username" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="نام کاربری">
+                        <input type="password" id="qa-reg-password" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="رمز عبور">
+                        <input type="password" id="qa-reg-password2" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-500" placeholder="تکرار رمز عبور">
+                        <button onclick="qaRegister()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-xl text-sm"><i class="fas fa-user-plus ml-2"></i>ثبت‌نام</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1449,7 +1484,7 @@ function navToScreen(name) {
     if (name === 'lectures') initWP();
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
-    if (name === 'qa') { renderQATickets(); refreshAllTicketStatuses(); }
+    if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
     if (name === 'media') initMedia();
     else {
         const wpPlayer = document.getElementById('wp-media-player-container');
@@ -2192,74 +2227,142 @@ function renderWPSingle(post, screen) {
 }
 
 // ====================================================
-// بخش پرسش و پاسخ (سیستم تیکت)
+// بخش پرسش و پاسخ (سیستم تیکت با احراز هویت)
 // ====================================================
-let qaTickets = JSON.parse(localStorage.getItem('qa_tickets') || '[]');
+let qaUser = JSON.parse(localStorage.getItem('qa_user') || 'null');
+let qaTickets = [];
 
+// ---- Auth UI ----
+function showQAAuth() {
+    const el = document.getElementById('qa-auth');
+    el.classList.remove('hidden'); el.classList.add('flex');
+}
+function hideQAAuth() {
+    const el = document.getElementById('qa-auth');
+    el.classList.add('hidden'); el.classList.remove('flex');
+}
+function qaAuthTab(tab) {
+    const isLogin = tab === 'login';
+    const loginForm = document.getElementById('qa-auth-login');
+    const regForm = document.getElementById('qa-auth-register');
+    loginForm.classList.toggle('hidden', !isLogin); loginForm.classList.toggle('flex', isLogin);
+    regForm.classList.toggle('hidden', isLogin); regForm.classList.toggle('flex', !isLogin);
+    document.getElementById('qa-tab-login').className = `flex-1 py-2 rounded-lg text-sm font-bold transition ${isLogin ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'}`;
+    document.getElementById('qa-tab-register').className = `flex-1 py-2 rounded-lg text-sm font-bold transition ${!isLogin ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'}`;
+}
+async function qaLogin() {
+    const u = document.getElementById('qa-login-username').value.trim();
+    const p = document.getElementById('qa-login-password').value;
+    if (!u || !p) { showToast('نام کاربری و رمز عبور را وارد کنید'); return; }
+    try {
+        const r = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+        const d = await r.json();
+        if (r.ok && d.success) {
+            qaUser = { id: d.id, username: d.username };
+            localStorage.setItem('qa_user', JSON.stringify(qaUser));
+            hideQAAuth(); updateQAUserUI(); renderQATickets();
+            showToast('خوش آمدید ' + d.username);
+        } else { showToast(d.error || 'نام کاربری یا رمز عبور اشتباه است'); }
+    } catch(e) { showToast('خطا در اتصال به سرور'); }
+}
+async function qaRegister() {
+    const u = document.getElementById('qa-reg-username').value.trim();
+    const p = document.getElementById('qa-reg-password').value;
+    const p2 = document.getElementById('qa-reg-password2').value;
+    if (!u || !p) { showToast('نام کاربری و رمز عبور را وارد کنید'); return; }
+    if (p !== p2) { showToast('رمز عبور و تکرار آن یکسان نیستند'); return; }
+    try {
+        const r = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+        const d = await r.json();
+        if (r.ok && d.success) {
+            document.getElementById('qa-login-username').value = u;
+            document.getElementById('qa-login-password').value = p;
+            qaAuthTab('login');
+            await qaLogin();
+        } else { showToast(d.error || 'خطا در ثبت‌نام'); }
+    } catch(e) { showToast('خطا در اتصال به سرور'); }
+}
+function qaLogout() {
+    qaUser = null; qaTickets = [];
+    localStorage.removeItem('qa_user');
+    updateQAUserUI(); showQAAuth();
+    showToast('از حساب کاربری خارج شدید');
+}
+function updateQAUserUI() {
+    const loggedIn = !!qaUser;
+    const badge = document.getElementById('qa-username-badge');
+    const logoutBtn = document.getElementById('qa-logout-btn');
+    const newBtn = document.getElementById('qa-new-btn');
+    if (badge) { badge.textContent = qaUser ? qaUser.username : ''; badge.classList.toggle('hidden', !loggedIn); }
+    if (logoutBtn) logoutBtn.classList.toggle('hidden', !loggedIn);
+    if (newBtn) newBtn.classList.toggle('hidden', !loggedIn);
+}
+
+// ---- Ticket Form ----
 function showQAForm() {
+    if (!qaUser) { showQAAuth(); return; }
     const f = document.getElementById('qa-form');
-    f.classList.remove('hidden');
-    f.classList.add('flex');
+    f.classList.remove('hidden'); f.classList.add('flex');
 }
 function hideQAForm() {
     const f = document.getElementById('qa-form');
-    f.classList.add('hidden');
-    f.classList.remove('flex');
+    f.classList.add('hidden'); f.classList.remove('flex');
 }
-
 async function submitQATicket() {
-    const name = document.getElementById('qa-name').value.trim();
+    if (!qaUser) { showQAAuth(); return; }
     const subject = document.getElementById('qa-subject').value.trim();
     const message = document.getElementById('qa-message').value.trim();
     if (!subject || !message) { showToast('موضوع و متن سوال الزامی است'); return; }
     try {
         const res = await fetch('/api/tickets', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: name || 'کاربر مهمان', subject, message })
+            headers: {'Content-Type':'application/json', 'x-user-id': String(qaUser.id)},
+            body: JSON.stringify({subject, message})
         });
         const d = await res.json();
         if (res.ok && d.success) {
-            const ticket = { id: d.ticket_id, subject, message, status: 'open', date: new Date().toISOString(), name: name || 'کاربر مهمان' };
-            qaTickets.unshift(ticket);
-            localStorage.setItem('qa_tickets', JSON.stringify(qaTickets));
-            document.getElementById('qa-name').value = '';
             document.getElementById('qa-subject').value = '';
             document.getElementById('qa-message').value = '';
-            hideQAForm();
+            hideQAForm(); showToast('سوال شما ارسال شد');
             renderQATickets();
-            showToast('سوال شما ارسال شد');
-        } else {
-            showToast(d.error || 'خطا در ارسال');
-        }
-    } catch(e) {
-        showToast('خطا در اتصال به سرور');
-    }
+        } else { showToast(d.error || 'خطا در ارسال'); }
+    } catch(e) { showToast('خطا در اتصال به سرور'); }
 }
 
-function renderQATickets() {
+// ---- Ticket List ----
+async function renderQATickets() {
     const c = document.getElementById('qa-tickets-list');
     if (!c) return;
-    if (!qaTickets.length) {
-        c.innerHTML = `<div class="text-center py-16 text-gray-400"><i class="fas fa-comments text-5xl mb-4 opacity-30"></i><p class="text-sm font-bold mb-2">هنوز سوالی ارسال نشده</p><p class="text-xs opacity-70">از دکمه «سوال جدید» استفاده کنید</p></div>`;
-        return;
+    if (!qaUser) { showQAAuth(); return; }
+    c.innerHTML = `<div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
+    try {
+        const res = await fetch('/api/tickets', { headers: {'x-user-id': String(qaUser.id)} });
+        if (res.status === 401) { qaLogout(); return; }
+        const tickets = await res.json();
+        qaTickets = Array.isArray(tickets) ? tickets : [];
+        if (!qaTickets.length) {
+            c.innerHTML = `<div class="text-center py-16 text-gray-400"><i class="fas fa-comments text-5xl mb-4 opacity-30"></i><p class="text-sm font-bold mb-2">هنوز سوالی ارسال نشده</p><p class="text-xs opacity-70">از دکمه «سوال جدید» استفاده کنید</p></div>`;
+            return;
+        }
+        const statusMap = { open:{text:'در انتظار پاسخ',cls:'bg-blue-50 text-blue-600'}, answered:{text:'پاسخ داده شد',cls:'bg-green-50 text-green-600'}, closed:{text:'بسته شد',cls:'bg-gray-100 text-gray-500'} };
+        c.innerHTML = qaTickets.map(t => {
+            const s = statusMap[t.status] || statusMap.open;
+            const date = new Date(t.updated_at).toLocaleDateString('fa-IR');
+            return `<div onclick="openQAConversation(${t.id},'${t.subject.replace(/'/g,"\\'")}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
+                    <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${s.cls}">${s.text}</span>
+                </div>
+                <p class="text-xs text-gray-500 mb-3 line-clamp-2">${t.first_message || ''}</p>
+                <div class="flex items-center justify-between text-[10px] text-gray-400">
+                    <span><i class="far fa-calendar ml-1"></i>${date}</span>
+                    <span class="flex items-center gap-1"><i class="fas fa-chevron-left text-[8px]"></i>تیکت #${t.id}</span>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در بارگذاری سوالات</div>`;
     }
-    const statusMap = { open: { text: 'در انتظار پاسخ', cls: 'bg-blue-50 text-blue-600' }, answered: { text: 'پاسخ داده شد', cls: 'bg-green-50 text-green-600' }, closed: { text: 'بسته شد', cls: 'bg-gray-100 text-gray-500' } };
-    c.innerHTML = qaTickets.map(t => {
-        const s = statusMap[t.status] || statusMap.open;
-        const date = new Date(t.date).toLocaleDateString('fa-IR');
-        return `<div onclick="openQAConversation(${t.id},'${t.subject.replace(/'/g,"\\'")}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
-            <div class="flex items-start justify-between mb-2">
-                <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
-                <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${s.cls}">${s.text}</span>
-            </div>
-            <p class="text-xs text-gray-500 mb-3 line-clamp-2">${t.message}</p>
-            <div class="flex items-center justify-between text-[10px] text-gray-400">
-                <span><i class="far fa-calendar ml-1"></i>${date}</span>
-                <span class="flex items-center gap-1"><i class="fas fa-chevron-left text-[8px]"></i>تیکت #${t.id}</span>
-            </div>
-        </div>`;
-    }).join('');
 }
 
 let activeQATicketId = null;
@@ -2302,8 +2405,7 @@ async function loadQAConversationMessages(ticketId) {
     const c = document.getElementById('qa-conv-messages');
     c.innerHTML = `<div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
 
-    // Find local ticket data as fallback
-    const localTicket = qaTickets.find(x => x.id == ticketId);
+    const localTicket = qaTickets.find(x => x.id == ticketId); // for status update
 
     try {
         const [ticketRes, msgsRes] = await Promise.all([
@@ -2328,39 +2430,15 @@ async function loadQAConversationMessages(ticketId) {
             return;
         }
 
-        // API returned empty or error — show local message as fallback
-        if (localTicket && localTicket.message) {
-            c.innerHTML = renderMsgBubble(localTicket.message, 'user', new Date(localTicket.date).toLocaleString('fa-IR'));
-            c.scrollTop = c.scrollHeight;
-            // Show hint if API returned error object (ticket not found on server)
-            if (msgs && !Array.isArray(msgs)) {
-                const errDetail = msgs.error || JSON.stringify(msgs);
-                c.innerHTML += `<div class="text-center mt-4 text-xs text-amber-500 bg-amber-50 rounded-xl p-3">⚠ خطای سرور: ${errDetail}<br><small class="opacity-70">ticket_id=${ticketId} | status=${msgsRes.status}</small></div>`;
-            }
-        } else {
-            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
-        }
+        // API returned empty or error
+        c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
     } catch(e) {
-        // Network error — show local message if available
-        if (localTicket && localTicket.message) {
-            c.innerHTML = renderMsgBubble(localTicket.message, 'user', new Date(localTicket.date).toLocaleString('fa-IR'));
-            c.innerHTML += `<div class="text-center mt-4 text-xs text-red-400 bg-red-50 rounded-xl p-3">خطا در اتصال به سرور</div>`;
-        } else {
-            c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
-        }
+        c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
     }
 }
 
 async function refreshAllTicketStatuses() {
-    // Silently refresh statuses from server
-    for (const t of qaTickets) {
-        try {
-            const r = await fetch('/api/tickets/' + t.id);
-            if (r.ok) { const d = await r.json(); if (d.status) t.status = d.status; }
-        } catch(e) {}
-    }
-    localStorage.setItem('qa_tickets', JSON.stringify(qaTickets));
-    renderQATickets();
+    await renderQATickets();
 }
 
 // ====================================================
