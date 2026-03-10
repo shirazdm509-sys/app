@@ -1208,13 +1208,31 @@ async function initLiveScreen() {
     try {
         const r = await fetch('/api/settings');
         const s = await r.json();
-        const embed = (s.live_embed || '').trim();
+        const embedRaw = (s.live_embed || '').trim();
         const active = s.live_active === '1';
-        if (!active || !embed) {
+        if (!active || !embedRaw) {
             c.innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-gray-400 gap-3"><i class="fas fa-satellite-dish text-4xl opacity-30"></i><p class="text-sm font-bold opacity-40">در حال حاضر پخش زنده‌ای وجود ندارد</p></div>`;
-        } else {
-            c.innerHTML = embed;
+            return;
         }
+
+        let iframeSrc = '';
+        // Case 1: plain URL
+        if (/^https?:\/\//.test(embedRaw)) {
+            iframeSrc = embedRaw;
+        } else {
+            // Case 2: full embed HTML — extract src
+            const m = embedRaw.match(/src\s*=\s*["']([^"']+)["']/i);
+            if (m && m[1] && m[1] !== 'undefined' && /^https?:\/\//.test(m[1])) {
+                iframeSrc = m[1];
+            }
+        }
+
+        if (!iframeSrc) {
+            c.innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-gray-400 gap-3 px-6 text-center"><i class="fas fa-exclamation-triangle text-3xl opacity-40 mb-1"></i><p class="text-sm font-bold opacity-60">کد امبد نامعتبر است</p><p class="text-xs opacity-40">آدرس پخش در کد یافت نشد. لطفاً کد را از آپارات دوباره دریافت کنید یا فقط آدرس iframe را وارد کنید.</p></div>`;
+            return;
+        }
+
+        c.innerHTML = `<div class="h_iframe-aparat_embed_frame"><span style="display:block;padding-top:57%"></span><iframe scrolling="no" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${iframeSrc}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe></div>`;
     } catch(e) {
         c.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-3"><i class="fas fa-exclamation-circle text-3xl opacity-40"></i><p class="text-sm opacity-50">خطا در بارگذاری پخش زنده</p></div>`;
     }

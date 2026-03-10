@@ -184,8 +184,9 @@ input[type=color]{width:48px;height:36px;border:none;border-radius:8px;cursor:po
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام سایت</label><input type="text" id="s-site_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرنویس</label><input type="text" id="s-site_subtitle" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
         <div class="md:col-span-2">
-          <label class="block text-xs font-bold text-gray-500 mb-2">کد امبد پخش زنده <span class="text-gray-400 font-normal">(کد HTML کامل را از آپارات یا سایر پلتفرم‌ها paste کنید)</span></label>
-          <textarea id="s-live_embed" rows="5" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 font-mono text-xs resize-y" placeholder="کد embed را اینجا paste کنید..."></textarea>
+          <label class="block text-xs font-bold text-gray-500 mb-2">کد امبد یا آدرس پخش زنده</label>
+          <textarea id="s-live_embed" rows="4" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 font-mono text-xs resize-y" placeholder="گزینه ۱ — فقط آدرس (پیشنهادی):&#10;https://www.aparat.com/embed/live/نام‌کانال&#10;&#10;گزینه ۲ — کد embed کامل از آپارات (باید src معتبر داشته باشد)"></textarea>
+          <p class="text-[10px] text-amber-600 mt-1.5 bg-amber-50 rounded-lg px-3 py-1.5"><i class="fas fa-info-circle ml-1"></i>اگر کد امبد آپارات را paste می‌کنید، مطمئن شوید که <code class="font-mono bg-amber-100 px-1 rounded">src="..."</code> در آن یک آدرس معتبر دارد نه <code class="font-mono bg-amber-100 px-1 rounded">src="undefined"</code></p>
         </div>
         <div class="flex items-end gap-3"><label class="block text-xs font-bold text-gray-500 mb-2 w-full">پخش زنده فعال<input type="checkbox" id="s-live_active" class="mr-2 mt-2"></label></div>
       </div>
