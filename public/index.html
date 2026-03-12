@@ -199,7 +199,7 @@
 
                 <!-- SLIDER -->
                 <div id="home-slider" class="relative w-full overflow-hidden mb-4" style="height:180px;display:none;">
-                    <div id="slider-track" class="flex h-full transition-transform duration-500 ease-in-out"></div>
+                    <div id="slider-track" class="flex h-full transition-transform duration-500 ease-in-out" style="direction:ltr;will-change:transform;"></div>
                     <button onclick="sliderPrev()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-right text-xs"></i></button>
                     <button onclick="sliderNext()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-left text-xs"></i></button>
                     <div id="slider-dots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5"></div>
@@ -221,6 +221,9 @@
                         <span class="bg-white text-red-600 text-[10px] font-black tracking-widest px-3 py-1 rounded-full shadow-sm">LIVE</span>
                     </div>
                 </div>
+
+                <!-- SLIDER after_shortcuts placeholder -->
+                <div id="home-slider-after_shortcuts"></div>
 
                 <!-- SHORTCUTS GRID (8 items, responsive) -->
                 <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 px-4 mb-6">
@@ -267,8 +270,14 @@
                     <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
                 </div>
 
+                <!-- SLIDER after_books placeholder -->
+                <div id="home-slider-after_books"></div>
+
                 <!-- BANNERS (3 banners) -->
                 <div id="home-banners" class="px-4 mb-4 flex flex-col gap-3"></div>
+
+                <!-- SLIDER after_banners placeholder -->
+                <div id="home-slider-after_banners"></div>
 
                 <!-- LATEST LECTURES -->
                 <div class="mb-4">
@@ -280,6 +289,9 @@
                         <div class="text-center py-6 text-gray-400 text-xs">در حال بارگذاری...</div>
                     </div>
                 </div>
+
+                <!-- SLIDER after_lectures placeholder -->
+                <div id="home-slider-after_lectures"></div>
             </div>
         </div>
 
@@ -1604,50 +1616,103 @@ async function init() {
 // ====================================================
 // اسلایدر صفحه اصلی
 // ====================================================
-let sliderData = [], sliderIndex = 0, sliderTimer = null;
+// Per-section slider state: { sectionId: { data, index, timer } }
+const _sliderSections = {};
 
-async function loadSliders() {
-    const res = await fetch('/api/sliders');
-    sliderData = await res.json();
-    if (!Array.isArray(sliderData) || sliderData.length === 0) return;
-    const wrapper = document.getElementById('home-slider');
-    const track = document.getElementById('slider-track');
-    const dots = document.getElementById('slider-dots');
-    if (!wrapper || !track || !dots) return;
-    // Apply settings
-    const s = window._siteSettings || {};
+function _buildSliderHTML(sectionKey, slides, s) {
     const padding = parseInt(s.slider_padding || '0');
     const radius = parseInt(s.slider_radius || '0');
     const height = parseInt(s.slider_height || '180');
-    wrapper.style.display = 'block';
-    wrapper.style.height = height + 'px';
-    wrapper.style.padding = padding + 'px';
-    wrapper.style.borderRadius = radius + 'px';
-    if (padding > 0) wrapper.style.boxSizing = 'border-box';
-    track.innerHTML = sliderData.map(s =>
-        `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${s.link ? `window.open('${s.link}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;">
-            <img src="${s.image}" class="w-full h-full object-cover" alt="${s.title||''}">
-         </div>`
-    ).join('');
-    dots.innerHTML = sliderData.map((_,i) =>
-        `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
-    ).join('');
-    startSliderAuto();
+    return `<div id="slider-wrap-${sectionKey}" class="relative w-full overflow-hidden mb-4" style="height:${height}px;padding:${padding}px;border-radius:${radius}px;box-sizing:border-box;">
+        <div id="slider-track-${sectionKey}" class="flex h-full transition-transform duration-500 ease-in-out" style="direction:ltr;will-change:transform;">
+            ${slides.map(sl => `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;"><img src="${sl.image}" class="w-full h-full object-cover" alt="${sl.title||''}"></div>`).join('')}
+        </div>
+        <button onclick="_sliderPrev('${sectionKey}')" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-right text-xs"></i></button>
+        <button onclick="_sliderNext('${sectionKey}')" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-left text-xs"></i></button>
+        <div id="slider-dots-${sectionKey}" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            ${slides.map((_,i) => `<button onclick="_goToSlide('${sectionKey}',${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`).join('')}
+        </div>
+    </div>`;
 }
 
-function goToSlide(i) {
-    sliderIndex = (i + sliderData.length) % sliderData.length;
-    const track = document.getElementById('slider-track');
-    if (track) track.style.transform = `translateX(-${sliderIndex * 100}%)`;
-    document.querySelectorAll('#slider-dots button').forEach((b, idx) => {
-        b.className = `w-2 h-2 rounded-full transition-all ${idx === sliderIndex ? 'bg-white w-4' : 'bg-white/50'}`;
+function _goToSlide(sectionKey, i) {
+    const st = _sliderSections[sectionKey];
+    if (!st) return;
+    st.index = (i + st.data.length) % st.data.length;
+    const track = document.getElementById('slider-track-' + sectionKey);
+    if (track) track.style.transform = `translateX(-${st.index * 100}%)`;
+    const dotsEl = document.getElementById('slider-dots-' + sectionKey);
+    if (dotsEl) dotsEl.querySelectorAll('button').forEach((b, idx) => {
+        b.className = `w-2 h-2 rounded-full transition-all ${idx === st.index ? 'bg-white w-4' : 'bg-white/50'}`;
     });
 }
-function sliderNext() { goToSlide(sliderIndex + 1); }
-function sliderPrev() { goToSlide(sliderIndex - 1); }
-function startSliderAuto() {
-    if (sliderTimer) clearInterval(sliderTimer);
-    sliderTimer = setInterval(() => sliderNext(), 4000);
+function _sliderNext(k) { const st=_sliderSections[k]; if(st) _goToSlide(k, st.index+1); }
+function _sliderPrev(k) { const st=_sliderSections[k]; if(st) _goToSlide(k, st.index-1); }
+function _startSliderAuto(k) {
+    const st=_sliderSections[k];
+    if(!st) return;
+    if(st.timer) clearInterval(st.timer);
+    st.timer = setInterval(() => _sliderNext(k), 4000);
+}
+
+// Legacy references for main slider (backwards compat)
+let sliderData = [], sliderIndex = 0, sliderTimer = null;
+function goToSlide(i) { _goToSlide('main', i); }
+function sliderNext() { _sliderNext('main'); }
+function sliderPrev() { _sliderPrev('main'); }
+function startSliderAuto() { _startSliderAuto('main'); }
+
+async function loadSliders() {
+    const res = await fetch('/api/sliders');
+    const all = await res.json();
+    if (!Array.isArray(all) || all.length === 0) return;
+    const s = window._siteSettings || {};
+    // Group by display_section
+    const groups = {};
+    all.forEach(sl => {
+        const sec = sl.display_section || 'main';
+        if (!groups[sec]) groups[sec] = [];
+        groups[sec].push(sl);
+    });
+    const sectionTargets = {
+        'main': document.getElementById('home-slider'),
+        'after_shortcuts': document.getElementById('home-slider-after_shortcuts'),
+        'after_books': document.getElementById('home-slider-after_books'),
+        'after_banners': document.getElementById('home-slider-after_banners'),
+        'after_lectures': document.getElementById('home-slider-after_lectures'),
+    };
+    for (const [sec, slides] of Object.entries(groups)) {
+        const container = sectionTargets[sec];
+        if (!container) continue;
+        if (sec === 'main') {
+            // Use existing #home-slider structure
+            const wrapper = container;
+            const track = document.getElementById('slider-track');
+            const dots = document.getElementById('slider-dots');
+            if (!wrapper || !track || !dots) continue;
+            const padding = parseInt(s.slider_padding || '0');
+            const radius = parseInt(s.slider_radius || '0');
+            const height = parseInt(s.slider_height || '180');
+            wrapper.style.display = 'block';
+            wrapper.style.height = height + 'px';
+            wrapper.style.padding = padding + 'px';
+            wrapper.style.borderRadius = radius + 'px';
+            if (padding > 0) wrapper.style.boxSizing = 'border-box';
+            track.innerHTML = slides.map(sl =>
+                `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;"><img src="${sl.image}" class="w-full h-full object-cover" alt="${sl.title||''}"></div>`
+            ).join('');
+            dots.innerHTML = slides.map((_,i) =>
+                `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
+            ).join('');
+            sliderData = slides;
+            _sliderSections['main'] = { data: slides, index: 0, timer: null };
+            startSliderAuto();
+        } else {
+            _sliderSections[sec] = { data: slides, index: 0, timer: null };
+            container.innerHTML = _buildSliderHTML(sec, slides, s);
+            _startSliderAuto(sec);
+        }
+    }
 }
 
 // ====================================================
@@ -2866,6 +2931,52 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 init();
+
+// ====================================================
+// PWA Service Worker + Push Notifications
+// ====================================================
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        console.log('SW registered');
+        window._swReg = reg;
+        // Auto-subscribe to push if user is logged in
+        if (qaUser) { setTimeout(() => subscribeToPush(reg), 2000); }
+    } catch(e) { console.warn('SW registration failed:', e); }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const output = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
+    return output;
+}
+
+async function subscribeToPush(reg) {
+    if (!reg || !('pushManager' in reg)) return;
+    if (!qaUser) return;
+    try {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return; // Already subscribed
+        const keyRes = await fetch('/api/push/vapid-public-key');
+        const { publicKey } = await keyRes.json();
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': qaUser.id },
+            body: JSON.stringify({ subscription: sub })
+        });
+        console.log('Push subscribed');
+    } catch(e) { console.warn('Push subscribe failed:', e); }
+}
+
+registerServiceWorker();
 </script>
 </body>
 </html>

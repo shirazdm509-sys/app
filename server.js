@@ -7,6 +7,14 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
+
+// VAPID keys (stored in env or defaults generated once)
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BAL3iRBxoSa5U16TRyhqQubEAb97VXAkF0jU0iKh2rX7MX4cIYXK2qTFiBMSHL59F3lUWCYtaAvtnruUwDmgSbE';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'Y2NG_PXSMfMXfxbZ_UGX4lW7sWASyOuALHbL4QSYg4E';
+if (webpush) {
+    webpush.setVapidDetails('mailto:admin@localhost', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 let rateLimit, helmet;
 try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; }
@@ -55,9 +63,12 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS ticket_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL, text TEXT NOT NULL, sender_type TEXT DEFAULT 'user', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (ticket_id) REFERENCES tickets(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY AUTOINCREMENT, position INTEGER UNIQUE NOT NULL, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', active INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-        mainDb.run(`CREATE TABLE IF NOT EXISTS sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, display_section TEXT DEFAULT 'main', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`ALTER TABLE sliders ADD COLUMN display_section TEXT DEFAULT 'main'`, () => {});
         mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
+
 
         const defaults = [
             ['site_name','مرکز نشر آثار آیت الله دستغیب'],
@@ -430,7 +441,8 @@ app.post('/api/admin/sliders',adminAuth,upload.single('slider_image'),(req,res)=
     mainDb.get('SELECT COUNT(*) as c FROM sliders',[],(err,r)=>{
         if(r&&r.c>=10) return res.status(400).json({error:'حداکثر ۱۰ اسلاید مجاز است'});
         const img=`/sliders/${req.file.filename}`;
-        mainDb.run('INSERT INTO sliders (title,image,link,sort_order) VALUES (?,?,?,?)',[san(req.body.title||''),img,san(req.body.link||''),r?r.c:0],function(err){
+        const section = ['main','after_books','after_shortcuts','after_lectures','after_banners'].includes(req.body.display_section) ? req.body.display_section : 'main';
+        mainDb.run('INSERT INTO sliders (title,image,link,sort_order,display_section) VALUES (?,?,?,?,?)',[san(req.body.title||''),img,san(req.body.link||''),r?r.c:0,section],function(err){
             if(err) return res.status(500).json({error:err.message});
             res.json({success:true,id:this.lastID,image:img});
         });
@@ -488,10 +500,14 @@ app.post('/api/admin/tickets/:id/reply',adminAuth,(req,res)=>{
         // Create notification for the ticket owner
         mainDb.get('SELECT user_id,subject FROM tickets WHERE id=?',[id],(err2,ticket)=>{
             if(ticket&&ticket.user_id){
+                const replyTitle='پاسخ به تیکت';
+                const replyMsg=`تیکت شما با موضوع "${ticket.subject}" پاسخ داده شد.`;
                 mainDb.run('INSERT INTO notifications (title,message,type) VALUES (?,?,"ticket_reply")',
-                    ['پاسخ به تیکت',`تیکت شما با موضوع "${ticket.subject}" پاسخ داده شد.`],function(err3){
+                    [replyTitle,replyMsg],function(err3){
                         if(this.lastID) mainDb.run('INSERT INTO user_notifications (user_id,notification_id) VALUES (?,?)',[ticket.user_id,this.lastID]);
                     });
+                // Push notification to ticket owner
+                sendPushToUser(ticket.user_id,{title:replyTitle,body:replyMsg,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png',tag:'ticket-'+id,data:{url:'/'}});
             }
         });
         res.json({success:true});
@@ -517,6 +533,8 @@ app.post('/api/admin/notifications',adminAuth,(req,res)=>{
         mainDb.all('SELECT id FROM users',[],(err2,users)=>{
             if(users&&users.length) users.forEach(u=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[u.id,notifId]));
         });
+        // Send push notification to all subscribers
+        sendPushToAll({title, body: msg, icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', tag:'broadcast-'+notifId, data:{url:'/'}});
         res.json({success:true,id:notifId});
     });
 });
@@ -524,6 +542,50 @@ app.delete('/api/admin/notifications/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.run('DELETE FROM user_notifications WHERE notification_id=?',[id],()=>mainDb.run('DELETE FROM notifications WHERE id=?',[id],()=>res.json({success:true})));
 });
+
+// === PUSH SUBSCRIPTIONS ===
+app.get('/api/push/vapid-public-key',(req,res)=>{
+    res.json({publicKey: VAPID_PUBLIC_KEY});
+});
+app.post('/api/push/subscribe',userAuth,(req,res)=>{
+    if(!webpush) return res.status(503).json({error:'سرویس پوش پشتیبانی نمی‌شود'});
+    const sub=req.body.subscription;
+    if(!sub||!sub.endpoint) return res.status(400).json({error:'اشتراک نامعتبر'});
+    mainDb.run('INSERT OR REPLACE INTO push_subscriptions (user_id,subscription) VALUES (?,?)',[req.userId,JSON.stringify(sub)],function(err){
+        if(err) return res.status(500).json({error:err.message});
+        res.json({success:true});
+    });
+});
+app.post('/api/push/unsubscribe',userAuth,(req,res)=>{
+    mainDb.run('DELETE FROM push_subscriptions WHERE user_id=?',[req.userId],()=>res.json({success:true}));
+});
+
+function sendPushToUser(userId, payload) {
+    if(!webpush) return;
+    mainDb.get('SELECT subscription FROM push_subscriptions WHERE user_id=?',[userId],(err,row)=>{
+        if(err||!row) return;
+        try {
+            const sub = JSON.parse(row.subscription);
+            webpush.sendNotification(sub, JSON.stringify(payload)).catch(e=>{
+                if(e.statusCode===410||e.statusCode===404) mainDb.run('DELETE FROM push_subscriptions WHERE user_id=?',[userId]);
+            });
+        } catch(e) {}
+    });
+}
+function sendPushToAll(payload) {
+    if(!webpush) return;
+    mainDb.all('SELECT user_id,subscription FROM push_subscriptions',[],(err,rows)=>{
+        if(err||!rows) return;
+        rows.forEach(row=>{
+            try {
+                const sub = JSON.parse(row.subscription);
+                webpush.sendNotification(sub, JSON.stringify(payload)).catch(e=>{
+                    if(e.statusCode===410||e.statusCode===404) mainDb.run('DELETE FROM push_subscriptions WHERE user_id=?',[row.user_id]);
+                });
+            } catch(e) {}
+        });
+    });
+}
 
 // Routes
 app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.html')));

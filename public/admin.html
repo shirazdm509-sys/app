@@ -77,6 +77,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <form id="slider-form" onsubmit="addSlider(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان (اختیاری)</label><input type="text" id="slider-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان اسلاید"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label><input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://..."></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">موقعیت نمایش در صفحه</label>
+          <select id="slider-section" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
+            <option value="main">بالای صفحه (پیش‌فرض)</option>
+            <option value="after_shortcuts">بعد از میانبرها</option>
+            <option value="after_books">بعد از کتاب‌های اخیر</option>
+            <option value="after_banners">بعد از بنرها</option>
+            <option value="after_lectures">بعد از سخنرانی‌ها</option>
+          </select>
+        </div>
         <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید *</label><input type="file" id="slider-image" accept="image/*" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
         <div class="md:col-span-2"><button type="submit" id="btn-add-slider" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن اسلاید</button></div>
       </form>
@@ -345,6 +354,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
 <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[9999]">پیام</div>
 
+<!-- BOOK EDIT MODAL -->
+<div id="book-edit-modal" class="fixed inset-0 bg-black/60 z-[9000] flex items-center justify-center hidden p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-4">
+    <div class="flex items-center justify-between border-b pb-4">
+      <h3 class="font-black text-base"><i class="fas fa-edit text-teal-600 ml-2"></i>ویرایش کتاب</h3>
+      <button onclick="closeEditBook()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200"><i class="fas fa-times text-sm"></i></button>
+    </div>
+    <input type="hidden" id="edit-book-id">
+    <div><label class="block text-xs font-bold text-gray-500 mb-1.5">عنوان کتاب *</label><input type="text" id="edit-book-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+    <div><label class="block text-xs font-bold text-gray-500 mb-1.5">نویسنده</label><input type="text" id="edit-book-author" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+    <div><label class="block text-xs font-bold text-gray-500 mb-1.5">توضیحات</label><textarea id="edit-book-desc" rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none"></textarea></div>
+    <div>
+      <label class="block text-xs font-bold text-gray-500 mb-1.5">تصویر جلد (اختیاری - برای تغییر)</label>
+      <div class="flex items-center gap-3">
+        <img id="edit-book-cover-preview" src="" class="w-12 h-16 object-cover rounded-xl border border-gray-200 hidden">
+        <div id="edit-book-cover-placeholder" class="w-12 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>
+        <input type="file" id="edit-book-cover" accept="image/*" class="flex-1 bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 text-xs cursor-pointer" onchange="previewEditCover(this)">
+      </div>
+    </div>
+    <button onclick="saveBookEdit()" id="btn-save-book-edit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
+  </div>
+</div>
+
 <script>
 let adminToken = localStorage.getItem('adminToken');
 let activeTicketId = null, activeUserId = null;
@@ -487,10 +519,13 @@ async function loadBooks(){
     if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
     c.innerHTML=bs.map(b=>`
       <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group">
-        <button onclick="deleteBook(${b.id})" class="absolute top-2 right-2 bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm border border-rose-100 z-10 text-xs"><i class="fas fa-trash"></i></button>
+        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10">
+          <button onclick="openEditBook(${b.id},'${b.title.replace(/'/g,"\\'")}','${(b.author||'').replace(/'/g,"\\'")}','${(b.description||'').replace(/'/g,"\\'")}','${b.cover||''}')" class="bg-white text-teal-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-teal-100 text-xs"><i class="fas fa-edit"></i></button>
+          <button onclick="deleteBook(${b.id})" class="bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-rose-100 text-xs"><i class="fas fa-trash"></i></button>
+        </div>
         <div class="flex items-center gap-3">
           <div class="w-14 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
-            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
+            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover" id="book-cover-preview-${b.id}">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
           </div>
           <div>
             <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
@@ -510,6 +545,48 @@ async function deleteBook(id){
     else showToast('خطا',false);
   }catch(e){}
 }
+function openEditBook(id,title,author,desc,cover){
+  document.getElementById('edit-book-id').value=id;
+  document.getElementById('edit-book-title').value=title;
+  document.getElementById('edit-book-author').value=author;
+  document.getElementById('edit-book-desc').value=desc;
+  document.getElementById('edit-book-cover').value='';
+  const prev=document.getElementById('edit-book-cover-preview');
+  const ph=document.getElementById('edit-book-cover-placeholder');
+  if(cover){prev.src=cover;prev.classList.remove('hidden');ph.classList.add('hidden');}
+  else{prev.src='';prev.classList.add('hidden');ph.classList.remove('hidden');}
+  document.getElementById('book-edit-modal').classList.remove('hidden');
+}
+function closeEditBook(){document.getElementById('book-edit-modal').classList.add('hidden');}
+function previewEditCover(input){
+  if(!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('edit-book-cover-preview');
+    const ph=document.getElementById('edit-book-cover-placeholder');
+    prev.src=e.target.result;prev.classList.remove('hidden');ph.classList.add('hidden');
+  };reader.readAsDataURL(input.files[0]);
+}
+async function saveBookEdit(){
+  const id=document.getElementById('edit-book-id').value;
+  const title=document.getElementById('edit-book-title').value.trim();
+  if(!title) return showToast('عنوان الزامی است',false);
+  const fd=new FormData();
+  fd.append('title',title);
+  fd.append('author',document.getElementById('edit-book-author').value);
+  fd.append('description',document.getElementById('edit-book-desc').value);
+  const cf=document.getElementById('edit-book-cover').files[0];
+  if(cf) fd.append('cover',cf);
+  const btn=document.getElementById('btn-save-book-edit');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال ذخیره...';btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/books/'+id,{method:'PUT',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('ذخیره شد');closeEditBook();loadBooks();}
+    else showToast(d.error||'خطا',false);
+  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا',false);}
+  finally{btn.innerHTML='<i class="fas fa-save ml-2"></i>ذخیره تغییرات';btn.disabled=false;}
+}
 
 // SLIDER
 async function addSlider(e){
@@ -520,6 +597,7 @@ async function addSlider(e){
   fd.append('slider_image',img);
   fd.append('title',document.getElementById('slider-title').value);
   fd.append('link',document.getElementById('slider-link').value);
+  fd.append('display_section',document.getElementById('slider-section')?document.getElementById('slider-section').value||'main':'main');
   const btn=document.getElementById('btn-add-slider');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
   try{
@@ -536,11 +614,16 @@ async function loadSliders(){
     const slides=await r.json();
     const c=document.getElementById('sliders-list');
     if(!Array.isArray(slides)||!slides.length){c.innerHTML='<div class="col-span-5 text-center py-8 text-gray-400 text-sm">اسلایدی یافت نشد</div>';return;}
+    const sectionLabel={'main':'بالای صفحه','after_shortcuts':'بعد از میانبرها','after_books':'بعد از کتاب‌ها','after_banners':'بعد از بنرها','after_lectures':'بعد از سخنرانی‌ها'};
     c.innerHTML=slides.map(s=>`
       <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 relative group">
         <button onclick="deleteSlider(${s.id})" class="absolute top-2 right-2 bg-white/90 text-rose-500 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 text-xs"><i class="fas fa-trash"></i></button>
         <img src="${s.image}" class="w-full aspect-video object-cover">
-        <div class="p-2"><p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}</div>
+        <div class="p-2">
+          <p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>
+          ${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}
+          <p class="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded mt-1 inline-block">${sectionLabel[s.display_section]||'بالای صفحه'}</p>
+        </div>
       </div>
     `).join('');
   }catch(e){}

@@ -20,7 +20,8 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
