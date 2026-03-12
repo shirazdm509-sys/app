@@ -1925,8 +1925,10 @@ function loadSettings() {
     
     const tc = document.getElementById('text-content');
     if (tc) tc.style.fontSize = fontSize + 'px';
-    const wpc = document.getElementById('single-post-content');
-    if (wpc) wpc.style.fontSize = fontSize + 'px';
+    ['single-post-content', 'news-single-content', 'statements-single-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.fontSize = fontSize + 'px';
+    });
     document.getElementById('font-size-display').textContent = fontSize + 'px';
     document.getElementById('line-height-display').textContent = lineHeight.toFixed(1);
 }
@@ -1950,7 +1952,7 @@ function setTheme(t) {
 }
 
 function applyTheme() {
-    ['reader-overlay', 'toc-overlay', 'screen-lectures'].forEach(id => {
+    ['reader-overlay', 'toc-overlay', 'screen-lectures', 'screen-news', 'screen-statements'].forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         el.classList.remove('theme-light', 'theme-sepia', 'theme-dark');
@@ -1982,7 +1984,11 @@ function applyFont() {
         wpc.classList.remove('font-vazir', 'font-shabnam', 'font-tahoma');
         wpc.classList.add('font-' + currentFont);
     }
-    
+    ['news-single-content', 'statements-single-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('font-vazir', 'font-shabnam', 'font-tahoma'); el.classList.add('font-' + currentFont); }
+    });
+
     ['vazir', 'shabnam', 'tahoma'].forEach(f => {
         const b = document.getElementById('font-btn-' + f);
         if (!b) return;
@@ -2001,8 +2007,10 @@ function changeFontSize(d) {
     localStorage.setItem('reader_fontSize', fontSize);
     const tc = document.getElementById('text-content');
     if (tc) tc.style.fontSize = fontSize + 'px';
-    const wpc = document.getElementById('single-post-content');
-    if (wpc) wpc.style.fontSize = fontSize + 'px';
+    ['single-post-content', 'news-single-content', 'statements-single-content'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.fontSize = fontSize + 'px';
+    });
     document.getElementById('font-size-display').textContent = fontSize + 'px';
 }
 
@@ -2106,6 +2114,8 @@ function showNewsSingle(postId) {
     const post = cachedNewsPosts.find(p => p.id === postId);
     if (!post) return;
     newsState.view = 'single';
+    const screen = document.getElementById('screen-news');
+    if (screen) screen.classList.add('reading-mode');
     document.getElementById('news-header-title').textContent = post.title.rendered.replace(/<[^>]*>/g,'');
     document.getElementById('btn-news-settings').classList.remove('hidden');
     document.getElementById('news-posts-view').classList.add('hidden');
@@ -2116,7 +2126,11 @@ function showNewsSingle(postId) {
 }
 
 function newsNavBack() {
-    if (newsState.view === 'single') showNewsPosts(newsState.currentCat.id, newsState.currentCat.name);
+    if (newsState.view === 'single') {
+        const screen = document.getElementById('screen-news');
+        if (screen) screen.classList.remove('reading-mode');
+        showNewsPosts(newsState.currentCat.id, newsState.currentCat.name);
+    }
     else if (newsState.view === 'posts') showNewsMain();
     else navToScreen('home');
 }
@@ -2189,6 +2203,8 @@ function showStatementsSingle(postId) {
     const post = cachedStatementsPosts.find(p => p.id === postId);
     if (!post) return;
     statementsState.view = 'single';
+    const screen = document.getElementById('screen-statements');
+    if (screen) screen.classList.add('reading-mode');
     document.getElementById('statements-header-title').textContent = post.title.rendered.replace(/<[^>]*>/g,'');
     document.getElementById('btn-statements-settings').classList.remove('hidden');
     document.getElementById('statements-posts-view').classList.add('hidden');
@@ -2199,7 +2215,11 @@ function showStatementsSingle(postId) {
 }
 
 function statementsNavBack() {
-    if (statementsState.view === 'single') showStatementsPosts(statementsState.currentCat.id, statementsState.currentCat.name);
+    if (statementsState.view === 'single') {
+        const screen = document.getElementById('screen-statements');
+        if (screen) screen.classList.remove('reading-mode');
+        showStatementsPosts(statementsState.currentCat.id, statementsState.currentCat.name);
+    }
     else if (statementsState.view === 'posts') showStatementsMain();
     else navToScreen('home');
 }
