@@ -1659,13 +1659,22 @@ function openLatestPost(postId) {
     const posts = window._latestPosts || [];
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    // push to lectures screen with this post
     if (allWPCats.length === 0) {
         fetch(`${WP_API_URL}/categories?per_page=100`).then(r=>r.json()).then(cats=>{allWPCats=cats;});
     }
     cachedPosts = posts;
-    navToScreen('lectures');
-    setTimeout(() => showWPSingleView(postId), 100);
+    // Switch to lectures screen directly without triggering initWP (avoids category flash)
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const lecturesScreen = document.getElementById('screen-lectures');
+    if (lecturesScreen) lecturesScreen.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navBtn = document.querySelector('[data-nav="lectures"]');
+    if (navBtn) navBtn.classList.add('active');
+    const liveEl = document.getElementById('live-embed-container');
+    if (liveEl) liveEl.innerHTML = '';
+    const payIframe = document.getElementById('payment-iframe');
+    if (payIframe) payIframe.src = '';
+    showWPSingleView(postId);
 }
 
 function hideLoading() {
