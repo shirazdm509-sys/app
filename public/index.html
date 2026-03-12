@@ -225,9 +225,6 @@
                     </div>
                 </div>
 
-                <!-- BANNERS position: after_shortcuts -->
-                <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
-
                 <!-- SHORTCUTS GRID (8 items, responsive) -->
                 <div class="grid grid-cols-4 sm:grid-cols-8 gap-3 px-4 mb-6">
                     <div class="flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('library')">
@@ -263,6 +260,9 @@
                         <span class="text-[10px] font-bold text-gray-600 text-center">پخش زنده</span>
                     </div>
                 </div>
+
+                <!-- BANNERS position: after_shortcuts -->
+                <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LATEST BOOKS -->
                 <div class="mb-4">
@@ -1632,8 +1632,10 @@ async function loadSliders() {
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
     if (padding > 0) wrapper.style.boxSizing = 'border-box';
+    const slideW = wrapper.offsetWidth;
+    track.style.width = (sliderData.length * slideW) + 'px';
     track.innerHTML = sliderData.map(sl =>
-        `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;"><img src="${sl.image}" class="w-full h-full object-cover" alt="${sl.title||''}"></div>`
+        `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}"><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;" alt="${sl.title||''}"></div>`
     ).join('');
     dots.innerHTML = sliderData.map((_,i) =>
         `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
@@ -1644,7 +1646,8 @@ async function loadSliders() {
 function goToSlide(i) {
     sliderIndex = (i + sliderData.length) % sliderData.length;
     const track = document.getElementById('slider-track');
-    if (track) track.style.transform = `translateX(-${sliderIndex * 100}%)`;
+    const wrapper = document.getElementById('home-slider');
+    if (track && wrapper) track.style.transform = `translateX(-${sliderIndex * wrapper.offsetWidth}px)`;
     document.querySelectorAll('#slider-dots button').forEach((b, idx) => {
         b.className = `w-2 h-2 rounded-full transition-all ${idx === sliderIndex ? 'bg-white w-4' : 'bg-white/50'}`;
     });

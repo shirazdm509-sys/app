@@ -109,7 +109,8 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
 });
-const upload = multer({ storage, limits:{fileSize:50*1024*1024} });
+const uploadImage = multer({ storage, limits:{fileSize:10*1024*1024} });
+const upload = multer({ storage, limits:{fileSize:400*1024*1024} });
 
 // Auth middleware
 function adminAuth(req,res,next) {
@@ -382,7 +383,7 @@ app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{
         mainDb.run('DELETE FROM books WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
-app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1}]),(req,res)=>{
+app.put('/api/admin/books/:id',adminAuth,uploadImage.fields([{name:'cover',maxCount:1}]),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT * FROM books WHERE id=?',[id],(err,b)=>{
         if(err||!b) return res.status(404).json({error:'کتاب یافت نشد'});
@@ -405,12 +406,12 @@ app.post('/api/admin/settings',adminAuth,(req,res)=>{
     Object.entries(u).forEach(([k,v])=>stmt.run(san(k.toString()),san(v.toString())));
     stmt.finalize(err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
-app.post('/api/admin/logo',adminAuth,upload.single('logo'),(req,res)=>{
+app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل لوگو ارائه نشده'});
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
 });
-app.post('/api/admin/favicon',adminAuth,upload.single('favicon'),(req,res)=>{
+app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
     const fu=`/icons/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>res.json({success:true,favicon_url:fu}));
@@ -420,7 +421,7 @@ app.post('/api/admin/favicon',adminAuth,upload.single('favicon'),(req,res)=>{
 app.get('/api/admin/banners',adminAuth,(req,res)=>{
     mainDb.all('SELECT * FROM banners ORDER BY position ASC',[],(err,rows)=>res.json(rows||[]));
 });
-app.put('/api/admin/banners/:pos',adminAuth,upload.single('banner_image'),(req,res)=>{
+app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(req,res)=>{
     const pos=+req.params.pos;if(isNaN(pos)||pos<1||pos>3) return res.status(400).json({error:'موقعیت نامعتبر'});
     mainDb.get('SELECT * FROM banners WHERE position=?',[pos],(err,bn)=>{
         let img=bn?bn.image:'';
@@ -439,7 +440,7 @@ app.put('/api/admin/banners/:pos',adminAuth,upload.single('banner_image'),(req,r
 app.get('/api/admin/sliders',adminAuth,(req,res)=>{
     mainDb.all('SELECT * FROM sliders ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
-app.post('/api/admin/sliders',adminAuth,upload.single('slider_image'),(req,res)=>{
+app.post('/api/admin/sliders',adminAuth,uploadImage.single('slider_image'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'تصویر اسلایدر الزامی است'});
     mainDb.get('SELECT COUNT(*) as c FROM sliders',[],(err,r)=>{
         if(r&&r.c>=10) return res.status(400).json({error:'حداکثر ۱۰ اسلاید مجاز است'});
@@ -595,7 +596,7 @@ app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.htm
 app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 app.get('/sw.js',(req,res)=>{res.setHeader('Content-Type','application/javascript');res.sendFile(path.join(__dirname,'public','sw.js'));});
 app.use((req,res)=>{if(req.path.startsWith('/api/')) return res.status(404).json({error:'مسیر یافت نشد'});res.sendFile(path.join(__dirname,'public','index.html'));});
-app.use((err,req,res,next)=>{console.error('Error:',err.message);if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است'});res.status(500).json({error:'خطای داخلی سرور'});});
+app.use((err,req,res,next)=>{console.error('Error:',err.message);if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۱۰ مگابایت، دیتابیس حداکثر ۴۰۰ مگابایت)'});res.status(500).json({error:'خطای داخلی سرور'});});
 
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
