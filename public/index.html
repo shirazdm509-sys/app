@@ -185,12 +185,12 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition">
+                    <button onclick="openGlobalSearch()" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition">
                         <i class="fas fa-search"></i>
                     </button>
-                    <button class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition relative">
+                    <button onclick="openNotifications()" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition relative" id="bell-btn">
                         <i class="far fa-bell"></i>
-                        <span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                        <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
                 </div>
             </header>
@@ -372,23 +372,23 @@
                 </div>
 
                 <!-- 3. عکس -->
-                <div id="media-content-photo" class="hidden">
-                    <div id="wp-photo-playlists-view" class="grid grid-cols-2 gap-4"></div>
+                <div id="media-content-photo" class="hidden w-full">
+                    <div id="wp-photo-playlists-view" class="grid grid-cols-2 gap-4 w-full"></div>
                     
-                    <div id="wp-photo-posts-view" class="hidden flex-col gap-3">
+                    <div id="wp-photo-posts-view" class="hidden flex-col gap-3 w-full">
                         <div class="flex items-center gap-2 mb-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
                             <button onclick="backToWPPhotoPlaylists()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
                             <h2 id="wp-photo-playlist-title" class="font-bold text-sm text-gray-800 truncate">لیست گالری‌ها</h2>
                         </div>
-                        <div id="wp-photo-posts-list" class="flex flex-col gap-3"></div>
+                        <div id="wp-photo-posts-list" class="flex flex-col gap-3 w-full"></div>
                     </div>
-                    
-                    <div id="wp-photo-single-view" class="hidden flex-col gap-4">
+
+                    <div id="wp-photo-single-view" class="hidden flex-col gap-4 w-full">
                         <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
                             <button onclick="backToWPPhotoPosts()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
                             <h2 id="wp-photo-post-title" class="font-bold text-xs text-gray-800 line-clamp-1">تصاویر</h2>
                         </div>
-                        <div id="wp-photo-gallery-container" class="grid grid-cols-2 gap-3 mt-2"></div>
+                        <div id="wp-photo-gallery-container" class="grid grid-cols-2 gap-3 mt-2 w-full"></div>
                         <div id="wp-photo-post-content" class="wp-content bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2 hidden"></div>
                     </div>
                 </div>
@@ -435,13 +435,20 @@
             <div id="qa-conversation" class="hidden absolute inset-0 bg-gray-50 flex-col z-10">
                 <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
                     <button onclick="closeQAConversation()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <h1 id="qa-conv-title" class="font-black text-base text-gray-800 truncate">سوال</h1>
                         <span id="qa-conv-status" class="text-xs text-brand-600 font-bold"></span>
                     </div>
-                    <button onclick="refreshQAConversation()" class="mr-auto w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-xs"></i></button>
+                    <button onclick="refreshQAConversation()" class="w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-xs"></i></button>
                 </header>
                 <div id="qa-conv-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
+                <div id="qa-conv-reply" class="shrink-0 p-3 bg-white border-t border-gray-100 flex gap-2 hidden">
+                    <input type="text" id="qa-conv-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 text-sm" placeholder="پیام خود را بنویسید..." onkeypress="if(event.key==='Enter')sendQAConvMessage()">
+                    <button onclick="sendQAConvMessage()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-xl font-bold text-sm transition"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                <div id="qa-conv-limit-msg" class="hidden shrink-0 p-3 bg-amber-50 border-t border-amber-100 text-center text-xs text-amber-700 font-bold">
+                    <i class="fas fa-clock ml-1"></i>لطفاً صبر کنید تا ادمین پاسخ دهد (حداکثر ۲ پیام متوالی مجاز)
+                </div>
             </div>
 
             <!-- اورلی ورود / ثبت‌نام -->
@@ -834,6 +841,34 @@
 
 <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[300]">پیام</div>
 
+<!-- NOTIFICATIONS PANEL -->
+<div id="notif-panel" class="fixed inset-0 z-[280] hidden">
+  <div class="absolute inset-0 bg-black/40" onclick="closeNotifications()"></div>
+  <div class="absolute top-0 right-0 bottom-0 w-full max-w-sm bg-white flex flex-col shadow-2xl">
+    <div class="shrink-0 pt-12 pb-4 px-5 bg-white border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-black text-lg">اعلان‌ها</h2>
+      <div class="flex items-center gap-2">
+        <button onclick="markAllNotifsRead()" class="text-xs text-brand-600 font-bold bg-brand-50 px-3 py-1.5 rounded-full">همه خوانده شد</button>
+        <button onclick="closeNotifications()" class="w-9 h-9 bg-gray-50 rounded-full text-gray-500 flex items-center justify-center"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div id="notif-list" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
+  </div>
+</div>
+
+<!-- GLOBAL SEARCH PANEL -->
+<div id="global-search-modal" class="fixed inset-0 z-[270] hidden flex-col bg-white">
+  <div class="h-16 bg-white border-b border-gray-200 flex items-center px-4 shrink-0 gap-2">
+    <button onclick="closeGlobalSearch()" class="w-10 h-10 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-arrow-right"></i></button>
+    <input type="text" id="global-search-input" placeholder="جستجو در کتاب‌ها..." class="flex-1 border-none bg-transparent outline-none text-gray-800 font-medium text-sm">
+    <button onclick="performGlobalSearch()" class="w-10 h-10 flex items-center justify-center text-brand-600 bg-brand-50 rounded-full shrink-0"><i class="fas fa-search"></i></button>
+  </div>
+  <div class="p-4 border-b border-gray-100 bg-gray-50">
+    <p class="text-xs text-gray-500">جستجو در عناوین و متن کتاب‌ها</p>
+  </div>
+  <div id="global-search-results" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+</div>
+
 <script>
 window.addEventListener('load', () => {
     if (typeof tailwind === 'undefined') {
@@ -1159,12 +1194,12 @@ function switchMediaTab(tab) {
             btn.classList.add('bg-white', 'shadow-sm', 'text-brand-600');
             btn.classList.remove('text-gray-500');
             content.classList.remove('hidden');
-            if(t === 'photo' || t === 'audio') content.classList.add('flex'); else content.classList.add('block'); 
+            content.style.display = (t === 'audio') ? 'flex' : 'block';
         } else {
             btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-600');
             btn.classList.add('text-gray-500');
             content.classList.add('hidden');
-            content.classList.remove('block', 'flex');
+            content.style.display = 'none';
         }
     });
     
@@ -1538,7 +1573,8 @@ async function init() {
     }, 2500);
 
     try {
-        try { loadSettings(); } catch(e) { console.warn('Settings err:', e); }
+        try { await applySiteSettings(); } catch(e) { console.warn('Settings err:', e); }
+        try { loadSettings(); } catch(e) {}
         try {
             const r = await fetch('/api/books');
             allBooks = await r.json();
@@ -1551,6 +1587,8 @@ async function init() {
         try { await loadSliders(); } catch(e) { console.warn('Sliders err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
+        // Load notifications if user is logged in
+        if (qaUser) { try { loadNotifications(); setInterval(loadNotifications, 60000); } catch(e) {} }
     } catch(e) {
         console.error("Critical Init Error:", e);
     } finally {
@@ -1576,9 +1614,18 @@ async function loadSliders() {
     const track = document.getElementById('slider-track');
     const dots = document.getElementById('slider-dots');
     if (!wrapper || !track || !dots) return;
+    // Apply settings
+    const s = window._siteSettings || {};
+    const padding = parseInt(s.slider_padding || '0');
+    const radius = parseInt(s.slider_radius || '0');
+    const height = parseInt(s.slider_height || '180');
     wrapper.style.display = 'block';
+    wrapper.style.height = height + 'px';
+    wrapper.style.padding = padding + 'px';
+    wrapper.style.borderRadius = radius + 'px';
+    if (padding > 0) wrapper.style.boxSizing = 'border-box';
     track.innerHTML = sliderData.map(s =>
-        `<div class="shrink-0 w-full h-full cursor-pointer" onclick="${s.link ? `window.open('${s.link}','_blank')` : ''}" style="min-width:100%">
+        `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${s.link ? `window.open('${s.link}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;">
             <img src="${s.image}" class="w-full h-full object-cover" alt="${s.title||''}">
          </div>`
     ).join('');
@@ -1615,10 +1662,16 @@ async function loadBanners() {
         const banners = await res.json();
         if (!Array.isArray(banners)) return;
         const active = banners.filter(b => +b.active === 1 && b.image && b.image.trim().length > 2);
+        // Apply settings
+        const s = window._siteSettings || {};
+        const padding = parseInt(s.banner_padding ?? '4');
+        const radius = parseInt(s.banner_radius ?? '16');
+        const height = parseInt(s.banner_height ?? '120');
+        container.style.padding = '0 ' + padding + 'px';
         container.innerHTML = active.map(b => {
             const onclick = b.link ? `onclick="window.open('${b.link.replace(/'/g,"\\'")}','_blank')"` : '';
-            return `<div class="rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" ${onclick}>
-                <img src="${b.image}" class="w-full object-cover" style="max-height:120px;" alt="${b.title||''}">
+            return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
+                <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
             </div>`;
         }).join('');
     } catch(e) {
@@ -1932,7 +1985,7 @@ function loadSettings() {
     document.documentElement.style.setProperty('--line-height', lineHeight);
     applyTheme();
     applyFont();
-    
+
     const tc = document.getElementById('text-content');
     if (tc) tc.style.fontSize = fontSize + 'px';
     ['single-post-content', 'news-single-content', 'statements-single-content'].forEach(id => {
@@ -1941,6 +1994,42 @@ function loadSettings() {
     });
     document.getElementById('font-size-display').textContent = fontSize + 'px';
     document.getElementById('line-height-display').textContent = lineHeight.toFixed(1);
+    // Apply site settings from server
+    applySiteSettings();
+}
+
+async function applySiteSettings() {
+    try {
+        const r = await fetch('/api/settings');
+        if (!r.ok) return;
+        const s = await r.json();
+        // Site name & subtitle
+        const nameEl = document.querySelector('#screen-home header h1');
+        const subEl = document.querySelector('#screen-home header h2');
+        if (nameEl && s.site_name) nameEl.textContent = s.site_name;
+        if (subEl && s.site_subtitle) subEl.textContent = s.site_subtitle;
+        // Title tag
+        if (s.site_name) document.title = s.site_name;
+        // Logo
+        if (s.logo_url) {
+            const logoWrapper = document.querySelector('#screen-home header .w-11');
+            if (logoWrapper) {
+                logoWrapper.innerHTML = `<img src="${s.logo_url}" class="w-full h-full object-contain">`;
+            }
+        }
+        // Favicon
+        if (s.favicon_url) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+            link.href = s.favicon_url;
+        }
+        // Primary color CSS variable
+        if (s.primary_color) {
+            document.documentElement.style.setProperty('--brand-color', s.primary_color);
+        }
+        // Store settings for banner/slider use
+        window._siteSettings = s;
+    } catch(e) {}
 }
 
 function openSettings() {
@@ -2326,6 +2415,7 @@ async function qaLogin() {
             localStorage.setItem('qa_user', JSON.stringify(qaUser));
             hideQAAuth(); updateQAUserUI(); renderQATickets();
             showToast('خوش آمدید ' + d.username);
+            loadNotifications(); // Load notifications after login
         } else { showToast(d.error || 'نام کاربری یا رمز عبور اشتباه است'); }
     } catch(e) { showToast('خطا در اتصال به سرور'); }
 }
@@ -2441,6 +2531,31 @@ async function openQAConversation(ticketId, subject) {
     await loadQAConversationMessages(ticketId);
 }
 
+async function sendQAConvMessage() {
+    const inp = document.getElementById('qa-conv-input');
+    const t = inp.value.trim();
+    if (!t || !activeQATicketId || !qaUser) return;
+    inp.value = '';
+    try {
+        const r = await fetch('/api/tickets/' + activeQATicketId + '/messages', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json','x-user-id': String(qaUser.id)},
+            body: JSON.stringify({text: t})
+        });
+        const d = await r.json();
+        if (r.ok && d.success) {
+            await loadQAConversationMessages(activeQATicketId);
+        } else {
+            showToast(d.error || 'خطا در ارسال پیام');
+            // If limit reached, show limit message
+            if (d.error && d.error.includes('حداکثر')) {
+                document.getElementById('qa-conv-reply').classList.add('hidden');
+                document.getElementById('qa-conv-limit-msg').classList.remove('hidden');
+            }
+        }
+    } catch(e) { showToast('خطا در اتصال'); }
+}
+
 function closeQAConversation() {
     activeQATicketId = null;
     const conv = document.getElementById('qa-conversation');
@@ -2491,11 +2606,31 @@ async function loadQAConversationMessages(ticketId) {
         if (Array.isArray(msgs) && msgs.length > 0) {
             c.innerHTML = msgs.map(m => renderMsgBubble(m.text, m.sender_type, new Date(m.created_at).toLocaleString('fa-IR'))).join('');
             c.scrollTop = c.scrollHeight;
+            // Check if can reply (ticket not closed and consecutive user messages < 2)
+            const replyDiv = document.getElementById('qa-conv-reply');
+            const limitMsg = document.getElementById('qa-conv-limit-msg');
+            if (ticket && ticket.status === 'closed') {
+                if(replyDiv) replyDiv.classList.add('hidden');
+                if(limitMsg){ limitMsg.classList.remove('hidden'); limitMsg.textContent='این تیکت بسته شده است.'; }
+            } else {
+                // Count consecutive user messages at end
+                let consecutiveUser = 0;
+                for(let i = msgs.length-1; i>=0; i--){ if(msgs[i].sender_type==='user') consecutiveUser++; else break; }
+                if (consecutiveUser >= 2) {
+                    if(replyDiv) replyDiv.classList.add('hidden');
+                    if(limitMsg) limitMsg.classList.remove('hidden');
+                } else {
+                    if(replyDiv) replyDiv.classList.remove('hidden');
+                    if(limitMsg) limitMsg.classList.add('hidden');
+                }
+            }
             return;
         }
 
         // API returned empty or error
         c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">پیامی یافت نشد</div>`;
+        const replyDiv = document.getElementById('qa-conv-reply');
+        if (replyDiv && ticket && ticket.status !== 'closed') replyDiv.classList.remove('hidden');
     } catch(e) {
         c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در دریافت پیام‌ها</div>`;
     }
@@ -2583,8 +2718,125 @@ function hideHighlightToolbar() {
     if (tb) tb.classList.add('hidden');
 }
 
+// ====================================================
+// اعلان‌ها (Notifications)
+// ====================================================
+let _notifications = [];
+
+async function loadNotifications() {
+    if (!qaUser) return;
+    try {
+        const r = await fetch('/api/notifications', { headers: {'x-user-id': String(qaUser.id)} });
+        if (!r.ok) return;
+        _notifications = await r.json();
+        const unread = _notifications.filter(n => !n.is_read).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) { if(unread>0){badge.classList.remove('hidden');}else{badge.classList.add('hidden');} }
+    } catch(e) {}
+}
+
+function openNotifications() {
+    const panel = document.getElementById('notif-panel');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    renderNotifications();
+    if (qaUser) loadNotifications();
+}
+
+function closeNotifications() {
+    const panel = document.getElementById('notif-panel');
+    if (panel) panel.classList.add('hidden');
+}
+
+function renderNotifications() {
+    const c = document.getElementById('notif-list');
+    if (!c) return;
+    if (!qaUser) {
+        c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell-slash text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">برای مشاهده اعلان‌ها وارد شوید</p><button onclick="closeNotifications();navToScreen('qa')" class="mt-4 bg-brand-600 text-white px-5 py-2 rounded-xl text-xs font-bold">ورود به حساب</button></div>`;
+        return;
+    }
+    if (!_notifications.length) {
+        c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">اعلانی وجود ندارد</p></div>`;
+        return;
+    }
+    c.innerHTML = _notifications.map(n => `
+        <div class="bg-${n.is_read?'gray-50 border-gray-100':'brand-50 border-brand-100'} border rounded-2xl p-4 cursor-pointer" onclick="markNotifRead(${n.id},this)">
+            <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-${n.type==='ticket_reply'?'ticket-alt':'bullhorn'} text-brand-600 text-xs"></i></div>
+                    <div class="min-w-0">
+                        <h4 class="font-bold text-sm text-gray-800">${n.title}</h4>
+                        <p class="text-xs text-gray-600 mt-0.5 line-clamp-2">${n.message}</p>
+                    </div>
+                </div>
+                ${!n.is_read?'<span class="w-2 h-2 bg-red-500 rounded-full shrink-0 mt-1.5"></span>':''}
+            </div>
+            <span class="text-[10px] text-gray-400 mt-2 block">${new Date(n.created_at).toLocaleString('fa-IR')}</span>
+        </div>
+    `).join('');
+}
+
+function markNotifRead(id, el) {
+    if (!qaUser) return;
+    const n = _notifications.find(x=>x.id===id);
+    if (n) n.is_read = 1;
+    renderNotifications();
+    fetch('/api/notifications/read', {method:'POST',headers:{'Content-Type':'application/json','x-user-id':String(qaUser.id)},body:JSON.stringify({notification_id:id})}).catch(()=>{});
+    const badge = document.getElementById('notif-badge');
+    const unread = _notifications.filter(n => !n.is_read).length;
+    if (badge && unread===0) badge.classList.add('hidden');
+}
+
+async function markAllNotifsRead() {
+    if (!qaUser) return;
+    try {
+        await fetch('/api/notifications/read-all', {method:'POST',headers:{'x-user-id':String(qaUser.id)}});
+        _notifications.forEach(n=>n.is_read=1);
+        renderNotifications();
+        const badge = document.getElementById('notif-badge');
+        if (badge) badge.classList.add('hidden');
+    } catch(e) {}
+}
+
+// ====================================================
+// جستجوی کلی (Global Search)
+// ====================================================
+function openGlobalSearch() {
+    const m = document.getElementById('global-search-modal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); document.getElementById('global-search-input').focus(); }
+}
+function closeGlobalSearch() {
+    const m = document.getElementById('global-search-modal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+}
+async function performGlobalSearch() {
+    const q = document.getElementById('global-search-input').value.trim().toLowerCase();
+    if (!q) return;
+    const c = document.getElementById('global-search-results');
+    c.innerHTML = `<div class="flex justify-center py-10"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
+    // Search in book titles first
+    const titleMatches = allBooks.filter(b => b.title.toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q));
+    let html = '';
+    if (titleMatches.length) {
+        html += `<h3 class="text-xs font-black text-gray-500 mb-2 px-1"><i class="fas fa-book ml-1 text-brand-600"></i>کتاب‌های مرتبط</h3>`;
+        html += titleMatches.map(b => `<button onclick="closeGlobalSearch();openBook(${b.id})" class="w-full text-right p-4 bg-white rounded-xl border border-gray-100 hover:bg-brand-50 transition shadow-sm flex items-center gap-3">
+            ${b.cover?`<img src="${b.cover}" class="w-12 h-16 rounded-lg object-cover shrink-0">`:`<div class="w-12 h-16 bg-brand-50 rounded-lg flex items-center justify-center shrink-0"><i class="fas fa-book text-brand-300"></i></div>`}
+            <div class="text-right min-w-0">
+                <h4 class="font-bold text-sm text-gray-800 mb-0.5 line-clamp-2">${b.title}</h4>
+                <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
+                <span class="text-[10px] text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full mt-1 inline-block">${b.page_count} صفحه</span>
+            </div>
+        </button>`).join('');
+    }
+    if (!html) {
+        html = `<div class="text-center py-12 text-gray-400"><i class="fas fa-search text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">نتیجه‌ای برای «${q}» یافت نشد</p></div>`;
+    }
+    c.innerHTML = html;
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
     const si=document.getElementById('search-input');if(si)si.addEventListener('keypress',e=>{if(e.key==='Enter')performSearch();});
+    const gsi=document.getElementById('global-search-input');if(gsi)gsi.addEventListener('keypress',e=>{if(e.key==='Enter')performGlobalSearch();});
     const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
     setupSwipe();
 

@@ -6,6 +6,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 
 let rateLimit, helmet;
 try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; }
@@ -50,11 +51,13 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, author TEXT DEFAULT '', description TEXT DEFAULT '', cover TEXT DEFAULT '', db_filename TEXT NOT NULL, page_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, text TEXT NOT NULL, sender_type TEXT DEFAULT 'user', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, is_read INTEGER DEFAULT 0, FOREIGN KEY (user_id) REFERENCES users(id))`);
-        mainDb.run(`CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, subject TEXT NOT NULL, status TEXT DEFAULT 'open', priority TEXT DEFAULT 'normal', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, subject TEXT NOT NULL, status TEXT DEFAULT 'open', priority TEXT DEFAULT 'normal', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, user_id INTEGER DEFAULT NULL)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS ticket_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL, text TEXT NOT NULL, sender_type TEXT DEFAULT 'user', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (ticket_id) REFERENCES tickets(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY AUTOINCREMENT, position INTEGER UNIQUE NOT NULL, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', active INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 
         const defaults = [
             ['site_name','مرکز نشر آثار آیت الله دستغیب'],
@@ -62,19 +65,26 @@ function initDb() {
             ['primary_color','#0d9488'],
             ['secondary_color','#0f766e'],
             ['logo_url',''],
+            ['favicon_url',''],
             ['live_url',''],
             ['live_active','0'],
             ['live_embed',''],
+            ['slider_padding','0'],
+            ['slider_radius','0'],
+            ['banner_padding','4'],
+            ['banner_radius','16'],
+            ['banner_height','120'],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
+        // Migration: add notifications tables if not exists (already created above)
     });
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -82,7 +92,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos' };
+        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
@@ -182,11 +192,13 @@ app.get('/api/settings',(req,res)=>{
 
 // === API BANNERS (PUBLIC) ===
 app.get('/api/banners',(req,res)=>{
+    res.set('Cache-Control','no-store');
     mainDb.all('SELECT * FROM banners ORDER BY position ASC',[],(err,rows)=>res.json(rows||[]));
 });
 
 // === API SLIDERS (PUBLIC) ===
 app.get('/api/sliders',(req,res)=>{
+    res.set('Cache-Control','no-store');
     mainDb.all('SELECT * FROM sliders WHERE active=1 ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
 
@@ -195,20 +207,36 @@ app.post('/api/auth/register',(req,res)=>{
     const u=san(req.body.username),p=req.body.password;
     if(!u||!p) return res.status(400).json({error:'نام کاربری و رمز عبور الزامی است'});
     if(u.length<3) return res.status(400).json({error:'نام کاربری حداقل ۳ کاراکتر باشد'});
-    mainDb.run('INSERT INTO users (username,password) VALUES (?,?)',[u,p],function(err){
+    if(p.length<6) return res.status(400).json({error:'رمز عبور حداقل ۶ کاراکتر باشد'});
+    const hash = bcrypt.hashSync(p, 10);
+    mainDb.run('INSERT INTO users (username,password) VALUES (?,?)',[u,hash],function(err){
         if(err){if(err.message.includes('UNIQUE')) return res.status(400).json({error:'این نام کاربری قبلاً ثبت شده'});return res.status(500).json({error:err.message});}
+        // Auto-assign existing broadcast notifications to new user
+        mainDb.all('SELECT id FROM notifications WHERE type="broadcast"',[],(err2,notifs)=>{
+            if(notifs&&notifs.length){
+                const uid=this.lastID;
+                notifs.forEach(n=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[uid,n.id]));
+            }
+        });
         res.json({success:true,id:this.lastID,username:u});
     });
 });
 app.post('/api/auth/login',(req,res)=>{
     const u=san(req.body.username),p=req.body.password;
     if(!u||!p) return res.status(400).json({error:'نام کاربری و رمز عبور را وارد کنید'});
-    mainDb.get('SELECT id,username FROM users WHERE username=? AND password=?',[u,p],(err,row)=>{
+    mainDb.get('SELECT id,username,password FROM users WHERE username=?',[u],(err,row)=>{
         if(err) return res.status(500).json({error:err.message});
         if(!row) return res.status(401).json({error:'نام کاربری یا رمز عبور اشتباه است'});
+        // Support both hashed and plaintext (migration)
+        let valid = false;
+        if(row.password.startsWith('$2')) { valid = bcrypt.compareSync(p, row.password); }
+        else { valid = (p === row.password); if(valid){ const h=bcrypt.hashSync(p,10); mainDb.run('UPDATE users SET password=? WHERE id=?',[h,row.id]); } }
+        if(!valid) return res.status(401).json({error:'نام کاربری یا رمز عبور اشتباه است'});
         res.json({success:true,id:row.id,username:row.username});
     });
 });
+
+// === QA MESSAGES (legacy - keep for backward compat) ===
 app.get('/api/qa/messages',userAuth,(req,res)=>{
     mainDb.all('SELECT * FROM messages WHERE user_id=? ORDER BY created_at ASC',[req.userId],(err,rows)=>res.json(rows||[]));
 });
@@ -244,6 +272,31 @@ app.post('/api/tickets',userAuth,(req,res)=>{
     });
 });
 
+// ارسال پیام اضافه در تیکت توسط کاربر (حداکثر 2 پیام متوالی تا ادمین جواب بده)
+app.post('/api/tickets/:id/messages',userAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const t=san(req.body.text);if(!t||!t.trim()) return res.status(400).json({error:'متن پیام خالی است'});
+    // Check ticket belongs to user
+    mainDb.get('SELECT id,status FROM tickets WHERE id=? AND user_id=?',[id,req.userId],(err,ticket)=>{
+        if(err||!ticket) return res.status(404).json({error:'تیکت یافت نشد'});
+        if(ticket.status==='closed') return res.status(400).json({error:'این تیکت بسته شده است'});
+        // Count consecutive user messages at end
+        mainDb.all('SELECT sender_type FROM ticket_messages WHERE ticket_id=? ORDER BY created_at DESC LIMIT 5',[id],(err2,msgs)=>{
+            let consecutiveUser=0;
+            for(const m of (msgs||[])){
+                if(m.sender_type==='user') consecutiveUser++;
+                else break;
+            }
+            if(consecutiveUser>=2) return res.status(400).json({error:'لطفاً صبر کنید تا ادمین جواب دهد. حداکثر ۲ پیام متوالی مجاز است.'});
+            mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"user")',[id,t.trim()],function(err3){
+                if(err3) return res.status(500).json({error:err3.message});
+                mainDb.run('UPDATE tickets SET updated_at=CURRENT_TIMESTAMP WHERE id=?',[id]);
+                res.json({success:true,id:this.lastID});
+            });
+        });
+    });
+});
+
 // دریافت پیام‌های یک تیکت (عمومی - برای کاربر)
 app.get('/api/tickets/:id/messages',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
@@ -257,6 +310,34 @@ app.get('/api/tickets/:id',(req,res)=>{
     mainDb.get('SELECT id,subject,status,updated_at FROM tickets WHERE id=?',[id],(err,row)=>{
         if(err||!row) return res.status(404).json({error:'یافت نشد'});
         res.json(row);
+    });
+});
+
+// === NOTIFICATIONS (PUBLIC - for users) ===
+app.get('/api/notifications',userAuth,(req,res)=>{
+    // Get broadcast notifications + ticket reply notifications not yet read
+    mainDb.all(`
+        SELECT n.id, n.title, n.message, n.type, n.created_at,
+               COALESCE(un.is_read,0) as is_read
+        FROM notifications n
+        LEFT JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
+        WHERE n.type='broadcast'
+        ORDER BY n.created_at DESC LIMIT 50
+    `,[req.userId],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+app.post('/api/notifications/read',userAuth,(req,res)=>{
+    const notifId=+req.body.notification_id;
+    if(isNaN(notifId)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,notifId],()=>res.json({success:true}));
+});
+app.post('/api/notifications/read-all',userAuth,(req,res)=>{
+    mainDb.all('SELECT id FROM notifications WHERE type="broadcast"',[],(err,notifs)=>{
+        if(!notifs||!notifs.length) return res.json({success:true});
+        notifs.forEach(n=>mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,n.id]));
+        res.json({success:true});
     });
 });
 
@@ -317,6 +398,11 @@ app.post('/api/admin/logo',adminAuth,upload.single('logo'),(req,res)=>{
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
 });
+app.post('/api/admin/favicon',adminAuth,upload.single('favicon'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
+    const fu=`/icons/${req.file.filename}`;
+    mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>res.json({success:true,favicon_url:fu}));
+});
 
 // Admin Banners
 app.get('/api/admin/banners',adminAuth,(req,res)=>{
@@ -326,10 +412,12 @@ app.put('/api/admin/banners/:pos',adminAuth,upload.single('banner_image'),(req,r
     const pos=+req.params.pos;if(isNaN(pos)||pos<1||pos>3) return res.status(400).json({error:'موقعیت نامعتبر'});
     mainDb.get('SELECT * FROM banners WHERE position=?',[pos],(err,bn)=>{
         let img=bn?bn.image:'';
-        if(req.file){if(img&&img.length>2){const op=path.resolve(__dirname,'public',img.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}img=`/banners/${req.file.filename}`;}
+        if(req.file){if(img&&img.length>2&&img.trim().length>0){const op=path.resolve(__dirname,'public',img.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}img=`/banners/${req.file.filename}`;}
         const act=req.body.active==='1'||req.body.active==='true'?1:0;
+        const title=san(req.body.title||'');
+        const link=san(req.body.link||'');
         mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,updated_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)`,
-            [pos,san(req.body.title||''),img,san(req.body.link||''),act],()=>res.json({success:true,image:img}));
+            [pos,title,img,link,act],()=>res.json({success:true,image:img}));
     });
 });
 
@@ -340,7 +428,7 @@ app.get('/api/admin/sliders',adminAuth,(req,res)=>{
 app.post('/api/admin/sliders',adminAuth,upload.single('slider_image'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'تصویر اسلایدر الزامی است'});
     mainDb.get('SELECT COUNT(*) as c FROM sliders',[],(err,r)=>{
-        if(r&&r.c>=5) return res.status(400).json({error:'حداکثر ۵ اسلاید مجاز است'});
+        if(r&&r.c>=10) return res.status(400).json({error:'حداکثر ۱۰ اسلاید مجاز است'});
         const img=`/sliders/${req.file.filename}`;
         mainDb.run('INSERT INTO sliders (title,image,link,sort_order) VALUES (?,?,?,?)',[san(req.body.title||''),img,san(req.body.link||''),r?r.c:0],function(err){
             if(err) return res.status(500).json({error:err.message});
@@ -362,10 +450,10 @@ app.get('/api/admin/users',adminAuth,(req,res)=>{
 });
 app.delete('/api/admin/users/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.run('DELETE FROM messages WHERE user_id=?',[id],()=>mainDb.run('DELETE FROM users WHERE id=?',[id],()=>res.json({success:true})));
+    mainDb.run('DELETE FROM messages WHERE user_id=?',[id],()=>mainDb.run('DELETE FROM tickets WHERE user_id=?',[id],()=>mainDb.run('DELETE FROM users WHERE id=?',[id],()=>res.json({success:true}))));
 });
 
-// Admin QA
+// Admin QA (merged with tickets in the backend)
 app.get('/api/admin/qa/users',adminAuth,(req,res)=>{
     mainDb.all(`SELECT users.id,users.username,(SELECT text FROM messages WHERE user_id=users.id ORDER BY created_at DESC LIMIT 1) as last_message,(SELECT created_at FROM messages WHERE user_id=users.id ORDER BY created_at DESC LIMIT 1) as last_date,(SELECT COUNT(*) FROM messages WHERE user_id=users.id AND sender_type='user' AND is_read=0) as unread FROM users WHERE EXISTS(SELECT 1 FROM messages WHERE user_id=users.id) ORDER BY last_date DESC`,[],(err,rows)=>res.json(rows||[]));
 });
@@ -397,6 +485,15 @@ app.post('/api/admin/tickets/:id/reply',adminAuth,(req,res)=>{
     mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"admin")',[id,t],function(err){
         if(err) return res.status(500).json({error:err.message});
         mainDb.run('UPDATE tickets SET status="answered",updated_at=CURRENT_TIMESTAMP WHERE id=?',[id]);
+        // Create notification for the ticket owner
+        mainDb.get('SELECT user_id,subject FROM tickets WHERE id=?',[id],(err2,ticket)=>{
+            if(ticket&&ticket.user_id){
+                mainDb.run('INSERT INTO notifications (title,message,type) VALUES (?,?,"ticket_reply")',
+                    ['پاسخ به تیکت',`تیکت شما با موضوع "${ticket.subject}" پاسخ داده شد.`],function(err3){
+                        if(this.lastID) mainDb.run('INSERT INTO user_notifications (user_id,notification_id) VALUES (?,?)',[ticket.user_id,this.lastID]);
+                    });
+            }
+        });
         res.json({success:true});
     });
 });
@@ -404,6 +501,28 @@ app.put('/api/admin/tickets/:id/status',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     const s=['open','answered','closed'].includes(req.body.status)?req.body.status:'open';
     mainDb.run('UPDATE tickets SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[s,id],()=>res.json({success:true}));
+});
+
+// Admin Notifications (broadcast)
+app.get('/api/admin/notifications',adminAuth,(req,res)=>{
+    mainDb.all('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50',[],(err,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/notifications',adminAuth,(req,res)=>{
+    const title=san(req.body.title),msg=san(req.body.message);
+    if(!title||!msg) return res.status(400).json({error:'عنوان و متن الزامی است'});
+    mainDb.run('INSERT INTO notifications (title,message,type) VALUES (?,?,"broadcast")',[title,msg],function(err){
+        if(err) return res.status(500).json({error:err.message});
+        const notifId=this.lastID;
+        // Assign to all users
+        mainDb.all('SELECT id FROM users',[],(err2,users)=>{
+            if(users&&users.length) users.forEach(u=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[u.id,notifId]));
+        });
+        res.json({success:true,id:notifId});
+    });
+});
+app.delete('/api/admin/notifications/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.run('DELETE FROM user_notifications WHERE notification_id=?',[id],()=>mainDb.run('DELETE FROM notifications WHERE id=?',[id],()=>res.json({success:true})));
 });
 
 // Routes
