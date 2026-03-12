@@ -326,6 +326,45 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
     </div>
 
+    <!-- PWA Settings -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-mobile-alt text-teal-600 ml-2"></i>تنظیمات PWA (اپلیکیشن)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کامل اپلیکیشن</label><input type="text" id="s-pwa_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مرکز نشر آثار آیت الله دستغیب"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کوتاه (نمایش روی آیکون)</label><input type="text" id="s-pwa_short_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مرکز نشر آثار"></div>
+        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات اپلیکیشن</label><input type="text" id="s-pwa_description" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="اپلیکیشن مرکز نشر آثار"></div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">رنگ تم اپلیکیشن</label>
+          <div class="flex items-center gap-3">
+            <input type="color" id="s-pwa_theme_color" value="#0d9488" class="rounded-lg cursor-pointer">
+            <span class="text-xs text-gray-400">نمایش در نوار وضعیت موبایل</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">رنگ پس‌زمینه splash</label>
+          <div class="flex items-center gap-3">
+            <input type="color" id="s-pwa_bg_color" value="#ffffff" class="rounded-lg cursor-pointer">
+            <span class="text-xs text-gray-400">صفحه بارگذاری اولیه</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark Mode Settings -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-adjust text-teal-600 ml-2"></i>تنظیمات تم تاریک/روشن</h2>
+      <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+        <div>
+          <p class="font-bold text-sm text-gray-800">دکمه تغییر تم (دارک/لایت)</p>
+          <p class="text-xs text-gray-500 mt-1">نمایش دکمه ماه/خورشید در هدر صفحه اصلی برای کاربران</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="s-dark_mode_enabled" class="sr-only peer" checked>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+        </label>
+      </div>
+    </div>
+
     <div class="flex gap-3">
       <button onclick="saveSettings()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-sm transition flex-1 text-sm"><i class="fas fa-save ml-2"></i>ذخیره تمام تنظیمات</button>
       <button onclick="loadSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-6 py-3.5 rounded-xl text-sm"><i class="fas fa-sync-alt ml-2"></i>بازنشانی</button>
@@ -939,12 +978,14 @@ async function loadSettings(){
   try{
     const r=await adminFetch('/api/admin/settings');
     const s=await r.json();
-    ['site_name','site_subtitle','primary_color','secondary_color','live_embed'].forEach(k=>{
+    ['site_name','site_subtitle','primary_color','secondary_color','live_embed','pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color'].forEach(k=>{
       const el=document.getElementById('s-'+k);
       if(el) el.value=s[k]||'';
     });
     const liveActive=document.getElementById('s-live_active');
     if(liveActive) liveActive.checked=s.live_active==='1';
+    const darkModeEnabled=document.getElementById('s-dark_mode_enabled');
+    if(darkModeEnabled) darkModeEnabled.checked=s.dark_mode_enabled!=='0';
     if(s.logo_url){
       const prev=document.getElementById('logo-preview');
       const ph=document.getElementById('logo-placeholder');
@@ -965,6 +1006,12 @@ async function saveSettings(){
     secondary_color:document.getElementById('s-secondary_color').value,
     live_embed:document.getElementById('s-live_embed').value,
     live_active:document.getElementById('s-live_active').checked?'1':'0',
+    pwa_name:document.getElementById('s-pwa_name').value,
+    pwa_short_name:document.getElementById('s-pwa_short_name').value,
+    pwa_description:document.getElementById('s-pwa_description').value,
+    pwa_theme_color:document.getElementById('s-pwa_theme_color').value,
+    pwa_bg_color:document.getElementById('s-pwa_bg_color').value,
+    dark_mode_enabled:document.getElementById('s-dark_mode_enabled').checked?'1':'0',
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
