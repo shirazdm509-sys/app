@@ -44,6 +44,42 @@ if (rateLimit) {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Dynamic manifest.json (reads PWA settings from DB)
+app.get('/manifest.json', (req, res) => {
+    const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color'];
+    mainDb.all(`SELECT key,value FROM settings WHERE key IN (${keys.map(()=>'?').join(',')})`, keys, (err, rows) => {
+        const s = {};
+        if (rows) rows.forEach(r => { s[r.key] = r.value; });
+        const manifest = {
+            name: s.pwa_name || 'مرکز نشر آثار آیت الله دستغیب',
+            short_name: s.pwa_short_name || 'مرکز نشر آثار',
+            description: s.pwa_description || 'اپلیکیشن مرکز نشر آثار',
+            theme_color: s.pwa_theme_color || '#0d9488',
+            background_color: s.pwa_bg_color || '#ffffff',
+            display: 'standalone',
+            orientation: 'portrait',
+            start_url: '/',
+            scope: '/',
+            lang: 'fa',
+            dir: 'rtl',
+            icons: [
+                { src: '/icons/icon-72.png', sizes: '72x72', type: 'image/png' },
+                { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' },
+                { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png' },
+                { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png' },
+                { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png' },
+                { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+                { src: '/icons/icon-384.png', sizes: '384x384', type: 'image/png' },
+                { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+            ]
+        };
+        res.setHeader('Content-Type', 'application/manifest+json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.json(manifest);
+    });
+});
+
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true }));
 
 // DB
@@ -86,6 +122,12 @@ function initDb() {
             ['banner_padding','4'],
             ['banner_radius','16'],
             ['banner_height','120'],
+            ['pwa_name','مرکز نشر آثار آیت الله دستغیب'],
+            ['pwa_short_name','مرکز نشر آثار'],
+            ['pwa_description','اپلیکیشن مرکز نشر آثار آیت الله دستغیب'],
+            ['pwa_theme_color','#0d9488'],
+            ['pwa_bg_color','#ffffff'],
+            ['dark_mode_enabled','1'],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);

@@ -108,6 +108,35 @@
         .reading-mode.theme-light header { background: rgba(255,255,255,0.92) !important; border-color: rgba(0,0,0,0.05) !important; }
         .reading-mode.theme-light h1, .reading-mode.theme-light h2 { color: #1f2937 !important; }
         .reading-mode.theme-light button { background: #f9fafb !important; color: #6b7280 !important; }
+
+        /* Global Dark Mode */
+        body.global-dark { background: #0f172a; }
+        body.global-dark #app-wrapper { background: #0f172a; }
+        body.global-dark .screen { background-color: #0f172a; color: #cbd5e1; }
+        body.global-dark header { background: rgba(15,23,42,0.95) !important; border-color: rgba(255,255,255,0.07) !important; color: #cbd5e1; }
+        body.global-dark h1, body.global-dark h2, body.global-dark h3, body.global-dark h4 { color: #e2e8f0 !important; }
+        body.global-dark .bg-white { background-color: #1e293b !important; }
+        body.global-dark .bg-gray-50 { background-color: #0f172a !important; }
+        body.global-dark .bg-gray-100 { background-color: #1e293b !important; }
+        body.global-dark .bg-gray-200 { background-color: #334155 !important; }
+        body.global-dark .border-gray-100 { border-color: rgba(255,255,255,0.08) !important; }
+        body.global-dark .border-gray-200 { border-color: rgba(255,255,255,0.1) !important; }
+        body.global-dark .text-gray-800 { color: #e2e8f0 !important; }
+        body.global-dark .text-gray-700 { color: #cbd5e1 !important; }
+        body.global-dark .text-gray-600 { color: #94a3b8 !important; }
+        body.global-dark .text-gray-500 { color: #64748b !important; }
+        body.global-dark .text-gray-400 { color: #475569 !important; }
+        body.global-dark .shadow-sm { box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important; }
+        body.global-dark #bottom-nav { background: #1e293b !important; border-color: rgba(255,255,255,0.07) !important; }
+        body.global-dark .nav-item span { color: #94a3b8; }
+        body.global-dark .nav-item i { color: #94a3b8; }
+        body.global-dark .nav-item.active i { color: #2dd4bf; }
+        body.global-dark .nav-item.active span { color: #2dd4bf; }
+        body.global-dark input, body.global-dark textarea, body.global-dark select { background: #1e293b !important; color: #e2e8f0 !important; border-color: rgba(255,255,255,0.1) !important; }
+        body.global-dark #loading-screen { background: #0f172a !important; }
+        body.global-dark #loading-screen h2 { color: #e2e8f0 !important; }
+        body.global-dark #loading-screen p { color: #94a3b8 !important; }
+        body.global-dark .notif-panel > div:last-child { background: #1e293b !important; }
     </style>
 </head>
 <body class="font-vazir antialiased text-gray-800">
@@ -187,6 +216,9 @@
                 <div class="flex gap-2">
                     <button onclick="openGlobalSearch()" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition">
                         <i class="fas fa-search"></i>
+                    </button>
+                    <button onclick="toggleGlobalTheme()" id="global-theme-btn" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition">
+                        <i class="fas fa-moon" id="global-theme-icon"></i>
                     </button>
                     <button onclick="openNotifications()" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition relative" id="bell-btn">
                         <i class="far fa-bell"></i>
@@ -406,7 +438,7 @@
             <!-- مودال نمایش تمام صفحه عکس -->
             <div id="image-modal" class="fixed inset-0 z-[300] hidden bg-black/95 backdrop-blur-sm flex-col items-center justify-center" onclick="closeImageModal()">
                 <button class="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition"><i class="fas fa-times text-lg"></i></button>
-                <img id="fullscreen-image" src="" class="max-w-full max-h-full object-contain p-4 transition-transform duration-300 transform scale-95">
+                <img id="fullscreen-image" src="" class="max-w-[95vw] max-h-[90vh] object-contain p-4 transition-transform duration-300 transform scale-95 mx-auto">
             </div>
         </div>
 
@@ -955,12 +987,30 @@ function extractMediaFromPost(post) {
         else audios.push(url);
     });
 
-    // استخراج کدهای آپارات
-    const aparatRegex = /aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/)([a-zA-Z0-9]+)/gi;
+    // استخراج کدهای آپارات (پشتیبانی از فرمت‌های مختلف)
+    const aparatRegex = /aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/(?:videohash\/)?|v\/)([a-zA-Z0-9]+)/gi;
     let amatch;
+    const aparatHashes = new Set();
     while ((amatch = aparatRegex.exec(postString)) !== null) {
-        iframes.push(`https://www.aparat.com/video/video/embed/videohash/${amatch[1]}/vt/frame`);
+        if (!aparatHashes.has(amatch[1])) {
+            aparatHashes.add(amatch[1]);
+            iframes.push(`https://www.aparat.com/video/video/embed/videohash/${amatch[1]}/vt/frame`);
+        }
     }
+    // همچنین جستجو در src تگ‌های iframe درون محتوا
+    tempDiv.innerHTML = post.content.rendered;
+    tempDiv.querySelectorAll('iframe').forEach(ifr => {
+        const src = ifr.getAttribute('src') || '';
+        if (src.includes('aparat.com')) {
+            const hm = src.match(/aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/(?:videohash\/)?|v\/)([a-zA-Z0-9]+)/i);
+            if (hm && !aparatHashes.has(hm[1])) {
+                aparatHashes.add(hm[1]);
+                iframes.push(`https://www.aparat.com/video/video/embed/videohash/${hm[1]}/vt/frame`);
+            }
+        } else if (src && !src.includes('aparat.com')) {
+            iframes.push(src);
+        }
+    });
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = post.content.rendered;
@@ -2049,6 +2099,12 @@ async function applySiteSettings() {
         if (s.primary_color) {
             document.documentElement.style.setProperty('--brand-color', s.primary_color);
         }
+        // Dark mode toggle button visibility
+        const themeBtn = document.getElementById('global-theme-btn');
+        if (themeBtn) {
+            if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';
+            else themeBtn.style.display = '';
+        }
         // Store settings for banner/slider use
         window._siteSettings = s;
     } catch(e) {}
@@ -2934,6 +2990,32 @@ async function subscribeToPush(reg) {
 }
 
 registerServiceWorker();
+
+// ====================================================
+// تم کلی سایت (دارک / لایت)
+// ====================================================
+let globalTheme = localStorage.getItem('globalTheme') || 'light';
+
+function applyGlobalTheme(theme) {
+    globalTheme = theme;
+    if (theme === 'dark') {
+        document.body.classList.add('global-dark');
+        const icon = document.getElementById('global-theme-icon');
+        if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+    } else {
+        document.body.classList.remove('global-dark');
+        const icon = document.getElementById('global-theme-icon');
+        if (icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+    }
+    localStorage.setItem('globalTheme', theme);
+}
+
+function toggleGlobalTheme() {
+    applyGlobalTheme(globalTheme === 'dark' ? 'light' : 'dark');
+}
+
+// اعمال تم ذخیره‌شده هنگام بارگذاری
+applyGlobalTheme(globalTheme);
 </script>
 </body>
 </html>
