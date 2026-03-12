@@ -199,11 +199,14 @@
 
                 <!-- SLIDER -->
                 <div id="home-slider" class="relative w-full overflow-hidden mb-4" style="height:180px;display:none;">
-                    <div id="slider-track" class="flex h-full transition-transform duration-500 ease-in-out"></div>
+                    <div id="slider-track" class="flex h-full transition-transform duration-500 ease-in-out" style="direction:ltr;will-change:transform;"></div>
                     <button onclick="sliderPrev()" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-right text-xs"></i></button>
                     <button onclick="sliderNext()" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/30 text-white rounded-full flex items-center justify-center z-10 backdrop-blur-sm"><i class="fas fa-chevron-left text-xs"></i></button>
                     <div id="slider-dots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5"></div>
                 </div>
+
+                <!-- BANNERS position: after_slider -->
+                <div id="home-banner-after_slider" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LIVE BANNER -->
                 <div class="px-6 mt-4 mb-4" onclick="navToScreen('live')">
@@ -258,6 +261,9 @@
                     </div>
                 </div>
 
+                <!-- BANNERS position: after_shortcuts -->
+                <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
+
                 <!-- LATEST BOOKS -->
                 <div class="mb-4">
                     <div class="flex items-center justify-between px-6 mb-3">
@@ -267,8 +273,8 @@
                     <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
                 </div>
 
-                <!-- BANNERS (3 banners) -->
-                <div id="home-banners" class="px-4 mb-4 flex flex-col gap-3"></div>
+                <!-- BANNERS position: after_books -->
+                <div id="home-banner-after_books" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LATEST LECTURES -->
                 <div class="mb-4">
@@ -280,6 +286,9 @@
                         <div class="text-center py-6 text-gray-400 text-xs">در حال بارگذاری...</div>
                     </div>
                 </div>
+
+                <!-- BANNERS position: after_lectures -->
+                <div id="home-banner-after_lectures" class="px-4 mb-4 flex flex-col gap-3"></div>
             </div>
         </div>
 
@@ -1614,7 +1623,6 @@ async function loadSliders() {
     const track = document.getElementById('slider-track');
     const dots = document.getElementById('slider-dots');
     if (!wrapper || !track || !dots) return;
-    // Apply settings
     const s = window._siteSettings || {};
     const padding = parseInt(s.slider_padding || '0');
     const radius = parseInt(s.slider_radius || '0');
@@ -1624,10 +1632,10 @@ async function loadSliders() {
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
     if (padding > 0) wrapper.style.boxSizing = 'border-box';
-    track.innerHTML = sliderData.map(s =>
-        `<div class="shrink-0 w-full h-full cursor-pointer overflow-hidden" onclick="${s.link ? `window.open('${s.link}','_blank')` : ''}" style="min-width:100%;border-radius:${radius}px;">
-            <img src="${s.image}" class="w-full h-full object-cover" alt="${s.title||''}">
-         </div>`
+    const slideW = wrapper.offsetWidth;
+    track.style.width = (sliderData.length * slideW) + 'px';
+    track.innerHTML = sliderData.map(sl =>
+        `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}"><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;" alt="${sl.title||''}"></div>`
     ).join('');
     dots.innerHTML = sliderData.map((_,i) =>
         `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
@@ -1638,7 +1646,8 @@ async function loadSliders() {
 function goToSlide(i) {
     sliderIndex = (i + sliderData.length) % sliderData.length;
     const track = document.getElementById('slider-track');
-    if (track) track.style.transform = `translateX(-${sliderIndex * 100}%)`;
+    const wrapper = document.getElementById('home-slider');
+    if (track && wrapper) track.style.transform = `translateX(-${sliderIndex * wrapper.offsetWidth}px)`;
     document.querySelectorAll('#slider-dots button').forEach((b, idx) => {
         b.className = `w-2 h-2 rounded-full transition-all ${idx === sliderIndex ? 'bg-white w-4' : 'bg-white/50'}`;
     });
@@ -1654,26 +1663,39 @@ function startSliderAuto() {
 // بنرها صفحه اصلی
 // ====================================================
 async function loadBanners() {
-    const container = document.getElementById('home-banners');
-    if (!container) return;
+    // Clear all banner containers
+    ['after_slider','after_shortcuts','after_books','after_lectures'].forEach(sec => {
+        const el = document.getElementById('home-banner-' + sec);
+        if (el) el.innerHTML = '';
+    });
     try {
         const res = await fetch('/api/banners', { cache: 'no-store' });
         if (!res.ok) return;
         const banners = await res.json();
         if (!Array.isArray(banners)) return;
         const active = banners.filter(b => +b.active === 1 && b.image && b.image.trim().length > 2);
-        // Apply settings
         const s = window._siteSettings || {};
         const padding = parseInt(s.banner_padding ?? '4');
         const radius = parseInt(s.banner_radius ?? '16');
         const height = parseInt(s.banner_height ?? '120');
-        container.style.padding = '0 ' + padding + 'px';
-        container.innerHTML = active.map(b => {
-            const onclick = b.link ? `onclick="window.open('${b.link.replace(/'/g,"\\'")}','_blank')"` : '';
-            return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
-                <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
-            </div>`;
-        }).join('');
+        // Group by page_section
+        const groups = {};
+        active.forEach(b => {
+            const sec = b.page_section || 'after_books';
+            if (!groups[sec]) groups[sec] = [];
+            groups[sec].push(b);
+        });
+        for (const [sec, items] of Object.entries(groups)) {
+            const container = document.getElementById('home-banner-' + sec);
+            if (!container) continue;
+            container.style.padding = '0 ' + padding + 'px';
+            container.innerHTML = items.map(b => {
+                const onclick = b.link ? `onclick="window.open('${b.link.replace(/'/g,"\\'")}','_blank')"` : '';
+                return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
+                    <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
+                </div>`;
+            }).join('');
+        }
     } catch(e) {
         console.warn('Banners load error:', e);
     }
@@ -2866,6 +2888,52 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 init();
+
+// ====================================================
+// PWA Service Worker + Push Notifications
+// ====================================================
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        console.log('SW registered');
+        window._swReg = reg;
+        // Auto-subscribe to push if user is logged in
+        if (qaUser) { setTimeout(() => subscribeToPush(reg), 2000); }
+    } catch(e) { console.warn('SW registration failed:', e); }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const output = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) output[i] = rawData.charCodeAt(i);
+    return output;
+}
+
+async function subscribeToPush(reg) {
+    if (!reg || !('pushManager' in reg)) return;
+    if (!qaUser) return;
+    try {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return; // Already subscribed
+        const keyRes = await fetch('/api/push/vapid-public-key');
+        const { publicKey } = await keyRes.json();
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': qaUser.id },
+            body: JSON.stringify({ subscription: sub })
+        });
+        console.log('Push subscribed');
+    } catch(e) { console.warn('Push subscribe failed:', e); }
+}
+
+registerServiceWorker();
 </script>
 </body>
 </html>

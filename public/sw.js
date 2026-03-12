@@ -100,17 +100,33 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Push notifications (placeholder)
+// Push notifications
 self.addEventListener('push', event => {
   if (!event.data) return;
-  const data = event.data.json();
+  let data = {};
+  try { data = event.data.json(); } catch(e) { data = { title: 'مرکز نشر آثار', body: event.data.text() }; }
   event.waitUntil(
     self.registration.showNotification(data.title || 'مرکز نشر آثار', {
       body: data.body || '',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-72.png',
+      icon: data.icon || '/icons/icon-192.png',
+      badge: data.badge || '/icons/icon-72.png',
+      tag: data.tag || 'notif',
+      data: data.data || { url: '/' },
       dir: 'rtl',
-      lang: 'fa'
+      lang: 'fa',
+      vibrate: [200, 100, 200]
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      const existing = list.find(c => c.url.includes(self.location.origin));
+      if (existing) { existing.focus(); existing.navigate(url); }
+      else clients.openWindow(url);
     })
   );
 });
