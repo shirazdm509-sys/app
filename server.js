@@ -62,7 +62,8 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, subject TEXT NOT NULL, status TEXT DEFAULT 'open', priority TEXT DEFAULT 'normal', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, user_id INTEGER DEFAULT NULL)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS ticket_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL, text TEXT NOT NULL, sender_type TEXT DEFAULT 'user', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (ticket_id) REFERENCES tickets(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-        mainDb.run(`CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY AUTOINCREMENT, position INTEGER UNIQUE NOT NULL, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', active INTEGER DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS banners (id INTEGER PRIMARY KEY AUTOINCREMENT, position INTEGER UNIQUE NOT NULL, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', active INTEGER DEFAULT 0, page_section TEXT DEFAULT 'after_books', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`ALTER TABLE banners ADD COLUMN page_section TEXT DEFAULT 'after_books'`, () => {});
         mainDb.run(`CREATE TABLE IF NOT EXISTS sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, display_section TEXT DEFAULT 'main', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`ALTER TABLE sliders ADD COLUMN display_section TEXT DEFAULT 'main'`, () => {});
         mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
@@ -427,8 +428,10 @@ app.put('/api/admin/banners/:pos',adminAuth,upload.single('banner_image'),(req,r
         const act=req.body.active==='1'||req.body.active==='true'?1:0;
         const title=san(req.body.title||'');
         const link=san(req.body.link||'');
-        mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,updated_at) VALUES (?,?,?,?,?,CURRENT_TIMESTAMP)`,
-            [pos,title,img,link,act],()=>res.json({success:true,image:img}));
+        const validSections=['after_slider','after_shortcuts','after_books','after_lectures'];
+        const pageSec=validSections.includes(req.body.page_section)?req.body.page_section:(bn&&bn.page_section||'after_books');
+        mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,page_section,updated_at) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
+            [pos,title,img,link,act,pageSec],()=>res.json({success:true,image:img}));
     });
 });
 

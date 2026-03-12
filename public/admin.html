@@ -77,15 +77,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <form id="slider-form" onsubmit="addSlider(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان (اختیاری)</label><input type="text" id="slider-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان اسلاید"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label><input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://..."></div>
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">موقعیت نمایش در صفحه</label>
-          <select id="slider-section" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
-            <option value="main">بالای صفحه (پیش‌فرض)</option>
-            <option value="after_shortcuts">بعد از میانبرها</option>
-            <option value="after_books">بعد از کتاب‌های اخیر</option>
-            <option value="after_banners">بعد از بنرها</option>
-            <option value="after_lectures">بعد از سخنرانی‌ها</option>
-          </select>
-        </div>
         <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید *</label><input type="file" id="slider-image" accept="image/*" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
         <div class="md:col-span-2"><button type="submit" id="btn-add-slider" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن اسلاید</button></div>
       </form>
@@ -141,15 +132,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div>
           <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع بنر - <span id="banner-height-val">120</span>px</label>
           <input type="range" id="s-banner_height" min="60" max="300" value="120" step="10" class="w-full" oninput="document.getElementById('banner-height-val').textContent=this.value">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-gray-500 mb-2">موقعیت بنرها در صفحه</label>
-          <select id="s-banner_position" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
-            <option value="after_books">بعد از کتاب‌های اخیر</option>
-            <option value="after_slider">بعد از اسلایدر</option>
-            <option value="after_shortcuts">بعد از میانبرها</option>
-            <option value="after_lectures">بعد از سخنرانی‌ها</option>
-          </select>
         </div>
       </div>
       <button onclick="saveBannerSettings()" class="mt-5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره تنظیمات بنر</button>
@@ -675,6 +657,7 @@ function renderBannerCards(bns){
   const c=document.getElementById('banners-list');
   c.innerHTML=[1,2,3].map(pos=>{
     const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
+    const curSec=b.page_section||'after_books';
     return `
     <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col gap-3" id="banner-card-${pos}">
       <h3 class="font-bold text-sm text-gray-700">بنر ${pos}</h3>
@@ -685,6 +668,15 @@ function renderBannerCards(bns){
       <input type="file" id="banner-img-${pos}" accept="image/*" class="hidden" onchange="previewBanner(${pos},this)">
       <input type="text" id="banner-title-${pos}" value="${b.title||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="عنوان بنر (اختیاری)">
       <input type="text" id="banner-link-${pos}" value="${b.link||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="لینک بنر (https://...)">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1.5">موقعیت در صفحه</label>
+        <select id="banner-section-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
+          <option value="after_slider" ${curSec==='after_slider'?'selected':''}>بعد از اسلایدر</option>
+          <option value="after_shortcuts" ${curSec==='after_shortcuts'?'selected':''}>بعد از میانبرها</option>
+          <option value="after_books" ${curSec==='after_books'?'selected':''}>بعد از کتاب‌های اخیر</option>
+          <option value="after_lectures" ${curSec==='after_lectures'?'selected':''}>بعد از سخنرانی‌ها</option>
+        </select>
+      </div>
       <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="banner-active-${pos}" ${b.active?'checked':''} class="rounded"> فعال
       </label>
@@ -709,10 +701,12 @@ async function saveBanners(){
     const link=document.getElementById('banner-link-'+pos).value;
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
+    const section=document.getElementById('banner-section-'+pos)?.value||'after_books';
     const fd=new FormData();
     fd.append('link',link);
     fd.append('title',title);
     fd.append('active',active?'1':'0');
+    fd.append('page_section',section);
     if(img) fd.append('banner_image',img);
     try{await adminFetch('/api/admin/banners/'+pos,{method:'PUT',body:fd});saved++;}catch(e){}
   }
@@ -729,8 +723,6 @@ async function loadBannerSettings(){
       const el=document.getElementById('s-'+f);
       if(el){el.value=s[f]||el.value;document.getElementById(valIds[i]).textContent=s[f]||el.value;}
     });
-    const pos=document.getElementById('s-banner_position');
-    if(pos&&s.banner_position) pos.value=s.banner_position;
   }catch(e){}
 }
 async function saveBannerSettings(){
@@ -738,7 +730,6 @@ async function saveBannerSettings(){
     banner_padding:document.getElementById('s-banner_padding').value,
     banner_radius:document.getElementById('s-banner_radius').value,
     banner_height:document.getElementById('s-banner_height').value,
-    banner_position:document.getElementById('s-banner_position').value,
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
