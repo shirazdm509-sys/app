@@ -2771,12 +2771,23 @@ function saveHighlights() {
     localStorage.setItem(k, JSON.stringify(highlightData[k] || []));
 }
 
+// همه container هایی که هایلایت در آن‌ها مجاز است
+const HIGHLIGHT_CONTAINERS = ['text-content', 'single-post-content', 'news-single-content', 'statements-single-content'];
+
+function getHighlightContainer(node) {
+    for (const id of HIGHLIGHT_CONTAINERS) {
+        const el = document.getElementById(id);
+        if (el && el.contains(node)) return el;
+    }
+    return null;
+}
+
 function applyHighlight(color) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
-    const tc = document.getElementById('text-content');
-    if (!tc || !tc.contains(range.commonAncestorContainer)) return;
+    const tc = getHighlightContainer(range.commonAncestorContainer);
+    if (!tc) return;
 
     const mark = document.createElement('mark');
     mark.style.backgroundColor = color;
@@ -2794,11 +2805,13 @@ function applyHighlight(color) {
     sel.removeAllRanges();
     hideHighlightToolbar();
 
-    // save to page html
-    const k = getHighlightKey();
-    if (!highlightData[k]) highlightData[k] = [];
-    highlightData[k].push({ id: mark.dataset.hlId, color });
-    saveHighlights();
+    // فقط برای کتاب‌خوان هایلایت رو ذخیره می‌کنیم
+    if (tc.id === 'text-content') {
+        const k = getHighlightKey();
+        if (!highlightData[k]) highlightData[k] = [];
+        highlightData[k].push({ id: mark.dataset.hlId, color });
+        saveHighlights();
+    }
     showToast('هایلایت اعمال شد');
 }
 
@@ -2954,13 +2967,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
     setupSwipe();
 
-    // Show highlight toolbar on text selection inside reader
+    // Show highlight toolbar on text selection inside reader, lectures, news, statements
     document.addEventListener('mouseup', (e) => {
         const tb = document.getElementById('highlight-toolbar');
         if (tb && !tb.contains(e.target)) {
             const sel = window.getSelection();
-            const tc = document.getElementById('text-content');
-            if (sel && !sel.isCollapsed && tc && tc.contains(sel.anchorNode)) {
+            const container = sel && sel.anchorNode ? getHighlightContainer(sel.anchorNode) : null;
+            if (sel && !sel.isCollapsed && container) {
                 showHighlightToolbar(e.clientX, e.clientY);
             } else if (!tb.contains(e.target)) {
                 hideHighlightToolbar();
@@ -2970,8 +2983,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.addEventListener('touchend', (e) => {
         setTimeout(() => {
             const sel = window.getSelection();
-            const tc = document.getElementById('text-content');
-            if (sel && !sel.isCollapsed && tc && tc.contains(sel.anchorNode)) {
+            const container = sel && sel.anchorNode ? getHighlightContainer(sel.anchorNode) : null;
+            if (sel && !sel.isCollapsed && container) {
                 const r = sel.getRangeAt(0).getBoundingClientRect();
                 showHighlightToolbar(r.left + r.width / 2, r.top + window.scrollY);
             }
