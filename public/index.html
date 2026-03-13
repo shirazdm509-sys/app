@@ -1695,9 +1695,11 @@ async function loadSliders() {
     wrapper.getBoundingClientRect();
     const slideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
     track.style.width = (sliderData.length * slideW) + 'px';
-    track.innerHTML = sliderData.map(sl =>
-        `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}"><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;" alt="${sl.title||''}"></div>`
-    ).join('');
+    track.innerHTML = sliderData.map(sl => {
+        const onclick = sl.link ? `onclick="window.open('${sl.link.replace(/'/g,"\\'")}','_blank')"` : '';
+        const onerror = `onerror="this.parentElement.style.background='#e2e8f0';this.style.display='none';"`;
+        return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;background:#f1f5f9;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}" ${onerror}></div>`;
+    }).join('');
     dots.innerHTML = sliderData.map((_,i) =>
         `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
     ).join('');
