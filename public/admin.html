@@ -520,8 +520,11 @@ async function uploadBook(e){
   const t=document.getElementById('book-title').value,a=document.getElementById('book-author').value;
   const dbf=document.getElementById('book-db').files[0],cf=document.getElementById('book-cover').files[0];
   if(!t||!dbf) return showToast('عنوان و فایل دیتابیس الزامی است',false);
+  if(dbf.size > 400*1024*1024) return showToast('حجم فایل دیتابیس نباید بیشتر از ۴۰۰ مگابایت باشد',false);
+  if(cf && cf.size > 10*1024*1024) return showToast('حجم تصویر جلد نباید بیشتر از ۱۰ مگابایت باشد',false);
   const btn=document.getElementById('btn-upload');
-  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
+  const sizeMB = (dbf.size/1024/1024).toFixed(1);
+  btn.innerHTML=`<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود... (${sizeMB} MB)`;btn.disabled=true;
   const fd=new FormData();
   fd.append('title',t);fd.append('author',a);fd.append('database',dbf);
   if(cf) fd.append('cover',cf);
@@ -620,6 +623,7 @@ async function addSlider(e){
   e.preventDefault();
   const img=document.getElementById('slider-image').files[0];
   if(!img) return showToast('تصویر الزامی است',false);
+  if(img.size > 10*1024*1024) return showToast('حجم تصویر نباید بیشتر از ۱۰ مگابایت باشد',false);
   const fd=new FormData();
   fd.append('slider_image',img);
   fd.append('title',document.getElementById('slider-title').value);
@@ -745,6 +749,7 @@ async function saveBanners(){
   let saved=0;
   for(let pos=1;pos<=3;pos++){
     const img=document.getElementById('banner-img-'+pos).files[0];
+    if(img && img.size > 10*1024*1024){ showToast(`تصویر بنر ${pos} بیش از ۱۰ مگابایت است`,false); continue; }
     const link=document.getElementById('banner-link-'+pos).value;
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
@@ -755,7 +760,12 @@ async function saveBanners(){
     fd.append('active',active?'1':'0');
     fd.append('page_section',section);
     if(img) fd.append('banner_image',img);
-    try{await adminFetch('/api/admin/banners/'+pos,{method:'PUT',body:fd});saved++;}catch(e){}
+    try{
+      const r=await adminFetch('/api/admin/banners/'+pos,{method:'PUT',body:fd});
+      let d; try{d=await r.json();}catch(je){d={};}
+      if(r.ok) saved++;
+      else showToast(d.error||`خطا در ذخیره بنر ${pos}`,false);
+    }catch(e){}
   }
   if(saved>0)showToast('بنرها ذخیره شدند');
   loadBanners();
@@ -1033,24 +1043,28 @@ function setColorSwatch(type,color){
 async function uploadLogo(){
   const f=document.getElementById('logo-input').files[0];
   if(!f) return showToast('ابتدا لوگو انتخاب کنید',false);
+  if(f.size > 10*1024*1024) return showToast('حجم لوگو نباید بیشتر از ۱۰ مگابایت باشد',false);
   const fd=new FormData();fd.append('logo',f);
   try{
     const r=await adminFetch('/api/admin/logo',{method:'POST',body:fd});
-    const d=await r.json();
+    let d; try{d=await r.json();}catch(je){d={};}
     if(r.ok&&d.success){showToast('لوگو آپلود شد');}
-    else showToast(d.error||'خطا',false);
-  }catch(e){}
+    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است',false);
+    else showToast(d.error||'خطا در آپلود',false);
+  }catch(e){ showToast('خطا در اتصال',false); }
 }
 async function uploadFavicon(){
   const f=document.getElementById('favicon-input').files[0];
   if(!f) return showToast('ابتدا آیکون انتخاب کنید',false);
+  if(f.size > 5*1024*1024) return showToast('حجم آیکون نباید بیشتر از ۵ مگابایت باشد',false);
   const fd=new FormData();fd.append('favicon',f);
   try{
     const r=await adminFetch('/api/admin/favicon',{method:'POST',body:fd});
-    const d=await r.json();
+    let d; try{d=await r.json();}catch(je){d={};}
     if(r.ok&&d.success){showToast('آیکون آپلود شد');}
-    else showToast(d.error||'خطا',false);
-  }catch(e){}
+    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است',false);
+    else showToast(d.error||'خطا در آپلود',false);
+  }catch(e){ showToast('خطا در اتصال',false); }
 }
 function previewLogo(input){
   if(!input.files[0]) return;

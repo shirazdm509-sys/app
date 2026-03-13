@@ -1651,7 +1651,6 @@ async function init() {
             allBooks=[];
         }
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
-        try { await loadSliders(); } catch(e) { console.warn('Sliders err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
         // Load notifications if user is logged in (poll every 5s for near real-time)

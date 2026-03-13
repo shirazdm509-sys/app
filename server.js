@@ -394,11 +394,7 @@ app.post('/api/notifications/read',userAuth,(req,res)=>{
     mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,notifId],()=>res.json({success:true}));
 });
 app.post('/api/notifications/read-all',userAuth,(req,res)=>{
-    mainDb.all('SELECT id FROM notifications WHERE type="broadcast"',[],(err,notifs)=>{
-        if(!notifs||!notifs.length) return res.json({success:true});
-        notifs.forEach(n=>mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,n.id]));
-        res.json({success:true});
-    });
+    mainDb.run('UPDATE user_notifications SET is_read=1 WHERE user_id=?',[req.userId],()=>res.json({success:true}));
 });
 
 // === ADMIN APIS ===
