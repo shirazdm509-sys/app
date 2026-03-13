@@ -929,8 +929,8 @@
     <div class="w-10 h-10 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div>
   </div>
   <iframe id="webview-iframe" src="" class="flex-1 w-full border-none bg-gray-50"
-    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation-by-user-activation"
-    onload="document.getElementById('webview-loading').classList.add('hidden')"></iframe>
+    sandbox="allow-scripts allow-same-origin allow-forms"
+    onload=""></iframe>
 </div>
 
 <div id="global-search-modal" class="fixed inset-0 z-[270] hidden flex-col bg-white">
@@ -3012,6 +3012,18 @@ function openWebView(url) {
     const loading = document.getElementById('webview-loading');
     try { urlBar.textContent = new URL(url).hostname; } catch(e) { urlBar.textContent = url; }
     loading.classList.remove('hidden');
+    iframe.src = '';
+    // intercept any attempt to open new tab from within iframe
+    iframe.onload = () => {
+        loading.classList.add('hidden');
+        try {
+            // if cross-origin this throws, which is fine
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.querySelectorAll('a[target="_blank"], a[target="_top"], a[target="_parent"]').forEach(a => {
+                a.removeAttribute('target');
+            });
+        } catch(e) {}
+    };
     iframe.src = url;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
