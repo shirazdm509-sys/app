@@ -208,7 +208,7 @@
         <!-- 1. داشبورد اصلی (Home) -->
         <!-- ============================================== -->
         <div id="screen-home" class="screen active flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-10 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center">
                 <div class="flex items-center gap-3 cursor-pointer" onclick="navToScreen('auth')">
                     <div class="w-11 h-11 bg-brand-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
                         <i class="fas fa-user text-brand-600"></i>
@@ -336,7 +336,7 @@
         <!-- 2. کتابخانه (Library) -->
         <!-- ============================================== -->
         <div id="screen-library" class="screen flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
                         <i class="fas fa-arrow-right"></i>
@@ -361,7 +361,7 @@
         <!-- 3. رسانه (Media) -->
         <!-- ============================================== -->
         <div id="screen-media" class="screen flex-col bg-gray-50 h-full relative">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex flex-col gap-4">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex flex-col gap-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
@@ -454,7 +454,7 @@
         <!-- 4. سوال / تیکت -->
         <!-- ============================================== -->
         <div id="screen-qa" class="screen flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
@@ -482,7 +482,7 @@
 
             <!-- نمایش مکالمه یک تیکت -->
             <div id="qa-conversation" class="hidden absolute inset-0 bg-gray-50 flex-col z-10">
-                <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
+                <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
                     <button onclick="closeQAConversation()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <div class="flex-1 min-w-0">
                         <h1 id="qa-conv-title" class="font-black text-base text-gray-800 truncate">سوال</h1>
@@ -502,7 +502,7 @@
 
             <!-- اورلی ورود / ثبت‌نام -->
             <div id="qa-auth" class="hidden absolute inset-0 bg-gray-50 flex-col z-20">
-                <header class="shrink-0 pt-12 pb-4 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
+                <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
                 </header>
@@ -537,7 +537,7 @@
         <!-- 5. سخنرانی‌ها (Lectures) -->
         <!-- ============================================== -->
         <div id="screen-lectures" class="screen flex-col bg-gray-50 relative h-full">
-            <header id="lectures-header" class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
+            <header id="lectures-header" class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                     <button id="btn-lectures-back" onclick="wpNavBack()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0">
                         <i class="fas fa-arrow-right"></i>
@@ -579,7 +579,7 @@
         <!-- 6. اخبار (News) - WP platform like lectures -->
         <!-- ============================================== -->
         <div id="screen-news" class="screen flex-col bg-gray-50 relative h-full">
-            <header id="news-header" class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
+            <header id="news-header" class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                     <button onclick="newsNavBack()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
                     <h1 id="news-header-title" class="font-black text-xl text-gray-800 truncate">اخبار</h1>
@@ -606,7 +606,7 @@
         <!-- 7. بیانیه‌ها (Statements) - WP platform -->
         <!-- ============================================== -->
         <div id="screen-statements" class="screen flex-col bg-gray-50 relative h-full">
-            <header id="statements-header" class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
+            <header id="statements-header" class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between transition-colors duration-300">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
                     <button onclick="statementsNavBack()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
                     <h1 id="statements-header-title" class="font-black text-xl text-gray-800 truncate">بیانیه‌ها</h1>
@@ -633,7 +633,7 @@
         <!-- 8. پرداخت (Payment) -->
         <!-- ============================================== -->
         <div id="screen-payment" class="screen flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرداخت</h1>
@@ -649,7 +649,7 @@
         <!-- 9. پخش زنده (Live) -->
         <!-- ============================================== -->
         <div id="screen-live" class="screen flex-col bg-gray-50 h-full">
-            <header class="shrink-0 pt-12 pb-4 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
+            <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
                         <i class="fas fa-arrow-right"></i>
@@ -711,7 +711,7 @@
 
 <!-- TOC OVERLAY -->
 <div id="toc-overlay" class="theme-light">
-    <header class="shrink-0 pt-12 pb-2 px-6 bg-white border-b border-gray-100 shadow-sm">
+    <header class="shrink-0 pt-3 pb-2 px-6 bg-white border-b border-gray-100 shadow-sm">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3 min-w-0">
                 <button onclick="closeToc()" class="w-10 h-10 bg-gray-50 text-gray-500 rounded-2xl flex items-center justify-center shrink-0">
@@ -896,7 +896,7 @@
 <div id="notif-panel" class="fixed inset-0 z-[280] hidden">
   <div class="absolute inset-0 bg-black/40" onclick="closeNotifications()"></div>
   <div class="absolute top-0 right-0 bottom-0 w-full max-w-sm bg-white flex flex-col shadow-2xl">
-    <div class="shrink-0 pt-12 pb-4 px-5 bg-white border-b border-gray-100 flex items-center justify-between">
+    <div class="shrink-0 pt-3 pb-3 px-5 bg-white border-b border-gray-100 flex items-center justify-between">
       <h2 class="font-black text-lg">اعلان‌ها</h2>
       <div class="flex items-center gap-2">
         <button onclick="markAllNotifsRead()" class="text-xs text-brand-600 font-bold bg-brand-50 px-3 py-1.5 rounded-full">همه خوانده شد</button>
