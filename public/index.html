@@ -886,6 +886,8 @@
     <button onclick="applyHighlight('#bfdbfe')" class="w-7 h-7 bg-blue-300 rounded-full border-2 border-white shadow-sm" title="آبی"></button>
     <button onclick="applyHighlight('#fecaca')" class="w-7 h-7 bg-red-300 rounded-full border-2 border-white shadow-sm" title="قرمز"></button>
     <button onclick="removeHighlight()" class="w-7 h-7 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-gray-700" title="حذف"><i class="fas fa-times text-xs"></i></button>
+    <div class="w-px h-5 bg-white/20"></div>
+    <button onclick="shareSelectedText()" class="w-7 h-7 bg-brand-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="اشتراک‌گذاری"><i class="fas fa-share-alt text-xs"></i></button>
 </div>
 
 <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[300]">پیام</div>
@@ -2829,6 +2831,51 @@ function removeHighlight() {
     }
     hideHighlightToolbar();
     showToast('هایلایت حذف شد');
+}
+
+async function shareSelectedText() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) { hideHighlightToolbar(); return; }
+    const text = sel.toString().trim();
+    if (!text) { hideHighlightToolbar(); return; }
+    hideHighlightToolbar();
+    sel.removeAllRanges();
+
+    // گرفتن عنوان صفحه فعلی
+    let title = document.title;
+    const headerTitle = document.getElementById('lectures-header-title') ||
+                        document.getElementById('news-header-title') ||
+                        document.getElementById('statements-header-title');
+    if (headerTitle && headerTitle.textContent.trim()) title = headerTitle.textContent.trim();
+
+    const shareText = `«${text}»\n\n— ${title}`;
+
+    // Web Share API (موبایل)
+    if (navigator.share) {
+        try {
+            await navigator.share({ title, text: shareText });
+            return;
+        } catch(e) {
+            if (e.name === 'AbortError') return; // کاربر لغو کرد
+        }
+    }
+
+    // fallback: کپی در clipboard
+    try {
+        await navigator.clipboard.writeText(shareText);
+        showToast('متن کپی شد');
+    } catch(e) {
+        // fallback قدیمی برای مرورگرهای قدیمی
+        const ta = document.createElement('textarea');
+        ta.value = shareText;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('متن کپی شد');
+    }
 }
 
 function showHighlightToolbar(x, y) {
