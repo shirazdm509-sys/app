@@ -252,6 +252,82 @@ app.get('/api/books/:id/pages',(req,res)=>{
     });
 });
 
+// === API SEARCH ===
+app.get('/api/search', async (req, res) => {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 2) return res.json({ books: [], pages: [] });
+
+    // Search in book titles/authors
+    mainDb.all(
+        `SELECT id,title,author,cover,page_count FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY created_at DESC`,
+        [`%${q}%`, `%${q}%`],
+        async (err, bookMatches) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            // Search in page content of all books
+            mainDb.all('SELECT id, title, author, cover, db_filename FROM books', [], async (err2, allB) => {
+                if (err2 || !allB) return res.json({ books: bookMatches || [], pages: [] });
+
+                const pageResults = [];
+                const MAX_RESULTS = 20;
+
+                for (const book of allB) {
+                    if (pageResults.length >= MAX_RESULTS) break;
+                    if (!book.db_filename) continue;
+                    const dbp = path.resolve(__dirname, 'books', path.basename(book.db_filename));
+                    if (!fs.existsSync(dbp)) continue;
+
+                    await new Promise(resolve => {
+                        const bDb = new sqlite3.Database(dbp, sqlite3.OPEN_READONLY, async openErr => {
+                            if (openErr) return resolve();
+                            const tbl = await findBestTable(bDb);
+                            if (!tbl) { bDb.close(); return resolve(); }
+                            bDb.all(`PRAGMA table_info("${tbl}")`, [], (_, cols) => {
+                                if (!cols) { bDb.close(); return resolve(); }
+                                const cn = cols.map(c => c.name), cnl = cn.map(c => c.toLowerCase().trim());
+                                const textCols = ['text', 'content', 'body', 'matn', 'description', 'html', 'متن'];
+                                const nameCols = ['name', 'title', 'subject', 'topic', 'heading', 'عنوان'];
+                                const pageCols = ['page', 'pagenumber', 'r'];
+                                const idCols = ['id', '_id', 'bookid', 'rowid'];
+                                const tcol = textCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const ncol = nameCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const pcol = pageCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const icol = idCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const searchCol = tcol !== undefined ? cn[tcol] : (ncol !== undefined ? cn[ncol] : null);
+                                if (!searchCol) { bDb.close(); return resolve(); }
+                                bDb.all(
+                                    `SELECT * FROM "${tbl}" WHERE LOWER("${searchCol}") LIKE ? LIMIT 5`,
+                                    [`%${q}%`],
+                                    (qErr, rows) => {
+                                        bDb.close();
+                                        if (!qErr && rows) {
+                                            rows.forEach((row, idx) => {
+                                                const getV = (ns) => { for (const k of Object.keys(row)) { if (ns.includes(k.toLowerCase().trim())) { let v = row[k]; if (Buffer.isBuffer(v)) v = v.toString('utf8'); return v; } } return null; };
+                                                const text = (getV(textCols) || '').toString();
+                                                const name = (getV(nameCols) || '').toString();
+                                                const pageNum = getV(pageCols) ?? idx;
+                                                const rowId = getV(idCols) ?? idx;
+                                                // Get snippet around match
+                                                const ltext = text.toLowerCase();
+                                                const pos = ltext.indexOf(q);
+                                                const snippet = pos >= 0 ? text.substring(Math.max(0, pos - 60), pos + 120) : text.substring(0, 180);
+                                                pageResults.push({ bookId: book.id, bookTitle: book.title, bookAuthor: book.author, bookCover: book.cover, pageId: rowId, pageName: name, pageNum, snippet });
+                                            });
+                                        }
+                                        resolve();
+                                    }
+                                );
+                            });
+                        });
+                    });
+                }
+
+                res.json({ books: bookMatches || [], pages: pageResults });
+            });
+        }
+    );
+});
+
 // === API SETTINGS (PUBLIC) ===
 app.get('/api/settings',(req,res)=>{
     mainDb.all('SELECT key,value FROM settings',[],(err,rows)=>{
