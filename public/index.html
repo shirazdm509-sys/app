@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>مرکز نشر آثار</title>
     
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" media="all">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/shabnam-font@v5.0.1/dist/font-face.css" rel="stylesheet" type="text/css" media="all">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -223,6 +228,9 @@
                     <button onclick="openNotifications()" class="w-10 h-10 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-brand-600 transition relative" id="bell-btn">
                         <i class="far fa-bell"></i>
                         <span id="notif-badge" class="hidden absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <button onclick="showPwaInstallPrompt()" id="pwa-install-btn" class="hidden w-10 h-10 bg-brand-600 shadow-sm rounded-full flex items-center justify-center text-white hover:bg-brand-700 transition" title="نصب اپلیکیشن">
+                        <i class="fas fa-download text-xs"></i>
                     </button>
                 </div>
             </header>
@@ -1646,8 +1654,8 @@ async function init() {
         try { await loadSliders(); } catch(e) { console.warn('Sliders err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
-        // Load notifications if user is logged in
-        if (qaUser) { try { loadNotifications(); setInterval(loadNotifications, 60000); } catch(e) {} }
+        // Load notifications if user is logged in (poll every 5s for near real-time)
+        if (qaUser) { try { startNotifPolling(); } catch(e) {} }
     } catch(e) {
         console.error("Critical Init Error:", e);
     } finally {
@@ -1656,6 +1664,8 @@ async function init() {
             hideLoading();
             const appWr = document.getElementById('app-wrapper');
             if(appWr) appWr.classList.remove('hidden');
+            // Re-render slider after app is visible so offsetWidth is correct
+            setTimeout(() => { try { loadSliders(); } catch(e) {} }, 50);
         }
     }
 }
@@ -1682,7 +1692,9 @@ async function loadSliders() {
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
     if (padding > 0) wrapper.style.boxSizing = 'border-box';
-    const slideW = wrapper.offsetWidth;
+    // Force reflow so offsetWidth is correct even if parent was hidden
+    wrapper.getBoundingClientRect();
+    const slideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
     track.style.width = (sliderData.length * slideW) + 'px';
     track.innerHTML = sliderData.map(sl =>
         `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" onclick="${sl.link ? `window.open('${sl.link.replace(/'/g,"\\'")}','_blank')` : ''}"><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;" alt="${sl.title||''}"></div>`
@@ -2461,6 +2473,12 @@ function renderWPSingle(post, screen) {
 // بخش پرسش و پاسخ (سیستم تیکت با احراز هویت)
 // ====================================================
 let qaUser = JSON.parse(localStorage.getItem('qa_user') || 'null');
+let _notifPollingInterval = null;
+function startNotifPolling() {
+    if (_notifPollingInterval) return;
+    loadNotifications();
+    _notifPollingInterval = setInterval(loadNotifications, 5000);
+}
 let qaTickets = [];
 
 // ---- Auth UI ----
@@ -2493,7 +2511,7 @@ async function qaLogin() {
             localStorage.setItem('qa_user', JSON.stringify(qaUser));
             hideQAAuth(); updateQAUserUI(); renderQATickets();
             showToast('خوش آمدید ' + d.username);
-            loadNotifications(); // Load notifications after login
+            startNotifPolling(); // Start real-time notification polling after login
         } else { showToast(d.error || 'نام کاربری یا رمز عبور اشتباه است'); }
     } catch(e) { showToast('خطا در اتصال به سرور'); }
 }
@@ -2990,6 +3008,29 @@ async function subscribeToPush(reg) {
 }
 
 registerServiceWorker();
+
+// ====================================================
+// PWA Install Prompt
+// ====================================================
+let _pwaInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _pwaInstallPrompt = e;
+    // Show install button if exists
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.classList.remove('hidden');
+});
+window.addEventListener('appinstalled', () => {
+    _pwaInstallPrompt = null;
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.classList.add('hidden');
+});
+function showPwaInstallPrompt() {
+    if (_pwaInstallPrompt) {
+        _pwaInstallPrompt.prompt();
+        _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; });
+    }
+}
 
 // ====================================================
 // تم کلی سایت (دارک / لایت)

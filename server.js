@@ -183,11 +183,17 @@ function findBestTable(bookDb) {
 }
 function countPages(p){
     return new Promise(resolve=>{
+        // Timeout after 20 seconds to avoid hanging on large databases
+        const timer = setTimeout(()=>{ resolve(0); }, 20000);
         const db=new sqlite3.Database(p,sqlite3.OPEN_READONLY,async err=>{
-            if(err) return resolve(0);
+            if(err){ clearTimeout(timer); return resolve(0); }
             const t=await findBestTable(db);
-            if(!t){db.close();return resolve(0);}
-            db.get(`SELECT COUNT(*) as cnt FROM "${t}"`,[],(err,r)=>{db.close();resolve(err?0:r.cnt);});
+            if(!t){ clearTimeout(timer); db.close(); return resolve(0); }
+            db.get(`SELECT COUNT(*) as cnt FROM "${t}"`,[],(err,r)=>{
+                clearTimeout(timer);
+                db.close();
+                resolve(err?0:r.cnt);
+            });
         });
     });
 }
@@ -370,13 +376,12 @@ app.get('/api/tickets/:id',(req,res)=>{
 
 // === NOTIFICATIONS (PUBLIC - for users) ===
 app.get('/api/notifications',userAuth,(req,res)=>{
-    // Get broadcast notifications + ticket reply notifications not yet read
+    // Get broadcast notifications + ticket reply notifications for this user
     mainDb.all(`
         SELECT n.id, n.title, n.message, n.type, n.created_at,
                COALESCE(un.is_read,0) as is_read
         FROM notifications n
-        LEFT JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
-        WHERE n.type='broadcast'
+        INNER JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
         ORDER BY n.created_at DESC LIMIT 50
     `,[req.userId],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});

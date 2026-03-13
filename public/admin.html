@@ -527,10 +527,16 @@ async function uploadBook(e){
   if(cf) fd.append('cover',cf);
   try{
     const r=await adminFetch('/api/admin/books',{method:'POST',body:fd});
-    const d=await r.json();
+    let d;
+    try{ d=await r.json(); }catch(je){ d={}; }
     if(r.ok&&d.success){showToast('کتاب آپلود شد');document.getElementById('upload-form').reset();loadBooks();}
+    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است. حداکثر ۴۰۰ مگابایت.',false);
     else showToast(d.error||'خطا در آپلود',false);
-  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا در ارتباط',false);}
+  }catch(e){
+    if(e.message==='401 Unauthorized') return;
+    if(e.name==='TypeError') showToast('خطا در اتصال - ممکن است فایل بسیار بزرگ باشد',false);
+    else showToast('خطا در آپلود: '+e.message,false);
+  }
   finally{btn.innerHTML='<i class="fas fa-cloud-upload-alt ml-2"></i>آپلود و ذخیره کتاب';btn.disabled=false;}
 }
 async function loadBooks(){
@@ -623,10 +629,12 @@ async function addSlider(e){
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
   try{
     const r=await adminFetch('/api/admin/sliders',{method:'POST',body:fd});
-    const d=await r.json();
+    let d;
+    try{ d=await r.json(); }catch(je){ d={}; }
     if(r.ok&&d.success){showToast('اسلاید اضافه شد');document.getElementById('slider-form').reset();loadSliders();}
-    else showToast(d.error||'خطا',false);
-  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا',false);}
+    else if(r.status===413) showToast('حجم تصویر بیش از ۱۰ مگابایت است',false);
+    else showToast(d.error||'خطا در آپلود تصویر',false);
+  }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا در اتصال',false);}
   finally{btn.innerHTML='<i class="fas fa-plus ml-2"></i>افزودن اسلاید';btn.disabled=false;}
 }
 async function loadSliders(){
