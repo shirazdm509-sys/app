@@ -142,6 +142,9 @@
         body.global-dark #loading-screen h2 { color: #e2e8f0 !important; }
         body.global-dark #loading-screen p { color: #94a3b8 !important; }
         body.global-dark .notif-panel > div:last-child { background: #1e293b !important; }
+        .shortcut-icon { background:#f1f5f9; border:1px solid #e2e8f0; color:#64748b; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+        .shortcut-icon:hover { background:#10b981; border-color:#059669; color:#fff; }
+        .shortcut-item:hover .shortcut-label { color:#059669; }
     </style>
 </head>
 <body class="font-vazir antialiased text-gray-800">
@@ -267,37 +270,37 @@
 
                 <!-- SHORTCUTS GRID (8 items, responsive) -->
                 <div class="grid grid-cols-4 sm:grid-cols-8 gap-x-1 gap-y-3 px-4 mb-6">
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('library')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-book"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">کتابخانه</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('library')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-book"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">کتابخانه</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('media')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-photo-film"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">رسانه</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('media')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-photo-film"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">رسانه</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('lectures')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-microphone-alt"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">سخنرانی</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('lectures')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-microphone-alt"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">سخنرانی</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('qa')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-question-circle"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">سوال</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('qa')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-question-circle"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">سوال</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('news')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-newspaper"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">اخبار</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('news')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-newspaper"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">اخبار</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('statements')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-scroll"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">بیانیه‌ها</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('statements')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-scroll"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">بیانیه‌ها</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('payment')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-credit-card"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">پرداخت</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('payment')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-credit-card"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">پرداخت</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5 cursor-pointer group" onclick="navToScreen('live')">
-                        <div class="w-14 h-14 bg-slate-100 group-hover:bg-emerald-500 rounded-2xl shadow-sm border border-slate-200 group-hover:border-emerald-400 flex items-center justify-center text-slate-500 group-hover:text-white text-xl transition-all duration-200 active:scale-90"><i class="fas fa-broadcast-tower"></i></div>
-                        <span class="text-[10px] font-bold text-gray-600 group-hover:text-emerald-600 text-center transition-colors duration-200">پخش زنده</span>
+                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('live')">
+                        <div class="shortcut-icon w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center text-xl active:scale-90"><i class="fas fa-broadcast-tower"></i></div>
+                        <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">پخش زنده</span>
                     </div>
                 </div>
 
