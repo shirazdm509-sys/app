@@ -2295,15 +2295,28 @@ function setNewsLoading(show) {
 }
 
 async function initNews() {
-    if (allWPCats.length === 0) {
-        setNewsLoading(true);
-        try {
-            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
-            allWPCats = await res.json();
-        } catch(e) {}
-        setNewsLoading(false);
+    showNewsAllPosts();
+}
+
+async function showNewsAllPosts() {
+    newsState.view = 'posts';
+    newsState.currentCat = { id: null, name: 'اخبار' };
+    document.getElementById('news-header-title').textContent = 'اخبار';
+    document.getElementById('news-categories-view').classList.add('hidden');
+    document.getElementById('news-single-view').classList.add('hidden');
+    const postsView = document.getElementById('news-posts-view');
+    postsView.classList.remove('hidden'); postsView.classList.add('flex');
+    if (cachedNewsPosts.length > 0) { postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news'); return; }
+    postsView.innerHTML = '';
+    setNewsLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts?_embed=1&per_page=50`);
+        cachedNewsPosts = await res.json();
+        postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news');
+    } catch(e) {
+        postsView.innerHTML = `<div class="text-center py-12 text-gray-400 text-sm font-bold">خطا در دریافت اطلاعات</div>`;
     }
-    showNewsMain();
+    setNewsLoading(false);
 }
 
 function showNewsMain() {
@@ -2363,9 +2376,8 @@ function newsNavBack() {
     if (newsState.view === 'single') {
         const screen = document.getElementById('screen-news');
         if (screen) screen.classList.remove('reading-mode');
-        showNewsPosts(newsState.currentCat.id, newsState.currentCat.name);
+        showNewsAllPosts();
     }
-    else if (newsState.view === 'posts') showNewsMain();
     else navToScreen('home');
 }
 
@@ -2384,15 +2396,29 @@ function setStatementsLoading(show) {
 }
 
 async function initStatements() {
-    if (allWPCats.length === 0) {
-        setStatementsLoading(true);
-        try {
-            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
-            allWPCats = await res.json();
-        } catch(e) {}
-        setStatementsLoading(false);
+    showStatementsAllPosts();
+}
+
+async function showStatementsAllPosts() {
+    statementsState.view = 'posts';
+    statementsState.currentCat = { id: null, name: 'بیانیه‌ها' };
+    document.getElementById('statements-header-title').textContent = 'بیانیه‌ها';
+    document.getElementById('btn-statements-settings').classList.add('hidden');
+    document.getElementById('statements-categories-view').classList.add('hidden');
+    document.getElementById('statements-single-view').classList.add('hidden');
+    const postsView = document.getElementById('statements-posts-view');
+    postsView.classList.remove('hidden'); postsView.classList.add('flex');
+    if (cachedStatementsPosts.length > 0) { postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements'); return; }
+    postsView.innerHTML = '';
+    setStatementsLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts?_embed=1&per_page=50`);
+        cachedStatementsPosts = await res.json();
+        postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements');
+    } catch(e) {
+        postsView.innerHTML = `<div class="text-center py-12 text-gray-400 text-sm font-bold">خطا در دریافت اطلاعات</div>`;
     }
-    showStatementsMain();
+    setStatementsLoading(false);
 }
 
 function showStatementsMain() {
@@ -2452,9 +2478,8 @@ function statementsNavBack() {
     if (statementsState.view === 'single') {
         const screen = document.getElementById('screen-statements');
         if (screen) screen.classList.remove('reading-mode');
-        showStatementsPosts(statementsState.currentCat.id, statementsState.currentCat.name);
+        showStatementsAllPosts();
     }
-    else if (statementsState.view === 'posts') showStatementsMain();
     else navToScreen('home');
 }
 
