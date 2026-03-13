@@ -1672,12 +1672,27 @@ async function init() {
 // ====================================================
 // اسلایدر صفحه اصلی
 // ====================================================
-let sliderData = [], sliderIndex = 0, sliderTimer = null;
+let sliderData = [], sliderIndex = 0, sliderTimer = null, sliderSlideW = 0;
 
 async function loadSliders() {
     const res = await fetch('/api/sliders');
-    sliderData = await res.json();
-    if (!Array.isArray(sliderData) || sliderData.length === 0) return;
+    const raw = await res.json();
+    if (!Array.isArray(raw) || raw.length === 0) return;
+
+    // Preload images - only keep slides with valid, non-broken images
+    const valid = await Promise.all(raw.map(sl => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            // Skip tiny/blank placeholder images (less than 1KB likely means broken placeholder)
+            if (img.naturalWidth < 10 || img.naturalHeight < 10) return resolve(null);
+            resolve(sl);
+        };
+        img.onerror = () => resolve(null);
+        img.src = sl.image;
+    })));
+    sliderData = valid.filter(Boolean);
+
+    if (sliderData.length === 0) return;
     const wrapper = document.getElementById('home-slider');
     const track = document.getElementById('slider-track');
     const dots = document.getElementById('slider-dots');
@@ -1691,26 +1706,28 @@ async function loadSliders() {
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
     if (padding > 0) wrapper.style.boxSizing = 'border-box';
-    // Force reflow so offsetWidth is correct even if parent was hidden
+    // Force reflow so offsetWidth is correct after app becomes visible
     wrapper.getBoundingClientRect();
-    const slideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
+    sliderSlideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
+    const slideW = sliderSlideW;
     track.style.width = (sliderData.length * slideW) + 'px';
     track.innerHTML = sliderData.map(sl => {
         const onclick = sl.link ? `onclick="window.open('${sl.link.replace(/'/g,"\\'")}','_blank')"` : '';
-        const onerror = `onerror="this.parentElement.style.background='#e2e8f0';this.style.display='none';"`;
-        return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;background:#f1f5f9;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}" ${onerror}></div>`;
+        return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}"></div>`;
     }).join('');
     dots.innerHTML = sliderData.map((_,i) =>
         `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
     ).join('');
+    sliderIndex = 0;
     startSliderAuto();
 }
 
 function goToSlide(i) {
     sliderIndex = (i + sliderData.length) % sliderData.length;
     const track = document.getElementById('slider-track');
-    const wrapper = document.getElementById('home-slider');
-    if (track && wrapper) track.style.transform = `translateX(-${sliderIndex * wrapper.offsetWidth}px)`;
+    // Use stored sliderSlideW to avoid re-computing wrapper width on each slide change
+    const w = sliderSlideW || document.getElementById('home-slider')?.offsetWidth || window.innerWidth;
+    if (track) track.style.transform = `translateX(-${sliderIndex * w}px)`;
     document.querySelectorAll('#slider-dots button').forEach((b, idx) => {
         b.className = `w-2 h-2 rounded-full transition-all ${idx === sliderIndex ? 'bg-white w-4' : 'bg-white/50'}`;
     });
