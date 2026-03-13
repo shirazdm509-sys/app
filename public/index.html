@@ -959,6 +959,14 @@ window.addEventListener('load', () => {
 // تبدیل اعداد انگلیسی به فارسی
 // ====================================================
 function toFa(n) { return String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+function convertDOMNumbers(el) {
+    if (!el) return;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+        if (/[0-9]/.test(node.nodeValue)) node.nodeValue = toFa(node.nodeValue);
+    }
+}
 
 // ====================================================
 // متغیرهای سراسری سیستم
@@ -1261,6 +1269,7 @@ function showWPSingleView(postId) {
     
     document.getElementById('single-post-content').innerHTML = finalHtml;
     document.getElementById('single-post-content').style.fontSize = fontSize + 'px';
+    convertDOMNumbers(document.getElementById('single-post-content'));
     
     let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
     const imgContainer = document.getElementById('single-post-image');
@@ -1994,8 +2003,8 @@ function buildTOC() {
     let html='';
     Object.keys(seasons).forEach(season=>{
         const pages=seasons[season];
-        html+=`<div class="mb-2"><div class="flex items-center gap-2 mb-2 px-1"><i class="fas fa-folder text-brand-500 text-xs"></i><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${season}</span><span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">${pages.length}</span></div>`;
-        pages.forEach(p=>{ html+=`<button onclick="goToPage(${p.originalIndex})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 truncate shadow-sm"><span class="text-gray-300 text-xs ml-2">${p.originalIndex+1}.</span> ${p.name}</button>`; });
+        html+=`<div class="mb-2"><div class="flex items-center gap-2 mb-2 px-1"><i class="fas fa-folder text-brand-500 text-xs"></i><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${season}</span><span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">${toFa(pages.length)}</span></div>`;
+        pages.forEach(p=>{ html+=`<button onclick="goToPage(${p.originalIndex})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 truncate shadow-sm"><span class="text-gray-300 text-xs ml-2">${toFa(p.originalIndex+1)}.</span> ${p.name}</button>`; });
         html+='</div>';
     });
     container.innerHTML=html;
@@ -2005,7 +2014,7 @@ function updateTocProgressUI() {
     if(!bookData.length) return;
     const pct=Math.round(((currentIndex+1)/bookData.length)*100);
     const bar=document.getElementById('toc-progress-bar'), text=document.getElementById('toc-progress-text'), info=document.getElementById('toc-page-info');
-    if(bar) bar.style.width=pct+'%'; if(text) text.textContent=pct+'٪'; if(info) info.textContent='صفحه '+(currentIndex+1)+' از '+bookData.length;
+    if(bar) bar.style.width=pct+'%'; if(text) text.textContent=toFa(pct)+'٪'; if(info) info.textContent='صفحه '+toFa(currentIndex+1)+' از '+toFa(bookData.length);
 }
 
 function resumeReading() { if(bookData.length) goToPage(currentIndex); }
@@ -2040,7 +2049,7 @@ function goToPage(index) {
     let finalHTML=`<h2 class="text-3xl font-black mb-8 pb-4 border-b-2 border-brand-100 leading-snug">${page.name}</h2>`+htmlText;
     if(notes[currentIndex]) finalHTML+=`<div class="mt-12 pt-6 border-t border-dashed border-gray-300 bg-gray-50 p-4 rounded-2xl"><h3 class="text-sm font-bold text-gray-500 mb-2"><i class="fas fa-pen-alt ml-1"></i> یادداشت:</h3><p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${notes[currentIndex]}</p></div>`;
     const tc=document.getElementById('text-content');
-    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';}
+    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';convertDOMNumbers(tc);}
     document.getElementById('header-title').textContent=page.name;
     document.getElementById('chapter-title').textContent=page.season||'';
     document.getElementById('page-counter').textContent=toFa(currentIndex+1)+' / '+toFa(bookData.length);
@@ -2078,7 +2087,7 @@ function buildBookmarksTab(){
     }
     c.innerHTML=bookmarks.sort((a,b)=>a-b).map(idx=>{
         const p=bookData[idx];if(!p)return'';
-        return`<button onclick="goToPage(${idx})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 flex items-center shadow-sm"><i class="fas fa-bookmark text-brand-500 ml-3 text-xs"></i><span class="truncate">${p.name}</span><span class="text-xs text-gray-300 mr-auto">صفحه ${idx+1}</span></button>`;
+        return`<button onclick="goToPage(${idx})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 flex items-center shadow-sm"><i class="fas fa-bookmark text-brand-500 ml-3 text-xs"></i><span class="truncate">${p.name}</span><span class="text-xs text-gray-300 mr-auto">صفحه ${toFa(idx+1)}</span></button>`;
     }).join('');
 }
 function buildNotesTab() {
@@ -2095,7 +2104,7 @@ function buildNotesTab() {
                     <div class="flex items-center w-full mb-2">
                         <i class="fas fa-pen-alt text-brand-500 ml-2 text-xs"></i>
                         <span class="font-bold truncate">${p.name}</span>
-                        <span class="text-[10px] text-gray-300 mr-auto">صفحه ${idx+1}</span>
+                        <span class="text-[10px] text-gray-300 mr-auto">صفحه ${toFa(idx+1)}</span>
                     </div>
                     <p class="text-xs text-gray-500 leading-relaxed text-right line-clamp-2">${noteText}</p>
                 </button>`;
@@ -2537,6 +2546,7 @@ function renderWPSingle(post, screen) {
     document.getElementById(`${prefix}-single-date`).textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
     document.getElementById(`${prefix}-single-content`).innerHTML = finalHtml;
     document.getElementById(`${prefix}-single-content`).style.fontSize = fontSize + 'px';
+    convertDOMNumbers(document.getElementById(`${prefix}-single-content`));
 
     let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
     const imgC = document.getElementById(`${prefix}-single-image`);
