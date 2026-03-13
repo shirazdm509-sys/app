@@ -880,14 +880,14 @@
 </div>
 
 <!-- HIGHLIGHT TOOLBAR -->
-<div id="highlight-toolbar" class="fixed z-[260] bg-gray-900 text-white rounded-2xl shadow-2xl px-3 py-2 flex items-center gap-2 hidden" style="transform:translateX(-50%);">
+<div id="highlight-toolbar" class="fixed z-[260] bg-gray-900 text-white rounded-2xl shadow-2xl px-3 py-2 flex items-center gap-2 hidden" style="transform:translateX(-50%);direction:ltr;">
+    <button onclick="shareSelectedText()" class="w-7 h-7 bg-teal-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="اشتراک‌گذاری"><i class="fas fa-share-alt text-xs"></i></button>
+    <div class="w-px h-5 bg-white/20"></div>
     <button onclick="applyHighlight('#fde68a')" class="w-7 h-7 bg-yellow-300 rounded-full border-2 border-white shadow-sm" title="زرد"></button>
     <button onclick="applyHighlight('#bbf7d0')" class="w-7 h-7 bg-green-300 rounded-full border-2 border-white shadow-sm" title="سبز"></button>
     <button onclick="applyHighlight('#bfdbfe')" class="w-7 h-7 bg-blue-300 rounded-full border-2 border-white shadow-sm" title="آبی"></button>
     <button onclick="applyHighlight('#fecaca')" class="w-7 h-7 bg-red-300 rounded-full border-2 border-white shadow-sm" title="قرمز"></button>
     <button onclick="removeHighlight()" class="w-7 h-7 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-gray-700" title="حذف"><i class="fas fa-times text-xs"></i></button>
-    <div class="w-px h-5 bg-white/20"></div>
-    <button onclick="shareSelectedText()" class="w-7 h-7 bg-brand-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="اشتراک‌گذاری"><i class="fas fa-share-alt text-xs"></i></button>
 </div>
 
 <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[300]">پیام</div>
@@ -2882,8 +2882,11 @@ function showHighlightToolbar(x, y) {
     const tb = document.getElementById('highlight-toolbar');
     if (!tb) return;
     tb.classList.remove('hidden');
-    const maxX = window.innerWidth - 180;
-    tb.style.left = Math.max(90, Math.min(x, maxX)) + 'px';
+    // اندازه واقعی toolbar رو بعد از نمایش بگیر
+    const tbW = tb.offsetWidth || 260;
+    const half = tbW / 2;
+    const clampedX = Math.max(half + 8, Math.min(x, window.innerWidth - half - 8));
+    tb.style.left = clampedX + 'px';
     tb.style.top = (y - 55) + 'px';
 }
 
