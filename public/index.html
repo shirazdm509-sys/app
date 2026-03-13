@@ -1005,8 +1005,11 @@ function extractMediaFromPost(post) {
             iframes.push(`https://www.aparat.com/video/video/embed/videohash/${amatch[1]}/vt/frame`);
         }
     }
-    // همچنین جستجو در src تگ‌های iframe درون محتوا
+    // ایجاد tempDiv برای پردازش محتوای HTML
+    const tempDiv = document.createElement('div');
     tempDiv.innerHTML = post.content.rendered;
+
+    // همچنین جستجو در src تگ‌های iframe درون محتوا
     tempDiv.querySelectorAll('iframe').forEach(ifr => {
         const src = ifr.getAttribute('src') || '';
         if (src.includes('aparat.com')) {
@@ -1019,9 +1022,6 @@ function extractMediaFromPost(post) {
             iframes.push(src);
         }
     });
-
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = post.content.rendered;
 
     // استخراج تمامی تصاویر از متن
     tempDiv.querySelectorAll('img').forEach(img => {
