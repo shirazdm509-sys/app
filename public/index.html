@@ -956,6 +956,11 @@ window.addEventListener('load', () => {
 });
 
 // ====================================================
+// تبدیل اعداد انگلیسی به فارسی
+// ====================================================
+function toFa(n) { return String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+
+// ====================================================
 // متغیرهای سراسری سیستم
 // ====================================================
 let allBooks=[], currentBookId=null, bookData=[], currentIndex=0;
@@ -1130,7 +1135,7 @@ function renderCategoryGrid(cats, isMainView = false) {
         const colorCls = colors[i % colors.length];
         const safeName = c.name ? c.name.replace(/'/g, "\\'") : 'بدون نام';
         const isTargetMain = TARGET_MAIN_CATS.includes(c.name.trim());
-        const countBadge = (isMainView || isTargetMain || c.count === 0) ? '' : `<span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">${c.count} نوشته</span>`;
+        const countBadge = (isMainView || isTargetMain || c.count === 0) ? '' : `<span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">${toFa(c.count)} نوشته</span>`;
         return `<div onclick="handleCategoryClick(${c.id}, '${safeName}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-brand-100 transition active:scale-95 text-center"><div class="w-14 h-14 ${colorCls} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-folder-open"></i></div><h3 class="font-bold text-xs text-gray-800 text-center line-clamp-2 leading-relaxed">${c.name}</h3>${countBadge}</div>`;
     }).join('');
 }
@@ -1195,7 +1200,7 @@ async function showWPPostsView(catId, catName) {
         } else {
             postsView.innerHTML = cachedPosts.map(post => {
                 let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
-                const date = new Date(post.date).toLocaleDateString('fa-IR');
+                const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
                 return `<div onclick="showWPSingleView(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">${imgUrl ? `<img src="${imgUrl}" class="w-20 h-20 rounded-xl object-contain bg-gray-100 shadow-sm shrink-0">` : `<div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-brand-300 text-2xl"></i></div>`}<div class="flex flex-col justify-center min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-2">${post.title.rendered}</h4><span class="text-[10px] text-gray-400 font-medium"><i class="far fa-calendar ml-1"></i>${date}</span></div></div>`;
             }).join('');
         }
@@ -1234,7 +1239,7 @@ function showWPSingleView(postId) {
     tempTitle.innerHTML = post.title.rendered;
     document.getElementById('lectures-header-title').textContent = tempTitle.textContent || tempTitle.innerText || 'بدون عنوان';
     document.getElementById('single-post-title').innerHTML = post.title.rendered;
-    document.getElementById('single-post-date').textContent = new Date(post.date).toLocaleDateString('fa-IR');
+    document.getElementById('single-post-date').textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
     
     const media = extractMediaFromPost(post);
     let finalHtml = '';
@@ -1537,7 +1542,7 @@ async function showWPPhotoPosts(categoryId, title) {
         
         if(validPosts.length > 0) {
             listContainer.innerHTML = validPosts.map(post => {
-                const date = new Date(post.date).toLocaleDateString('fa-IR');
+                const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
                 const firstImage = post.extractedMedia.images[0];
                 return `
                 <div onclick="showWPPhotoGallery(${post.id}, '${post.title.rendered.replace(/'/g, "\\'")}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
@@ -1821,7 +1826,7 @@ async function fetchLatestLectures() {
         if (!Array.isArray(posts) || posts.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-400 text-xs">محتوایی یافت نشد</div>'; return; }
         container.innerHTML = posts.map(post => {
             let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
-            const date = new Date(post.date).toLocaleDateString('fa-IR');
+            const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
             return `<div onclick="openLatestPost(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
                 ${imgUrl ? `<img src="${imgUrl}" class="w-14 h-14 rounded-xl object-cover shrink-0">` : `<div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-microphone-alt text-amber-400"></i></div>`}
                 <div class="flex flex-col justify-center min-w-0">
@@ -1880,7 +1885,7 @@ function renderLibrary() {
     const homeContainer=document.getElementById('home-books-container');
     if(!grid || !homeContainer || !empty) return;
 
-    count.textContent = allBooks.length ? allBooks.length+' عنوان کتاب' : '';
+    count.textContent = allBooks.length ? toFa(allBooks.length)+' عنوان کتاب' : '';
     if (!allBooks.length) { 
         grid.innerHTML=''; 
         homeContainer.innerHTML=''; 
@@ -2038,7 +2043,7 @@ function goToPage(index) {
     if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';}
     document.getElementById('header-title').textContent=page.name;
     document.getElementById('chapter-title').textContent=page.season||'';
-    document.getElementById('page-counter').textContent=(currentIndex+1)+' / '+bookData.length;
+    document.getElementById('page-counter').textContent=toFa(currentIndex+1)+' / '+toFa(bookData.length);
     const slider=document.getElementById('page-slider'); if(slider) slider.value=currentIndex;
     const cc=document.getElementById('content-container'); if(cc) cc.scrollTop=0;
     const bmi=document.getElementById('menu-bookmark-icon');
@@ -2494,7 +2499,7 @@ function renderWPCatGrid(cats, screen) {
         return `<div onclick="${onclickFn}(${c.id},'${safeName}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95 text-center">
             <div class="w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-folder-open"></i></div>
             <h3 class="font-bold text-xs text-gray-800 text-center line-clamp-2 leading-relaxed">${c.name}</h3>
-            <span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">${c.count} نوشته</span>
+            <span class="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">${toFa(c.count)} نوشته</span>
         </div>`;
     }).join('');
 }
@@ -2504,7 +2509,7 @@ function renderWPPostsList(posts, screen) {
     const onclickFn = screen === 'news' ? 'showNewsSingle' : 'showStatementsSingle';
     return posts.map(post => {
         let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
-        const date = new Date(post.date).toLocaleDateString('fa-IR');
+        const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
         return `<div onclick="${onclickFn}(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
             ${imgUrl ? `<img src="${imgUrl}" class="w-20 h-20 rounded-xl object-contain bg-gray-100 shadow-sm shrink-0">` : `<div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-brand-300 text-2xl"></i></div>`}
             <div class="flex flex-col justify-center min-w-0">
@@ -2529,7 +2534,7 @@ function renderWPSingle(post, screen) {
 
     const prefix = screen;
     document.getElementById(`${prefix}-single-title`).innerHTML = post.title.rendered;
-    document.getElementById(`${prefix}-single-date`).textContent = new Date(post.date).toLocaleDateString('fa-IR');
+    document.getElementById(`${prefix}-single-date`).textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
     document.getElementById(`${prefix}-single-content`).innerHTML = finalHtml;
     document.getElementById(`${prefix}-single-content`).style.fontSize = fontSize + 'px';
 
@@ -2667,7 +2672,7 @@ async function renderQATickets() {
         const statusMap = { open:{text:'در انتظار پاسخ',cls:'bg-blue-50 text-blue-600'}, answered:{text:'پاسخ داده شد',cls:'bg-green-50 text-green-600'}, closed:{text:'بسته شد',cls:'bg-gray-100 text-gray-500'} };
         c.innerHTML = qaTickets.map(t => {
             const s = statusMap[t.status] || statusMap.open;
-            const date = new Date(t.updated_at).toLocaleDateString('fa-IR');
+            const date = toFa(new Date(t.updated_at).toLocaleDateString('fa-IR'));
             return `<div onclick="openQAConversation(${t.id},'${t.subject.replace(/'/g,"\\'")}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
                 <div class="flex items-start justify-between mb-2">
                     <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
