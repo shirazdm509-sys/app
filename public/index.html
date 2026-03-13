@@ -915,6 +915,24 @@
 </div>
 
 <!-- GLOBAL SEARCH PANEL -->
+<!-- ====== WEBVIEW MODAL ====== -->
+<div id="webview-modal" class="fixed inset-0 z-[300] hidden flex-col bg-white">
+  <div class="shrink-0 h-14 bg-white border-b border-gray-100 shadow-sm flex items-center px-3 gap-2">
+    <button onclick="closeWebView()" class="w-10 h-10 flex items-center justify-center text-gray-500 rounded-full hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
+    <div class="flex-1 min-w-0 bg-gray-100 rounded-full px-3 py-1.5 flex items-center gap-2 overflow-hidden">
+      <i class="fas fa-lock text-emerald-500 text-xs shrink-0"></i>
+      <span id="webview-url-bar" class="text-xs text-gray-500 truncate font-medium flex-1 text-right"></span>
+    </div>
+    <button onclick="document.getElementById('webview-iframe').src=document.getElementById('webview-iframe').src" class="w-10 h-10 flex items-center justify-center text-gray-400 rounded-full hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-sm"></i></button>
+  </div>
+  <div id="webview-loading" class="absolute inset-0 top-14 flex items-center justify-center bg-white z-10 hidden">
+    <div class="w-10 h-10 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div>
+  </div>
+  <iframe id="webview-iframe" src="" class="flex-1 w-full border-none bg-gray-50"
+    sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation-by-user-activation"
+    onload="document.getElementById('webview-loading').classList.add('hidden')"></iframe>
+</div>
+
 <div id="global-search-modal" class="fixed inset-0 z-[270] hidden flex-col bg-white">
   <div class="h-16 bg-white border-b border-gray-200 flex items-center px-4 shrink-0 gap-2">
     <button onclick="closeGlobalSearch()" class="w-10 h-10 flex items-center justify-center text-gray-500 shrink-0"><i class="fas fa-arrow-right"></i></button>
@@ -1721,7 +1739,7 @@ async function loadSliders() {
     const slideW = sliderSlideW;
     track.style.width = (sliderData.length * slideW) + 'px';
     track.innerHTML = sliderData.map(sl => {
-        const onclick = sl.link ? `onclick="window.open('${sl.link.replace(/'/g,"\\'")}','_blank')"` : '';
+        const onclick = sl.link ? `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"` : '';
         return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}"></div>`;
     }).join('');
     dots.innerHTML = sliderData.map((_,i) =>
@@ -1779,7 +1797,7 @@ async function loadBanners() {
             if (!container) continue;
             container.style.padding = '0 ' + padding + 'px';
             container.innerHTML = items.map(b => {
-                const onclick = b.link ? `onclick="window.open('${b.link.replace(/'/g,"\\'")}','_blank')"` : '';
+                const onclick = b.link ? `onclick="openWebView('${b.link.replace(/'/g,"\\'")}');"` : '';
                 return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
                     <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
                 </div>`;
@@ -2983,6 +3001,29 @@ async function markAllNotifsRead() {
 }
 
 // ====================================================
+// ====================================================
+// WebView Modal
+// ====================================================
+function openWebView(url) {
+    if (!url) return;
+    const modal = document.getElementById('webview-modal');
+    const iframe = document.getElementById('webview-iframe');
+    const urlBar = document.getElementById('webview-url-bar');
+    const loading = document.getElementById('webview-loading');
+    try { urlBar.textContent = new URL(url).hostname; } catch(e) { urlBar.textContent = url; }
+    loading.classList.remove('hidden');
+    iframe.src = url;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+function closeWebView() {
+    const modal = document.getElementById('webview-modal');
+    const iframe = document.getElementById('webview-iframe');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    iframe.src = '';
+}
+
 // جستجوی کلی (Global Search)
 // ====================================================
 function openGlobalSearch() {
