@@ -490,27 +490,29 @@ async function shareSelectedText() {
     }
 }
 
-function showHighlightToolbar(x, y, belowSelection = false) {
+function showHighlightToolbar(x, y, isMobile = false) {
     const tb = document.getElementById('highlight-toolbar');
     if (!tb) return;
     saveSelectionForMobile();
+    if (isMobile) {
+        // موبایل: bottom bar ثابت پایین صفحه — تداخل با native menu نداره
+        tb.style.left = '50%';
+        tb.style.top = '';
+        tb.style.bottom = '72px';
+        tb.style.transform = 'translateX(-50%)';
+    } else {
+        // دسکتاپ: بالای selection
+        tb.style.bottom = '';
+        tb.style.transform = 'translateX(-50%)';
+        requestAnimationFrame(() => {
+            const tbH = tb.offsetHeight || 44;
+            const tbW = tb.offsetWidth || 260;
+            const clampedX = Math.max(tbW / 2 + 8, Math.min(x, window.innerWidth - tbW / 2 - 8));
+            tb.style.left = clampedX + 'px';
+            tb.style.top = Math.max(10, y - tbH - 10) + 'px';
+        });
+    }
     tb.classList.remove('hidden');
-    requestAnimationFrame(() => {
-        const tbH = tb.offsetHeight || 44;
-        const tbW = tb.offsetWidth || 260;
-        const half = tbW / 2;
-        const clampedX = Math.max(half + 8, Math.min(x, window.innerWidth - half - 8));
-        tb.style.left = clampedX + 'px';
-        let topY;
-        if (belowSelection) {
-            // زیر selection، اما داخل viewport
-            topY = Math.min(y + 10, window.innerHeight - tbH - 10);
-        } else {
-            // بالای selection، اما داخل viewport
-            topY = Math.max(10, y - tbH - 10);
-        }
-        tb.style.top = topY + 'px';
-    });
 }
 
 function hideHighlightToolbar() {

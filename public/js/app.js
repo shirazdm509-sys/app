@@ -601,6 +601,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // selectionchange: روش یکپارچه برای دسکتاپ و موبایل
     let _selChangeTimer = null;
+    let _lastTouchEnd = 0;
+    const _isMobile = window.matchMedia('(pointer: coarse)').matches;
+
+    document.addEventListener('touchend', () => { _lastTouchEnd = Date.now(); });
+
     document.addEventListener('selectionchange', () => {
         clearTimeout(_selChangeTimer);
         _selChangeTimer = setTimeout(() => {
@@ -615,15 +620,12 @@ document.addEventListener('DOMContentLoaded',()=>{
             if (!container) { hideHighlightToolbar(); return; }
             const r = sel.getRangeAt(0).getBoundingClientRect();
             if (r.width === 0 && r.height === 0) return;
-            const isMobile = window.matchMedia('(pointer: coarse)').matches;
-            const x = r.left + r.width / 2;
-            // موبایل: زیر selection (تا با native menu بالا تداخل نداشته باشه)
-            // دسکتاپ: بالای selection
-            const y = isMobile ? r.bottom : r.top;
-            showHighlightToolbar(x, y, isMobile);
-        }, 100);
+            // موبایل: فقط بعد از touchend نشون بده (نه حین drag)
+            if (_isMobile && Date.now() - _lastTouchEnd > 800) return;
+            showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
+        }, _isMobile ? 400 : 50);
     });
-    // کلیک خارج از toolbar → بستن
+    // کلیک/تاچ خارج از toolbar → بستن
     document.addEventListener('mousedown', (e) => {
         const tb = document.getElementById('highlight-toolbar');
         if (tb && !tb.contains(e.target)) hideHighlightToolbar();
