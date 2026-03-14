@@ -645,42 +645,59 @@ function _hasClass(id, cls) {
     return el ? el.classList.contains(cls) : false;
 }
 
-function handleBackButton() {
-    // ترتیب: بالاترین z-index اول بسته بشه
-    if (_isVisible('pwa-install-modal'))      { closePwaModal();         return; }
-    if (_isVisible('image-modal'))            { closeImageModal();       return; }
-    if (_isVisible('webview-modal'))          { closeWebview();          return; }
-    if (_isVisible('notif-panel'))            { closeNotifications();    return; }
-    if (_isVisible('global-search-modal'))    { closeGlobalSearch();     return; }
-    if (_isVisible('note-modal'))             { closeNoteModal();        return; }
-    if (_isVisible('search-modal'))           { closeSearch();           return; }
-    if (_isVisible('settings-overlay')) { closeSettings(); return; }
-    if (_hasClass('reader-overlay', 'open'))  { closeReader();           return; }
-    if (_hasClass('toc-overlay', 'open'))     { closeToc();              return; }
+// stack داخلی ناوبری
+let _screenStack = ['home'];
 
-    // صفحات single view
-    const singleViews = ['lectures-single-view','news-single-view','statements-single-view'];
-    for (const id of singleViews) {
-        if (_isVisible(id)) {
-            document.getElementById(id).classList.add('hidden');
-            return;
-        }
+const _origNavToScreen = navToScreen;
+function navToScreen(name) {
+    _origNavToScreen(name);
+    // اضافه به stack (اگه دوبار همون صفحه نزده باشیم)
+    if (_screenStack[_screenStack.length - 1] !== name) {
+        _screenStack.push(name);
+        if (_screenStack.length > 10) _screenStack.shift();
     }
-
-    // QA conversation
-    const qaConv = document.getElementById('qa-conversation-view');
-    if (qaConv && _isVisible('qa-conversation-view')) { closeQAConversation(); return; }
-
-    // اگه هیچ چیزی باز نبود → برو خانه
-    if (typeof showTab === 'function') showTab('home');
 }
 
-// push یه state اولیه تا back button رو intercept کنیم
-history.pushState({ app: true }, '');
-window.addEventListener('popstate', (e) => {
+function handleBackButton() {
+    // لایه‌ها به ترتیب z-index از بالا به پایین
+    if (_isVisible('pwa-install-modal'))    { closePwaModal();      return; }
+    if (_isVisible('image-modal'))          { closeImageModal();    return; }
+    if (_isVisible('webview-modal'))        { closeWebview();       return; }
+    if (_isVisible('notif-panel'))          { closeNotifications(); return; }
+    if (_isVisible('global-search-modal'))  { closeGlobalSearch();  return; }
+    if (_isVisible('note-modal'))           { closeNoteModal();     return; }
+    if (_isVisible('search-modal'))         { closeSearch();        return; }
+    if (_isVisible('settings-overlay'))     { closeSettings();      return; }
+    if (_hasClass('reader-overlay', 'open')){ closeReader();        return; }
+    if (_hasClass('toc-overlay', 'open'))   { closeToc();           return; }
+
+    const singleViews = ['lectures-single-view','news-single-view','statements-single-view'];
+    for (const id of singleViews) {
+        if (_isVisible(id)) { document.getElementById(id).classList.add('hidden'); return; }
+    }
+    if (_isVisible('qa-conversation-view')) { closeQAConversation(); return; }
+
+    // برگشت به صفحه قبلی در stack
+    if (_screenStack.length > 1) {
+        _screenStack.pop();
+        const prev = _screenStack[_screenStack.length - 1];
+        _origNavToScreen(prev); // مستقیم بدون push مجدد به stack
+        return;
+    }
+
+    // اگه روی home هستیم و هیچ لایه‌ای باز نیست → برو home (نمایش بده)
+    _origNavToScreen('home');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // یک state اضافه تا back button در مرورگر/اندروید interceptشه
+    history.pushState({ pwaApp: true }, document.title, location.href);
+});
+
+window.addEventListener('popstate', () => {
+    // بلافاصله state رو برگردون تا back بعدی هم کار کنه
+    history.pushState({ pwaApp: true }, document.title, location.href);
     handleBackButton();
-    // همیشه یه state در تاریخچه نگه دار تا back دوباره قابل استفاده باشه
-    history.pushState({ app: true }, '');
 });
 
 init();
