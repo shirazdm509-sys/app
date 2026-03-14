@@ -386,6 +386,20 @@ function saveHighlights() { const k = getHighlightKey(); localStorage.setItem(k,
 
 const HIGHLIGHT_CONTAINERS = ['text-content', 'single-post-content', 'news-single-content', 'statements-single-content'];
 
+// ذخیره selection روی موبایل (iOS selection را قبل از onclick پاک می‌کند)
+let _savedRange = null;
+function saveSelectionForMobile() {
+    const sel = window.getSelection();
+    _savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+}
+function restoreSelectionIfNeeded() {
+    const sel = window.getSelection();
+    if (sel && (sel.isCollapsed || sel.rangeCount === 0) && _savedRange) {
+        sel.removeAllRanges();
+        sel.addRange(_savedRange);
+    }
+}
+
 function getHighlightContainer(node) {
     for (const id of HIGHLIGHT_CONTAINERS) {
         const el = document.getElementById(id);
@@ -395,6 +409,7 @@ function getHighlightContainer(node) {
 }
 
 function applyHighlight(color) {
+    restoreSelectionIfNeeded();
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
@@ -426,6 +441,7 @@ function applyHighlight(color) {
 }
 
 function removeHighlight() {
+    restoreSelectionIfNeeded();
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);
@@ -442,6 +458,7 @@ function removeHighlight() {
 }
 
 async function shareSelectedText() {
+    restoreSelectionIfNeeded();
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) { hideHighlightToolbar(); return; }
     const text = sel.toString().trim();
@@ -476,12 +493,18 @@ async function shareSelectedText() {
 function showHighlightToolbar(x, y) {
     const tb = document.getElementById('highlight-toolbar');
     if (!tb) return;
+    saveSelectionForMobile();
     tb.classList.remove('hidden');
-    const tbW = tb.offsetWidth || 260;
-    const half = tbW / 2;
-    const clampedX = Math.max(half + 8, Math.min(x, window.innerWidth - half - 8));
-    tb.style.left = clampedX + 'px';
-    tb.style.top = (y - 55) + 'px';
+    // اجازه بده toolbar render بشه تا offsetWidth درست باشه
+    requestAnimationFrame(() => {
+        const tbW = tb.offsetWidth || 260;
+        const half = tbW / 2;
+        const clampedX = Math.max(half + 8, Math.min(x, window.innerWidth - half - 8));
+        tb.style.left = clampedX + 'px';
+        // toolbar بالای متن، اما داخل viewport
+        const topY = Math.max(10, y - 55);
+        tb.style.top = topY + 'px';
+    });
 }
 
 function hideHighlightToolbar() {

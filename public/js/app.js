@@ -601,25 +601,30 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     document.addEventListener('mouseup', (e) => {
         const tb = document.getElementById('highlight-toolbar');
-        if (tb && !tb.contains(e.target)) {
-            const sel = window.getSelection();
-            const container = sel && sel.anchorNode ? getHighlightContainer(sel.anchorNode) : null;
-            if (sel && !sel.isCollapsed && container) {
-                showHighlightToolbar(e.clientX, e.clientY);
-            } else if (!tb.contains(e.target)) {
-                hideHighlightToolbar();
-            }
+        if (!tb || tb.contains(e.target)) return;
+        const sel = window.getSelection();
+        const container = sel && sel.anchorNode ? getHighlightContainer(sel.anchorNode) : null;
+        if (sel && !sel.isCollapsed && container) {
+            showHighlightToolbar(e.clientX, e.clientY);
+        } else {
+            hideHighlightToolbar();
         }
     });
     document.addEventListener('touchend', (e) => {
+        const tb = document.getElementById('highlight-toolbar');
+        if (tb && tb.contains(e.target)) return;
         setTimeout(() => {
             const sel = window.getSelection();
-            const container = sel && sel.anchorNode ? getHighlightContainer(sel.anchorNode) : null;
-            if (sel && !sel.isCollapsed && container) {
-                const r = sel.getRangeAt(0).getBoundingClientRect();
-                showHighlightToolbar(r.left + r.width / 2, r.top + window.scrollY);
+            if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+                hideHighlightToolbar();
+                return;
             }
-        }, 200);
+            const container = getHighlightContainer(sel.anchorNode);
+            if (!container) { hideHighlightToolbar(); return; }
+            const r = sel.getRangeAt(0).getBoundingClientRect();
+            // r.top is already viewport-relative for fixed positioning
+            showHighlightToolbar(r.left + r.width / 2, r.top);
+        }, 300);
     });
 });
 
