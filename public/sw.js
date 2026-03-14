@@ -1,24 +1,28 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v4';
-const STATIC_CACHE = 'nashr-static-v4';
-const DYNAMIC_CACHE = 'nashr-dynamic-v4';
+const CACHE_NAME = 'nashr-asar-v5';
+const STATIC_CACHE = 'nashr-static-v5';
+const DYNAMIC_CACHE = 'nashr-dynamic-v5';
 
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
   '/js/app.js',
   '/manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css',
 ];
+
+function offlineResponse(msg) {
+  return new Response(JSON.stringify({ error: msg || 'offline' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
 
 // Install
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => {
       return Promise.allSettled(
-        STATIC_ASSETS.map(url => cache.add(url).catch(() => console.warn('Could not cache:', url)))
+        STATIC_ASSETS.map(url => cache.add(url).catch(() => {}))
       );
     }).then(() => self.skipWaiting())
   );
@@ -39,64 +43,63 @@ self.addEventListener('activate', event => {
 // Fetch
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
+
   // Skip non-GET and chrome-extension
   if (event.request.method !== 'GET' || url.protocol === 'chrome-extension:') return;
-  
-  // API calls - network first
+
+  // API calls - network only (no cache fallback for mutations)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match(event.request))
+      fetch(event.request).catch(() => offlineResponse('api offline'))
     );
     return;
   }
-  
+
   // WP API - network first with cache fallback
   if (url.hostname.includes('dastgheibqoba.info') && url.pathname.includes('/wp-json/')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          if (response.ok) {
+          if (response && response.ok) {
             const clone = response.clone();
-            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone));
+            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request).then(r => r || offlineResponse('wp offline')))
     );
     return;
   }
-  
+
   // Static assets - cache first
-  if (url.hostname !== self.location.hostname || 
+  if (url.hostname !== self.location.hostname ||
       url.pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(response => {
-          if (response.ok) {
+          if (response && response.ok) {
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
           }
           return response;
-        });
+        }).catch(() => offlineResponse('static offline'));
       })
     );
     return;
   }
-  
+
   // HTML pages - network first
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response.ok) {
+        if (response && response.ok) {
           const clone = response.clone();
-          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
         }
         return response;
       })
-      .catch(() => caches.match('/') || caches.match(event.request))
+      .catch(() => caches.match('/').then(r => r || offlineResponse('page offline')))
   );
 });
 

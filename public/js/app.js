@@ -36,7 +36,10 @@ function navToScreen(name) {
     const payIframe = document.getElementById('payment-iframe');
     if (payIframe) {
         if (name === 'payment') {
-            if (!payIframe.src || payIframe.src === window.location.href) payIframe.src = 'https://dastgheibqoba.info/pay/?webview=1';
+            if (!payIframe.src || payIframe.src === window.location.href) {
+                payIframe.onload = () => { try { injectCSSIntoPaymentWebView(); } catch(e) {} };
+                payIframe.src = 'https://dastgheibqoba.info/pay/?webview=1';
+            }
         } else {
             payIframe.src = '';
         }
@@ -121,9 +124,12 @@ async function loadSliders() {
     wrapper.style.height = height + 'px';
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
+    wrapper.style.direction = 'ltr'; // جلوگیری از RTL overflow که اسلاید اشتباه نشون داده میشه
+    wrapper.style.overflow = 'hidden';
     if (padding > 0) wrapper.style.boxSizing = 'border-box';
     wrapper.getBoundingClientRect();
-    sliderSlideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
+    // clientWidth = عرض داخلی (بدون padding) — مهمه که padding کسر بشه
+    sliderSlideW = wrapper.clientWidth || (wrapper.offsetWidth - 2 * padding) || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
     const slideW = sliderSlideW;
     track.style.width = (sliderData.length * slideW) + 'px';
     track.style.direction = 'ltr'; // جلوگیری از RTL-flip روی اسلایدر

@@ -14,29 +14,16 @@
     :root { --safe-bottom: env(safe-area-inset-bottom); }
 }
 
-* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-/* جلوگیری از انتخاب متن در کل سایت */
-html, body, div, span, p, h1, h2, h3, h4, h5, h6, li, ul, ol, nav, header, footer, section, main, aside {
-    -webkit-user-select: none; user-select: none;
-}
-/* دکمه‌ها و لینک‌ها — touch-action: manipulation برای پاسخ سریع */
-button, a, label, [role="button"] {
-    -webkit-user-select: none; user-select: none;
-    touch-action: manipulation;
-}
-/* فقط محتوای خواندنی قابل انتخاب باشه */
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+/* دکمه‌ها و لینک‌ها — touch-action: manipulation برای پاسخ فوری */
+button, a, label, [role="button"] { touch-action: manipulation; cursor: pointer; }
+/* فقط محتوای خواندنی قابل انتخاب باشه — اینجا selection فعاله برای هایلایت */
 #text-content,
 #single-post-content,
 #news-single-content,
-#statements-single-content {
-    -webkit-user-select: text; user-select: text;
-    -webkit-touch-callout: none;
-}
+#statements-single-content { -webkit-user-select: text; user-select: text; -webkit-touch-callout: none; }
 /* ورودی‌ها */
-input, textarea, [contenteditable] {
-    -webkit-user-select: text; user-select: text;
-    touch-action: manipulation;
-}
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; touch-action: manipulation; }
 body {
     overflow: hidden;
     overscroll-behavior-y: none;

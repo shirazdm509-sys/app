@@ -138,6 +138,11 @@ function initDb() {
             ['pwa_theme_color','#0d9488'],
             ['pwa_bg_color','#ffffff'],
             ['dark_mode_enabled','1'],
+            ['splash_bg_color','#ffffff'],
+            ['splash_title','مرکز نشر آثار'],
+            ['splash_subtitle','در حال آماده‌سازی و دریافت اطلاعات...'],
+            ['splash_spinner_color','#0d9488'],
+            ['splash_icon_url',''],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);

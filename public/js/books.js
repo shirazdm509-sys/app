@@ -333,6 +333,12 @@ async function applySiteSettings() {
             if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';
             else themeBtn.style.display = '';
         }
+        // ذخیره تنظیمات اسپلش برای اعمال فوری در بارگذاری بعدی
+        const splashKeys = ['splash_bg_color','splash_title','splash_subtitle','splash_spinner_color','splash_icon_url'];
+        const splashObj = {};
+        splashKeys.forEach(k => { if (s[k] !== undefined) splashObj[k] = s[k]; });
+        localStorage.setItem('_splashSettings', JSON.stringify(splashObj));
+
         window._siteSettings = s;
     } catch(e) {}
 }

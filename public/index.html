@@ -34,14 +34,42 @@
 </head>
 <body class="font-vazir antialiased text-gray-800">
 
-<!-- LOADING -->
+<!-- LOADING / SPLASH -->
 <div id="loading-screen" style="position: fixed; inset: 0; z-index: 9999; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
+    <div id="splash-icon-wrap" style="display:none;margin-bottom:16px;"></div>
     <div id="loading-spinner" style="width: 60px; height: 60px; border: 5px solid #ccfbf1; border-top: 5px solid #0d9488; border-radius: 50%; animation: inlineSpin 1s linear infinite; margin-bottom: 24px;"></div>
-    <h2 style="font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; font-family: Vazir, Tahoma, sans-serif;">مرکز نشر آثار</h2>
+    <h2 id="splash-title-el" style="font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; font-family: Vazir, Tahoma, sans-serif;">مرکز نشر آثار</h2>
     <p id="loading-text" style="font-size: 14px; color: #6b7280; font-family: Vazir, Tahoma, sans-serif; text-align: center; line-height: 1.8;">
         در حال آماده‌سازی و دریافت اطلاعات...<br>
     </p>
 </div>
+<script>
+(function(){
+  try {
+    var sp = JSON.parse(localStorage.getItem('_splashSettings') || '{}');
+    var ls = document.getElementById('loading-screen');
+    if (sp.splash_bg_color && ls) ls.style.background = sp.splash_bg_color;
+    var st = document.getElementById('splash-title-el');
+    if (sp.splash_title && st) st.textContent = sp.splash_title;
+    var sub = document.getElementById('loading-text');
+    if (sp.splash_subtitle && sub) sub.textContent = sp.splash_subtitle;
+    var spin = document.getElementById('loading-spinner');
+    if (sp.splash_spinner_color && spin) {
+      spin.style.borderTopColor = sp.splash_spinner_color;
+      spin.style.borderColor = sp.splash_spinner_color + '33';
+      spin.style.borderTopColor = sp.splash_spinner_color;
+    }
+    if (sp.splash_icon_url) {
+      var iw = document.getElementById('splash-icon-wrap');
+      if (iw) {
+        iw.style.display = 'block';
+        iw.innerHTML = '<img src="'+sp.splash_icon_url+'" style="width:80px;height:80px;object-fit:contain;border-radius:20px;" onerror="this.style.display=\'none\'">';
+        if (spin) spin.style.display = 'none'; // اگه آیکون داره، اسپینر رو مخفی کن
+      }
+    }
+  } catch(e) {}
+})();
+</script>
 
 <!-- APP WRAPPER -->
 <div id="app-wrapper" class="absolute inset-0 flex flex-col w-full bg-gray-50 overflow-hidden hidden">
@@ -530,7 +558,7 @@
                 <button onclick="document.getElementById('payment-iframe').src=document.getElementById('payment-iframe').src" class="w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt"></i></button>
             </header>
             <div class="flex-1 overflow-hidden flex flex-col">
-                <iframe id="payment-iframe" src="" class="w-full flex-1 border-none" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" onload="injectCSSIntoPaymentWebView()"></iframe>
+                <iframe id="payment-iframe" src="" class="w-full flex-1 border-none" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
             </div>
         </div>
 
