@@ -435,6 +435,14 @@ function saveSelectionForMobile() {
     const sel = window.getSelection();
     _savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
 }
+// ذخیره + پاک کردن selection → جلوگیری از منوی native مرورگر
+function saveAndClearSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+        _savedRange = sel.getRangeAt(0).cloneRange();
+        sel.removeAllRanges();
+    }
+}
 function restoreSelectionIfNeeded() {
     const sel = window.getSelection();
     if (sel && (sel.isCollapsed || sel.rangeCount === 0) && _savedRange) {
@@ -531,6 +539,188 @@ async function shareSelectedText() {
         document.body.appendChild(ta); ta.select(); document.execCommand('copy');
         document.body.removeChild(ta); showToast('متن کپی شد');
     }
+}
+
+// ====================================================
+// انتشار به صورت عکس (Spotify-style quote card)
+// ====================================================
+let _shareImageText = '';
+let _shareImageSubtitle = '';
+let _currentShareTheme = 'dark';
+
+const SHARE_THEMES = {
+    dark:   { bg: ['#0f172a', '#1e293b', '#0f2027'], text: '#ffffff', sub: 'rgba(255,255,255,0.55)', accent: 'rgba(99,102,241,0.18)', accentB: 'rgba(6,182,212,0.12)', quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
+    green:  { bg: ['#022c22', '#064e3b', '#065f46'], text: '#ecfdf5', sub: 'rgba(236,253,245,0.6)',  accent: 'rgba(16,185,129,0.18)', accentB: 'rgba(5,150,105,0.12)',  quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
+    purple: { bg: ['#2e1065', '#3b0764', '#581c87'], text: '#faf5ff', sub: 'rgba(250,245,255,0.6)',  accent: 'rgba(168,85,247,0.2)',  accentB: 'rgba(126,34,206,0.15)', quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
+    gold:   { bg: ['#451a03', '#78350f', '#92400e'], text: '#fffbeb', sub: 'rgba(255,251,235,0.6)',  accent: 'rgba(245,158,11,0.2)',  accentB: 'rgba(217,119,6,0.15)',  quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
+    light:  { bg: ['#f8fafc', '#f1f5f9', '#e2e8f0'], text: '#1e293b', sub: 'rgba(30,41,59,0.55)',   accent: 'rgba(99,102,241,0.08)', accentB: 'rgba(6,182,212,0.06)',  quote: 'rgba(0,0,0,0.04)',      line: 'rgba(0,0,0,0.15)',       brand: 'rgba(0,0,0,0.25)'  },
+};
+
+function getShareTitle() {
+    const ids = ['reader-book-title','lectures-header-title','news-header-title','statements-header-title'];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.textContent.trim()) return el.textContent.trim();
+    }
+    return document.title || 'دستغیب قبا';
+}
+
+function shareSelectedTextAsImage() {
+    restoreSelectionIfNeeded();
+    const sel = window.getSelection();
+    const text = sel ? sel.toString().trim() : '';
+    if (!text) { hideHighlightToolbar(); return; }
+    _shareImageText = text;
+    _shareImageSubtitle = getShareTitle();
+    hideHighlightToolbar();
+    if (sel) sel.removeAllRanges();
+
+    _currentShareTheme = 'dark';
+    document.getElementById('share-image-modal').classList.remove('hidden');
+    _updateThemeButtons();
+    _renderShareCanvas();
+}
+
+function setShareTheme(theme) {
+    _currentShareTheme = theme;
+    _updateThemeButtons();
+    _renderShareCanvas();
+}
+
+function _updateThemeButtons() {
+    ['dark','green','purple','gold','light'].forEach(t => {
+        const btn = document.getElementById('stheme-' + t);
+        if (!btn) return;
+        btn.classList.toggle('border-brand-600', t === _currentShareTheme);
+        btn.classList.toggle('border-transparent', t !== _currentShareTheme);
+        btn.style.boxShadow = t === _currentShareTheme ? '0 0 0 2px #fff,0 0 0 4px #4f46e5' : '';
+    });
+}
+
+function _renderShareCanvas() {
+    const canvas = document.getElementById('share-canvas');
+    if (!canvas) return;
+    const theme = SHARE_THEMES[_currentShareTheme] || SHARE_THEMES.dark;
+    const S = 1080;
+    canvas.width = S; canvas.height = S;
+    const ctx = canvas.getContext('2d');
+
+    // پس‌زمینه گرادیان
+    const g = ctx.createLinearGradient(0, 0, S, S);
+    g.addColorStop(0, theme.bg[0]);
+    g.addColorStop(0.55, theme.bg[1]);
+    g.addColorStop(1, theme.bg[2]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+
+    // دایره‌های تزئینی
+    ctx.beginPath(); ctx.arc(S * 0.88, S * 0.12, S * 0.26, 0, Math.PI * 2);
+    ctx.fillStyle = theme.accent; ctx.fill();
+    ctx.beginPath(); ctx.arc(S * 0.12, S * 0.88, S * 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = theme.accentB; ctx.fill();
+
+    // گیومه بزرگ تزئینی
+    ctx.save();
+    ctx.font = `bold ${S * 0.18}px 'Vazir', 'Tahoma', serif`;
+    ctx.fillStyle = theme.quote;
+    ctx.textAlign = 'right'; ctx.direction = 'rtl';
+    ctx.fillText('»', S - 55, S * 0.22);
+    ctx.restore();
+
+    // متن اصلی با line-wrap
+    const fontSize = _calcFontSize(ctx, _shareImageText, S);
+    ctx.save();
+    ctx.font = `bold ${fontSize}px 'Vazir', 'Tahoma', sans-serif`;
+    ctx.fillStyle = theme.text;
+    ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    const maxW = S * 0.80;
+    const lineH = fontSize * 1.7;
+    const lines = _wrapText(ctx, _shareImageText, maxW);
+    const totalH = lines.length * lineH;
+    let startY = (S - totalH) / 2 + fontSize * 0.8;
+    if (startY < S * 0.18) startY = S * 0.18;
+    lines.forEach((ln, i) => ctx.fillText(ln, S / 2, startY + i * lineH));
+    ctx.restore();
+
+    // خط جداکننده
+    const afterY = startY + lines.length * lineH + S * 0.045;
+    ctx.beginPath();
+    ctx.moveTo(S * 0.38, afterY); ctx.lineTo(S * 0.62, afterY);
+    ctx.strokeStyle = theme.line; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // عنوان کتاب
+    if (_shareImageSubtitle) {
+        ctx.save();
+        ctx.font = `${S * 0.03}px 'Vazir', 'Tahoma', sans-serif`;
+        ctx.fillStyle = theme.sub;
+        ctx.textAlign = 'center'; ctx.direction = 'rtl';
+        ctx.fillText(_shareImageSubtitle, S / 2, afterY + S * 0.055);
+        ctx.restore();
+    }
+
+    // برند پایین
+    ctx.save();
+    ctx.font = `bold ${S * 0.026}px 'Vazir', 'Tahoma', sans-serif`;
+    ctx.fillStyle = theme.brand;
+    ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText('dastgheibqoba.info', S / 2, S - S * 0.045);
+    ctx.restore();
+}
+
+function _calcFontSize(ctx, text, S) {
+    // شروع از فونت بزرگ، کوچک‌تر کن تا بشه جا داد
+    const maxW = S * 0.80;
+    const maxLines = 8;
+    for (let fs = S * 0.058; fs >= S * 0.028; fs -= 2) {
+        ctx.font = `bold ${fs}px 'Vazir', 'Tahoma', sans-serif`;
+        const lines = _wrapText(ctx, text, maxW);
+        if (lines.length <= maxLines) return fs;
+    }
+    return S * 0.028;
+}
+
+function _wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxWidth && cur) {
+            lines.push(cur); cur = w;
+        } else { cur = test; }
+    }
+    if (cur) lines.push(cur);
+    return lines.slice(0, 8);
+}
+
+function closeShareImageModal() {
+    document.getElementById('share-image-modal').classList.add('hidden');
+}
+
+function downloadShareImage() {
+    const canvas = document.getElementById('share-canvas');
+    const a = document.createElement('a');
+    a.download = 'quote-dastgheibqoba.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+}
+
+async function shareShareImage() {
+    const canvas = document.getElementById('share-canvas');
+    canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        if (navigator.share && navigator.canShare) {
+            const file = new File([blob], 'quote.png', { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ files: [file], title: _shareImageSubtitle || 'نقل قول' }); return; }
+                catch(e) { if (e.name === 'AbortError') return; }
+            }
+        }
+        // Fallback: باز کردن عکس در تب جدید
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.target = '_blank'; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }, 'image/png');
 }
 
 function showHighlightToolbar(x, y, isMobile = false) {

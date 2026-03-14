@@ -623,7 +623,15 @@ document.addEventListener('DOMContentLoaded',()=>{
             // موبایل: فقط بعد از touchend نشون بده (نه حین drag)
             if (_isMobile && Date.now() - _lastTouchEnd > 800) return;
             showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
+            // ذخیره selection و پاک کردن → جلوگیری از نمایش منوی native مرورگر
+            if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
         }, _isMobile ? 400 : 50);
+    });
+    // جلوگیری از منوی راست‌کلیک روی محتوای قابل‌هایلایت (دسکتاپ)
+    document.addEventListener('contextmenu', (e) => {
+        if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
+            e.preventDefault();
+        }
     });
     // کلیک/تاچ خارج از toolbar → بستن
     document.addEventListener('mousedown', (e) => {

@@ -770,13 +770,46 @@
 
 <!-- HIGHLIGHT TOOLBAR -->
 <div id="highlight-toolbar" ontouchstart="saveSelectionForMobile()" class="fixed z-[260] bg-gray-900 text-white rounded-2xl shadow-2xl px-3 py-2 flex items-center gap-2 hidden" style="transform:translateX(-50%);direction:ltr;">
-    <button onclick="shareSelectedText()" class="w-7 h-7 bg-teal-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="اشتراک‌گذاری"><i class="fas fa-share-alt text-xs"></i></button>
+    <button onclick="shareSelectedText()" class="w-7 h-7 bg-teal-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="انتشار متنی"><i class="fas fa-share-alt text-xs"></i></button>
+    <button onclick="shareSelectedTextAsImage()" class="w-7 h-7 bg-purple-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="انتشار به صورت عکس"><i class="fas fa-image text-xs"></i></button>
     <div class="w-px h-5 bg-white/20"></div>
     <button onclick="applyHighlight('#fde68a')" class="w-7 h-7 bg-yellow-300 rounded-full border-2 border-white shadow-sm" title="زرد"></button>
     <button onclick="applyHighlight('#bbf7d0')" class="w-7 h-7 bg-green-300 rounded-full border-2 border-white shadow-sm" title="سبز"></button>
     <button onclick="applyHighlight('#bfdbfe')" class="w-7 h-7 bg-blue-300 rounded-full border-2 border-white shadow-sm" title="آبی"></button>
     <button onclick="applyHighlight('#fecaca')" class="w-7 h-7 bg-red-300 rounded-full border-2 border-white shadow-sm" title="قرمز"></button>
     <button onclick="removeHighlight()" class="w-7 h-7 bg-gray-200 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-gray-700" title="حذف"><i class="fas fa-times text-xs"></i></button>
+</div>
+
+<!-- SHARE AS IMAGE MODAL -->
+<div id="share-image-modal" class="fixed inset-0 z-[350] bg-black/80 flex items-end justify-center hidden" style="backdrop-filter:blur(4px)">
+    <div class="bg-white rounded-t-3xl w-full max-w-md pb-safe" style="padding-bottom:max(env(safe-area-inset-bottom),16px)">
+        <div class="flex items-center justify-between px-5 pt-5 pb-3">
+            <h3 class="font-bold text-gray-800 text-base">انتشار به صورت عکس</h3>
+            <button onclick="closeShareImageModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"><i class="fas fa-times text-sm"></i></button>
+        </div>
+        <!-- Preview canvas -->
+        <div class="px-5">
+            <canvas id="share-canvas" class="w-full rounded-2xl shadow-lg" style="aspect-ratio:1/1;display:block"></canvas>
+        </div>
+        <!-- Theme selector -->
+        <div class="flex items-center gap-3 px-5 pt-4 pb-2">
+            <span class="text-xs text-gray-400 font-bold ml-1">پس‌زمینه:</span>
+            <button onclick="setShareTheme('dark')"   id="stheme-dark"   class="w-7 h-7 rounded-full bg-slate-900 border-2 border-brand-600 shadow" title="تاریک"></button>
+            <button onclick="setShareTheme('green')"  id="stheme-green"  class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#064e3b,#065f46)" title="سبز"></button>
+            <button onclick="setShareTheme('purple')" id="stheme-purple" class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#3b0764,#581c87)" title="بنفش"></button>
+            <button onclick="setShareTheme('gold')"   id="stheme-gold"   class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#78350f,#92400e)" title="طلایی"></button>
+            <button onclick="setShareTheme('light')"  id="stheme-light"  class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0)" title="روشن"></button>
+        </div>
+        <!-- Action buttons -->
+        <div class="flex gap-3 px-5 pt-2 pb-4">
+            <button onclick="downloadShareImage()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-600 text-white rounded-2xl font-bold text-sm shadow active:scale-95 transition-transform">
+                <i class="fas fa-download"></i> دانلود
+            </button>
+            <button onclick="shareShareImage()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-100 text-gray-700 rounded-2xl font-bold text-sm active:scale-95 transition-transform">
+                <i class="fas fa-share-alt"></i> اشتراک‌گذاری
+            </button>
+        </div>
+    </div>
 </div>
 
 <div id="toast" class="fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[300]">پیام</div>
