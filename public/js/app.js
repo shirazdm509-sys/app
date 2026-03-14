@@ -599,45 +599,53 @@ document.addEventListener('DOMContentLoaded',()=>{
     const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
     setupSwipe();
 
-    // selectionchange: روش یکپارچه برای دسکتاپ و موبایل
-    let _selChangeTimer = null;
-    let _lastTouchEnd = 0;
+    // ──────────────────────────────────────────────
+    // مدیریت انتخاب متن (بدون منوی native مرورگر)
+    // ──────────────────────────────────────────────
     const _isMobile = window.matchMedia('(pointer: coarse)').matches;
 
-    document.addEventListener('touchend', () => { _lastTouchEnd = Date.now(); });
+    function _handleSelectionEnd() {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+        if (typeof getHighlightContainer !== 'function') return;
+        const container = getHighlightContainer(sel.anchorNode);
+        if (!container) return;
+        // موقعیت را قبل از پاک کردن بگیر
+        const r = sel.getRangeAt(0).getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return;
+        // ذخیره و پاک کردن فوری → native toolbar فرصت نمایش ندارد
+        if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
+        showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
+    }
 
-    document.addEventListener('selectionchange', () => {
-        clearTimeout(_selChangeTimer);
-        _selChangeTimer = setTimeout(() => {
-            const tb = document.getElementById('highlight-toolbar');
-            const sel = window.getSelection();
-            if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
-                if (tb && tb.contains(document.activeElement)) return;
-                hideHighlightToolbar();
-                return;
-            }
-            const container = getHighlightContainer(sel.anchorNode);
-            if (!container) { hideHighlightToolbar(); return; }
-            const r = sel.getRangeAt(0).getBoundingClientRect();
-            if (r.width === 0 && r.height === 0) return;
-            // موبایل: فقط بعد از touchend نشون بده (نه حین drag)
-            if (_isMobile && Date.now() - _lastTouchEnd > 800) return;
-            showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
-            // ذخیره selection و پاک کردن → جلوگیری از نمایش منوی native مرورگر
-            if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
-        }, _isMobile ? 400 : 50);
+    // موبایل: touchend (بعد از رها کردن انگشت)
+    document.addEventListener('touchend', () => {
+        // کمی صبر تا مرورگر selection را قطعی کند
+        setTimeout(_handleSelectionEnd, 30);
     });
-    // جلوگیری از منوی راست‌کلیک روی محتوای قابل‌هایلایت (دسکتاپ)
+
+    // دسکتاپ: mouseup
+    document.addEventListener('mouseup', () => {
+        if (_isMobile) return;
+        setTimeout(_handleSelectionEnd, 30);
+    });
+
+    // جلوگیری از منوی راست‌کلیک در محتوا
     document.addEventListener('contextmenu', (e) => {
         if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
             e.preventDefault();
         }
     });
-    // کلیک/تاچ خارج از toolbar → بستن
+
+    // بستن toolbar با کلیک/تاچ بیرون از آن
     document.addEventListener('mousedown', (e) => {
         const tb = document.getElementById('highlight-toolbar');
         if (tb && !tb.contains(e.target)) hideHighlightToolbar();
     });
+    document.addEventListener('touchstart', (e) => {
+        const tb = document.getElementById('highlight-toolbar');
+        if (tb && !tb.classList.contains('hidden') && !tb.contains(e.target)) hideHighlightToolbar();
+    }, { passive: true });
 });
 
 // ====================================================

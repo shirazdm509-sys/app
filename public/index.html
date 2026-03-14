@@ -782,7 +782,7 @@
 
 <!-- SHARE AS IMAGE MODAL -->
 <div id="share-image-modal" class="fixed inset-0 z-[350] bg-black/80 flex items-end justify-center hidden" style="backdrop-filter:blur(4px)">
-    <div class="bg-white rounded-t-3xl w-full max-w-md pb-safe" style="padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="bg-white rounded-t-3xl w-full max-w-md" style="padding-bottom:max(env(safe-area-inset-bottom),16px)">
         <div class="flex items-center justify-between px-5 pt-5 pb-3">
             <h3 class="font-bold text-gray-800 text-base">انتشار به صورت عکس</h3>
             <button onclick="closeShareImageModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"><i class="fas fa-times text-sm"></i></button>
@@ -791,17 +791,20 @@
         <div class="px-5">
             <canvas id="share-canvas" class="w-full rounded-2xl shadow-lg" style="aspect-ratio:1/1;display:block"></canvas>
         </div>
-        <!-- Theme selector -->
-        <div class="flex items-center gap-3 px-5 pt-4 pb-2">
-            <span class="text-xs text-gray-400 font-bold ml-1">پس‌زمینه:</span>
-            <button onclick="setShareTheme('dark')"   id="stheme-dark"   class="w-7 h-7 rounded-full bg-slate-900 border-2 border-brand-600 shadow" title="تاریک"></button>
-            <button onclick="setShareTheme('green')"  id="stheme-green"  class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#064e3b,#065f46)" title="سبز"></button>
-            <button onclick="setShareTheme('purple')" id="stheme-purple" class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#3b0764,#581c87)" title="بنفش"></button>
-            <button onclick="setShareTheme('gold')"   id="stheme-gold"   class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#78350f,#92400e)" title="طلایی"></button>
-            <button onclick="setShareTheme('light')"  id="stheme-light"  class="w-7 h-7 rounded-full border-2 border-transparent shadow" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0)" title="روشن"></button>
+        <!-- Color spectrum picker -->
+        <div class="px-5 pt-4 pb-1">
+            <span class="text-xs text-gray-400 font-bold block mb-2">رنگ پس‌زمینه:</span>
+            <!-- طیف رنگی -->
+            <div class="relative h-9 rounded-full overflow-hidden shadow-inner" style="background:linear-gradient(to right,hsl(0,70%,18%),hsl(40,70%,18%),hsl(80,70%,18%),hsl(120,70%,18%),hsl(160,70%,18%),hsl(200,70%,18%),hsl(240,70%,18%),hsl(280,70%,18%),hsl(320,70%,18%),hsl(360,70%,18%))">
+                <input type="range" id="share-hue-slider" min="0" max="359" value="220"
+                    oninput="onShareHueChange(this.value)"
+                    style="-webkit-user-select:none;user-select:none;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0">
+                <!-- نشانگر موقعیت -->
+                <div id="share-hue-indicator" class="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white shadow-lg pointer-events-none" style="left:calc(220/359*100%);background:hsl(220,60%,30%)"></div>
+            </div>
         </div>
         <!-- Action buttons -->
-        <div class="flex gap-3 px-5 pt-2 pb-4">
+        <div class="flex gap-3 px-5 pt-3 pb-4">
             <button onclick="downloadShareImage()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-600 text-white rounded-2xl font-bold text-sm shadow active:scale-95 transition-transform">
                 <i class="fas fa-download"></i> دانلود
             </button>

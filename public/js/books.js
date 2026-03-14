@@ -546,15 +546,7 @@ async function shareSelectedText() {
 // ====================================================
 let _shareImageText = '';
 let _shareImageSubtitle = '';
-let _currentShareTheme = 'dark';
-
-const SHARE_THEMES = {
-    dark:   { bg: ['#0f172a', '#1e293b', '#0f2027'], text: '#ffffff', sub: 'rgba(255,255,255,0.55)', accent: 'rgba(99,102,241,0.18)', accentB: 'rgba(6,182,212,0.12)', quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
-    green:  { bg: ['#022c22', '#064e3b', '#065f46'], text: '#ecfdf5', sub: 'rgba(236,253,245,0.6)',  accent: 'rgba(16,185,129,0.18)', accentB: 'rgba(5,150,105,0.12)',  quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
-    purple: { bg: ['#2e1065', '#3b0764', '#581c87'], text: '#faf5ff', sub: 'rgba(250,245,255,0.6)',  accent: 'rgba(168,85,247,0.2)',  accentB: 'rgba(126,34,206,0.15)', quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
-    gold:   { bg: ['#451a03', '#78350f', '#92400e'], text: '#fffbeb', sub: 'rgba(255,251,235,0.6)',  accent: 'rgba(245,158,11,0.2)',  accentB: 'rgba(217,119,6,0.15)',  quote: 'rgba(255,255,255,0.06)', line: 'rgba(255,255,255,0.22)', brand: 'rgba(255,255,255,0.3)' },
-    light:  { bg: ['#f8fafc', '#f1f5f9', '#e2e8f0'], text: '#1e293b', sub: 'rgba(30,41,59,0.55)',   accent: 'rgba(99,102,241,0.08)', accentB: 'rgba(6,182,212,0.06)',  quote: 'rgba(0,0,0,0.04)',      line: 'rgba(0,0,0,0.15)',       brand: 'rgba(0,0,0,0.25)'  },
-};
+let _shareHue = 220; // مقدار پیش‌فرض: آبی تیره
 
 function getShareTitle() {
     const ids = ['reader-book-title','lectures-header-title','news-header-title','statements-header-title'];
@@ -563,6 +555,17 @@ function getShareTitle() {
         if (el && el.textContent.trim()) return el.textContent.trim();
     }
     return document.title || 'دستغیب قبا';
+}
+
+function onShareHueChange(val) {
+    _shareHue = parseInt(val);
+    // به‌روزرسانی نشانگر روی طیف
+    const ind = document.getElementById('share-hue-indicator');
+    if (ind) {
+        ind.style.left = `calc(${_shareHue}/359*100%)`;
+        ind.style.background = `hsl(${_shareHue},60%,30%)`;
+    }
+    _renderShareCanvas();
 }
 
 function shareSelectedTextAsImage() {
@@ -575,62 +578,47 @@ function shareSelectedTextAsImage() {
     hideHighlightToolbar();
     if (sel) sel.removeAllRanges();
 
-    _currentShareTheme = 'dark';
+    _shareHue = 220;
+    const slider = document.getElementById('share-hue-slider');
+    if (slider) slider.value = 220;
+    onShareHueChange(220);
     document.getElementById('share-image-modal').classList.remove('hidden');
-    _updateThemeButtons();
-    _renderShareCanvas();
-}
-
-function setShareTheme(theme) {
-    _currentShareTheme = theme;
-    _updateThemeButtons();
-    _renderShareCanvas();
-}
-
-function _updateThemeButtons() {
-    ['dark','green','purple','gold','light'].forEach(t => {
-        const btn = document.getElementById('stheme-' + t);
-        if (!btn) return;
-        btn.classList.toggle('border-brand-600', t === _currentShareTheme);
-        btn.classList.toggle('border-transparent', t !== _currentShareTheme);
-        btn.style.boxShadow = t === _currentShareTheme ? '0 0 0 2px #fff,0 0 0 4px #4f46e5' : '';
-    });
 }
 
 function _renderShareCanvas() {
     const canvas = document.getElementById('share-canvas');
     if (!canvas) return;
-    const theme = SHARE_THEMES[_currentShareTheme] || SHARE_THEMES.dark;
+    const h = _shareHue;
     const S = 1080;
     canvas.width = S; canvas.height = S;
     const ctx = canvas.getContext('2d');
 
-    // پس‌زمینه گرادیان
+    // پس‌زمینه گرادیان بر اساس hue انتخابی
     const g = ctx.createLinearGradient(0, 0, S, S);
-    g.addColorStop(0, theme.bg[0]);
-    g.addColorStop(0.55, theme.bg[1]);
-    g.addColorStop(1, theme.bg[2]);
+    g.addColorStop(0,    `hsl(${h},65%,10%)`);
+    g.addColorStop(0.5,  `hsl(${(h+20)%360},60%,17%)`);
+    g.addColorStop(1,    `hsl(${(h+40)%360},55%,22%)`);
     ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
 
     // دایره‌های تزئینی
     ctx.beginPath(); ctx.arc(S * 0.88, S * 0.12, S * 0.26, 0, Math.PI * 2);
-    ctx.fillStyle = theme.accent; ctx.fill();
+    ctx.fillStyle = `hsla(${h},70%,55%,0.15)`; ctx.fill();
     ctx.beginPath(); ctx.arc(S * 0.12, S * 0.88, S * 0.2, 0, Math.PI * 2);
-    ctx.fillStyle = theme.accentB; ctx.fill();
+    ctx.fillStyle = `hsla(${(h+40)%360},70%,55%,0.10)`; ctx.fill();
 
-    // گیومه بزرگ تزئینی
+    // گیومه تزئینی
     ctx.save();
     ctx.font = `bold ${S * 0.18}px 'Vazir', 'Tahoma', serif`;
-    ctx.fillStyle = theme.quote;
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.textAlign = 'right'; ctx.direction = 'rtl';
     ctx.fillText('»', S - 55, S * 0.22);
     ctx.restore();
 
-    // متن اصلی با line-wrap
+    // متن اصلی
     const fontSize = _calcFontSize(ctx, _shareImageText, S);
     ctx.save();
     ctx.font = `bold ${fontSize}px 'Vazir', 'Tahoma', sans-serif`;
-    ctx.fillStyle = theme.text;
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center'; ctx.direction = 'rtl';
     const maxW = S * 0.80;
     const lineH = fontSize * 1.7;
@@ -645,13 +633,13 @@ function _renderShareCanvas() {
     const afterY = startY + lines.length * lineH + S * 0.045;
     ctx.beginPath();
     ctx.moveTo(S * 0.38, afterY); ctx.lineTo(S * 0.62, afterY);
-    ctx.strokeStyle = theme.line; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = `hsla(${h},60%,75%,0.35)`; ctx.lineWidth = 1.5; ctx.stroke();
 
     // عنوان کتاب
     if (_shareImageSubtitle) {
         ctx.save();
         ctx.font = `${S * 0.03}px 'Vazir', 'Tahoma', sans-serif`;
-        ctx.fillStyle = theme.sub;
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.textAlign = 'center'; ctx.direction = 'rtl';
         ctx.fillText(_shareImageSubtitle, S / 2, afterY + S * 0.055);
         ctx.restore();
@@ -660,7 +648,7 @@ function _renderShareCanvas() {
     // برند پایین
     ctx.save();
     ctx.font = `bold ${S * 0.026}px 'Vazir', 'Tahoma', sans-serif`;
-    ctx.fillStyle = theme.brand;
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.textAlign = 'center'; ctx.direction = 'rtl';
     ctx.fillText('dastgheibqoba.info', S / 2, S - S * 0.045);
     ctx.restore();
