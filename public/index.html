@@ -1110,9 +1110,9 @@ function extractMediaFromPost(post) {
 // توابع عمومی و سخنرانی
 // ====================================================
 
-async function initWP() {
+async function initWP(forceReset = false) {
     if (allWPCats.length === 0) await fetchWPCategories();
-    else showWPMainCategories();
+    else if (forceReset || wpState.view === 'main') showWPMainCategories();
 }
 
 function setWPLoading(show) {
@@ -1636,10 +1636,13 @@ function closeImageModal() {
 // ناوبری اصلی
 // --------------------------------------------------
 function navToScreen(name) {
+    const prevActive = document.querySelector('.screen.active');
+    const prevName = prevActive ? prevActive.id.replace('screen-', '') : null;
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const targetScreen = document.getElementById('screen-' + name);
     if (targetScreen) targetScreen.classList.add('active');
-    
+
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const navBtn = document.querySelector(`[data-nav="${name}"]`);
     if (navBtn) navBtn.classList.add('active');
@@ -1652,7 +1655,8 @@ function navToScreen(name) {
     }
 
     if (name === 'home') loadBanners();
-    if (name === 'lectures') initWP();
+    // فقط وقتی از صفحه دیگری میاد ریست کنه؛ اگه همین صفحه بوده forceReset
+    if (name === 'lectures') initWP(prevName === 'lectures');
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
     if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
