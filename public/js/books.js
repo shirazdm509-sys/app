@@ -205,7 +205,7 @@ function goToPage(index) {
     let finalHTML=`<h2 class="text-3xl font-black mb-8 pb-4 border-b-2 border-brand-100 leading-snug">${page.name}</h2>`+htmlText;
     if(notes[currentIndex]) finalHTML+=`<div class="mt-12 pt-6 border-t border-dashed border-gray-300 bg-gray-50 p-4 rounded-2xl"><h3 class="text-sm font-bold text-gray-500 mb-2"><i class="fas fa-pen-alt ml-1"></i> یادداشت:</h3><p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${notes[currentIndex]}</p></div>`;
     const tc=document.getElementById('text-content');
-    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';convertDOMNumbers(tc);}
+    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';convertDOMNumbers(tc);applyHighlightsToPage();}
     document.getElementById('header-title').textContent=page.name;
     document.getElementById('chapter-title').textContent=page.season||'';
     document.getElementById('page-counter').textContent=toFa(currentIndex+1)+' / '+toFa(bookData.length);
@@ -228,7 +228,7 @@ function toggleReaderUI(){
 function setupSwipe(){
     const el=document.getElementById('content-container'); if(!el) return;
     el.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX;},{passive:true});
-    el.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;const d=touchStartX-touchEndX;if(Math.abs(d)>60){if(d>0)nextPage();else prevPage();}},{passive:true});
+    el.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;const d=touchStartX-touchEndX;if(Math.abs(d)>60){const s=window.getSelection();if(s&&!s.isCollapsed)return;if(d>0)nextPage();else prevPage();}},{passive:true});
     el.addEventListener('click',()=>{if(window.getSelection().toString().length>0)return;toggleReaderUI();document.getElementById('page-action-menu').classList.add('hidden');});
 }
 
@@ -467,6 +467,9 @@ function applyHighlight(color) {
     const tc = getHighlightContainer(range.commonAncestorContainer);
     if (!tc) return;
 
+    const selectedText = range.toString().trim();
+    if (!selectedText) return;
+
     const mark = document.createElement('mark');
     mark.style.backgroundColor = color;
     mark.style.borderRadius = '3px';
@@ -485,7 +488,8 @@ function applyHighlight(color) {
     if (tc.id === 'text-content') {
         const k = getHighlightKey();
         if (!highlightData[k]) highlightData[k] = [];
-        highlightData[k].push({ id: mark.dataset.hlId, color });
+        // ذخیره متن واقعی برای بازیابی در صفحات بعد
+        highlightData[k].push({ text: selectedText, color, id: mark.dataset.hlId });
         saveHighlights();
     }
     showToast('هایلایت اعمال شد');
@@ -496,16 +500,59 @@ function removeHighlight() {
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);
-        const container = range.commonAncestorContainer.parentElement;
-        if (container && container.tagName === 'MARK') {
-            const parent = container.parentNode;
-            while (container.firstChild) parent.insertBefore(container.firstChild, container);
-            parent.removeChild(container);
+        // اگه روی mark کلیک شده یا داخلشه
+        let markEl = range.commonAncestorContainer;
+        if (markEl.nodeType === Node.TEXT_NODE) markEl = markEl.parentElement;
+        while (markEl && markEl.tagName !== 'MARK') markEl = markEl.parentElement;
+
+        if (markEl && markEl.tagName === 'MARK') {
+            const hlId = markEl.dataset.hlId;
+            const parent = markEl.parentNode;
+            while (markEl.firstChild) parent.insertBefore(markEl.firstChild, markEl);
+            parent.removeChild(markEl);
+            // حذف از localStorage
+            const k = getHighlightKey();
+            const data = JSON.parse(localStorage.getItem(k) || '[]');
+            const updated = data.filter(h => h.id !== hlId && h.text !== markEl.textContent);
+            localStorage.setItem(k, JSON.stringify(updated));
+            if (highlightData[k]) highlightData[k] = updated;
         }
         sel.removeAllRanges();
     }
     hideHighlightToolbar();
     showToast('هایلایت حذف شد');
+}
+
+// بازیابی هایلایت‌ها بعد از رندر صفحه
+function applyHighlightsToPage() {
+    const tc = document.getElementById('text-content');
+    if (!tc) return;
+    const k = getHighlightKey();
+    const data = JSON.parse(localStorage.getItem(k) || '[]');
+    if (!data.length) return;
+    highlightData[k] = data;
+
+    data.forEach(({ text, color }) => {
+        if (!text || text.length < 2) return;
+        // جستجوی text node حاوی متن
+        const walker = document.createTreeWalker(tc, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            if (node.parentElement && node.parentElement.tagName === 'MARK') continue;
+            const idx = node.textContent.indexOf(text);
+            if (idx < 0) continue;
+            const range = document.createRange();
+            range.setStart(node, idx);
+            range.setEnd(node, idx + text.length);
+            const mark = document.createElement('mark');
+            mark.style.backgroundColor = color;
+            mark.style.borderRadius = '3px';
+            mark.style.padding = '0 2px';
+            mark.dataset.hlId = 'restored_' + Date.now();
+            try { range.surroundContents(mark); } catch(e) {}
+            break; // فقط اولین تکرار
+        }
+    });
 }
 
 async function shareSelectedText() {

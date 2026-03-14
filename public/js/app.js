@@ -1,6 +1,8 @@
 // ====================================================
 // ناوبری اصلی
 // ====================================================
+let _screenStack = ['home']; // stack برای back button
+
 function navToScreen(name) {
     const prevActive = document.querySelector('.screen.active');
     const prevName = prevActive ? prevActive.id.replace('screen-', '') : null;
@@ -38,6 +40,12 @@ function navToScreen(name) {
         } else {
             payIframe.src = '';
         }
+    }
+
+    // --- به‌روزرسانی stack ناوبری ---
+    if (_screenStack[_screenStack.length - 1] !== name) {
+        _screenStack.push(name);
+        if (_screenStack.length > 10) _screenStack.shift();
     }
 }
 
@@ -118,6 +126,7 @@ async function loadSliders() {
     sliderSlideW = wrapper.offsetWidth || document.getElementById('app-wrapper')?.offsetWidth || window.innerWidth;
     const slideW = sliderSlideW;
     track.style.width = (sliderData.length * slideW) + 'px';
+    track.style.direction = 'ltr'; // جلوگیری از RTL-flip روی اسلایدر
     track.innerHTML = sliderData.map(sl => {
         const onclick = sl.link ? `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"` : '';
         return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}"></div>`;
@@ -501,21 +510,29 @@ function renderNotifications() {
         c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">اعلانی وجود ندارد</p></div>`;
         return;
     }
-    c.innerHTML = _notifications.map(n => `
+    c.innerHTML = _notifications.map(n => {
+        const isBroadcast = n.type === 'broadcast';
+        const icon = isBroadcast ? 'bullhorn' : 'ticket-alt';
+        const badge = isBroadcast
+            ? '<span class="text-[9px] font-bold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mr-1">همگانی</span>'
+            : '<span class="text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full mr-1">تیکت</span>';
+        return `
         <div class="bg-${n.is_read?'gray-50 border-gray-100':'brand-50 border-brand-100'} border rounded-2xl p-4 cursor-pointer" onclick="markNotifRead(${n.id},this)">
             <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-${n.type==='ticket_reply'?'ticket-alt':'bullhorn'} text-brand-600 text-xs"></i></div>
+                    <div class="w-8 h-8 ${isBroadcast?'bg-teal-100':'bg-orange-100'} rounded-full flex items-center justify-center shrink-0"><i class="fas fa-${icon} ${isBroadcast?'text-teal-600':'text-orange-500'} text-xs"></i></div>
                     <div class="min-w-0">
-                        <h4 class="font-bold text-sm text-gray-800">${n.title}</h4>
+                        <div class="flex items-center flex-wrap gap-1">
+                            <h4 class="font-bold text-sm text-gray-800">${n.title}</h4>${badge}
+                        </div>
                         <p class="text-xs text-gray-600 mt-0.5 line-clamp-2">${n.message}</p>
                     </div>
                 </div>
                 ${!n.is_read?'<span class="w-2 h-2 bg-red-500 rounded-full shrink-0 mt-1.5"></span>':''}
             </div>
             <span class="text-[10px] text-gray-400 mt-2 block">${new Date(n.created_at).toLocaleString('fa-IR')}</span>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 function markNotifRead(id, el) {
@@ -661,19 +678,6 @@ function _hasClass(id, cls) {
     return el ? el.classList.contains(cls) : false;
 }
 
-// stack داخلی ناوبری
-let _screenStack = ['home'];
-
-const _origNavToScreen = navToScreen;
-function navToScreen(name) {
-    _origNavToScreen(name);
-    // اضافه به stack (اگه دوبار همون صفحه نزده باشیم)
-    if (_screenStack[_screenStack.length - 1] !== name) {
-        _screenStack.push(name);
-        if (_screenStack.length > 10) _screenStack.shift();
-    }
-}
-
 function handleBackButton() {
     // لایه‌ها به ترتیب z-index از بالا به پایین
     if (_isVisible('pwa-install-modal'))    { closePwaModal();      return; }
@@ -693,16 +697,28 @@ function handleBackButton() {
     }
     if (_isVisible('qa-conversation-view')) { closeQAConversation(); return; }
 
-    // برگشت به صفحه قبلی در stack
+    // برگشت به صفحه قبلی در stack (بدون push مجدد)
     if (_screenStack.length > 1) {
         _screenStack.pop();
         const prev = _screenStack[_screenStack.length - 1];
-        _origNavToScreen(prev); // مستقیم بدون push مجدد به stack
+        // مستقیم DOM را آپدیت کن بدون اینکه stack دوباره رشد کنه
+        const prevActive = document.querySelector('.screen.active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const t = document.getElementById('screen-' + prev);
+        if (t) t.classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const nb = document.querySelector(`[data-nav="${prev}"]`);
+        if (nb) nb.classList.add('active');
         return;
     }
 
-    // اگه روی home هستیم و هیچ لایه‌ای باز نیست → برو home (نمایش بده)
-    _origNavToScreen('home');
+    // روی home هستیم → مطمئن بشیم home اکتیوه
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const h = document.getElementById('screen-home');
+    if (h) h.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const nb = document.querySelector('[data-nav="home"]');
+    if (nb) nb.classList.add('active');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
