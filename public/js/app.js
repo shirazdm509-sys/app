@@ -632,6 +632,57 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
 });
 
+// ====================================================
+// مدیریت دکمه Back اندروید / مرورگر
+// ====================================================
+function _isVisible(id) {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    return !el.classList.contains('hidden') && el.style.display !== 'none';
+}
+function _hasClass(id, cls) {
+    const el = document.getElementById(id);
+    return el ? el.classList.contains(cls) : false;
+}
+
+function handleBackButton() {
+    // ترتیب: بالاترین z-index اول بسته بشه
+    if (_isVisible('pwa-install-modal'))      { closePwaModal();         return; }
+    if (_isVisible('image-modal'))            { closeImageModal();       return; }
+    if (_isVisible('webview-modal'))          { closeWebview();          return; }
+    if (_isVisible('notif-panel'))            { closeNotifications();    return; }
+    if (_isVisible('global-search-modal'))    { closeGlobalSearch();     return; }
+    if (_isVisible('note-modal'))             { closeNoteModal();        return; }
+    if (_isVisible('search-modal'))           { closeSearch();           return; }
+    if (_isVisible('settings-overlay')) { closeSettings(); return; }
+    if (_hasClass('reader-overlay', 'open'))  { closeReader();           return; }
+    if (_hasClass('toc-overlay', 'open'))     { closeToc();              return; }
+
+    // صفحات single view
+    const singleViews = ['lectures-single-view','news-single-view','statements-single-view'];
+    for (const id of singleViews) {
+        if (_isVisible(id)) {
+            document.getElementById(id).classList.add('hidden');
+            return;
+        }
+    }
+
+    // QA conversation
+    const qaConv = document.getElementById('qa-conversation-view');
+    if (qaConv && _isVisible('qa-conversation-view')) { closeQAConversation(); return; }
+
+    // اگه هیچ چیزی باز نبود → برو خانه
+    if (typeof showTab === 'function') showTab('home');
+}
+
+// push یه state اولیه تا back button رو intercept کنیم
+history.pushState({ app: true }, '');
+window.addEventListener('popstate', (e) => {
+    handleBackButton();
+    // همیشه یه state در تاریخچه نگه دار تا back دوباره قابل استفاده باشه
+    history.pushState({ app: true }, '');
+});
+
 init();
 
 // ====================================================
