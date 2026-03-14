@@ -32,19 +32,19 @@ function renderLibrary() {
         const progress=saved&&book.page_count?Math.round((saved/book.page_count)*100):0;
         const widthClass = isHome ? 'w-32 shrink-0 snap-center' : 'w-full';
         const offline = isBookOffline(book.id);
-        const dlBtn = `<button onclick="event.stopPropagation();toggleOfflineBook(${book.id})" id="dl-btn-${book.id}"
-            class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition z-10 ${offline ? 'bg-brand-500 text-white' : 'bg-white/80 text-gray-600'}"
-            title="${offline ? 'حذف از حافظه آفلاین' : 'دانلود برای آفلاین'}">
-            <i class="fas ${offline ? 'fa-check' : 'fa-arrow-down'} text-[9px]"></i>
-        </button>`;
 
-        return `<div onclick="openBook(${book.id})" class="${widthClass} cursor-pointer book-card active:scale-95">
-            <div class="relative rounded-xl overflow-hidden shadow-md border border-gray-100 mb-2 aspect-[3/4] max-h-28 book-cover-wrap">
+        // دکمه دانلود خارج از overflow-hidden قرار میگیره
+        return `<div onclick="openBook(${book.id})" class="${widthClass} relative cursor-pointer book-card active:scale-95">
+            <div class="rounded-xl overflow-hidden shadow-md border border-gray-100 mb-2 aspect-[3/4] max-h-28 book-cover-wrap">
                 ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
                 <div class="w-full h-full bg-gradient-to-br ${colors[i%colors.length]} flex items-center justify-center p-2" style="${book.cover?'display:none':''}"><span class="text-white text-center font-black text-[10px] leading-tight drop-shadow-md">${book.title}</span></div>
-                ${dlBtn}
                 ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-1.5 py-1"><div class="w-full bg-white/20 rounded-full h-0.5 overflow-hidden"><div class="bg-brand-400 h-full rounded-full" style="width:${progress}%"></div></div><span class="text-[8px] text-white/90 mt-0.5 block">${progress}٪</span></div>`:''}
             </div>
+            <button onclick="event.stopPropagation();toggleOfflineBook(${book.id})" id="dl-btn-${book.id}"
+                class="absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-lg z-20 ${offline ? 'bg-brand-500 text-white' : 'bg-white/90 text-gray-600'}"
+                title="${offline ? 'حذف از حافظه آفلاین' : 'دانلود برای آفلاین'}">
+                <i class="fas ${offline ? 'fa-check' : 'fa-download'} text-[10px]"></i>
+            </button>
             <h3 class="book-title font-bold text-[13px] text-gray-800 truncate px-0.5 transition-all duration-200">${book.title}</h3>
             <p class="text-[10px] text-gray-400 px-0.5 mt-0.5">${book.author||'ناشناس'}</p>
         </div>`;
@@ -135,9 +135,9 @@ function updateDlBtn(bookId, downloaded) {
     const btn = document.getElementById('dl-btn-' + bookId);
     if (!btn) return;
     btn.disabled = false;
-    btn.className = `absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md transition z-10 ${downloaded ? 'bg-brand-500 text-white' : 'bg-white/80 text-gray-600'}`;
+    btn.className = `absolute top-1.5 right-1.5 w-7 h-7 rounded-full flex items-center justify-center shadow-lg z-20 ${downloaded ? 'bg-brand-500 text-white' : 'bg-white/90 text-gray-600'}`;
     btn.title = downloaded ? 'حذف از حافظه آفلاین' : 'دانلود برای آفلاین';
-    btn.innerHTML = `<i class="fas ${downloaded ? 'fa-check' : 'fa-arrow-down'} text-[9px]"></i>`;
+    btn.innerHTML = `<i class="fas ${downloaded ? 'fa-check' : 'fa-download'} text-[10px]"></i>`;
 }
 
 // ====================================================
