@@ -533,7 +533,7 @@ async function uploadBook(e){
     let d;
     try{ d=await r.json(); }catch(je){ d={}; }
     if(r.ok&&d.success){showToast('کتاب آپلود شد');document.getElementById('upload-form').reset();loadBooks();}
-    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است. حداکثر ۴۰۰ مگابایت.',false);
+    else if(r.status===413) showToast('خطای ۴۱۳: محدودیت آپلود در Nginx سرور. لطفاً client_max_body_size را در nginx.conf تنظیم کنید.',false);
     else showToast(d.error||'خطا در آپلود',false);
   }catch(e){
     if(e.message==='401 Unauthorized') return;
