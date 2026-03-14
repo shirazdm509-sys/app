@@ -36,10 +36,11 @@ app.use(cors());
 
 // Rate limiting
 if (rateLimit) {
-    const generalLimiter = rateLimit({ windowMs: 15*60*1000, max: 300 });
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 15, message: { error: 'تعداد تلاش بیش از حد است' } });
+    // فقط روی API اعمال میشه نه فایل‌های استاتیک
+    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500 });
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, message: { error: 'تعداد تلاش بیش از حد است' } });
     app.use('/api/auth', authLimiter);
-    app.use(generalLimiter);
+    app.use('/api/', apiLimiter);
 }
 
 app.use(express.json({ limit: '10mb' }));
