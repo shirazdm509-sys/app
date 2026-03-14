@@ -120,6 +120,7 @@
                     <button onclick="showPwaInstallPrompt()" id="pwa-install-btn" class="hidden w-10 h-10 bg-brand-600 shadow-sm rounded-full flex items-center justify-center text-white hover:bg-brand-700 transition" title="نصب اپلیکیشن">
                         <i class="fas fa-download text-xs"></i>
                     </button>
+
                 </div>
             </header>
 
@@ -833,6 +834,33 @@
 <script src="/js/news.js"></script>
 <script src="/js/app.js"></script>
 
+<!-- PWA Install Modal -->
+<div id="pwa-install-modal" class="hidden fixed inset-0 z-[9999] flex items-end justify-center p-4" style="background:rgba(0,0,0,0.5)">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl" onclick="event.stopPropagation()">
+    <div class="flex items-center gap-3 mb-4">
+      <img src="/icons/icon-96.png" class="w-12 h-12 rounded-xl" alt="icon">
+      <div>
+        <div class="font-bold text-gray-800 dark:text-white text-sm">مرکز نشر آثار</div>
+        <div class="text-xs text-gray-500">نصب اپلیکیشن</div>
+      </div>
+    </div>
+    <div id="pwa-ios-guide" class="hidden">
+      <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">برای نصب در iPhone/iPad:</p>
+      <div class="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+        <div class="flex items-center gap-2"><span class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">۱</span><span>دکمه <i class="fas fa-share-from-square mx-1"></i> پایین مرورگر را بزنید</span></div>
+        <div class="flex items-center gap-2"><span class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">۲</span><span>گزینه <b>«Add to Home Screen»</b> را انتخاب کنید</span></div>
+        <div class="flex items-center gap-2"><span class="w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">۳</span><span>روی <b>«Add»</b> کلیک کنید</span></div>
+      </div>
+    </div>
+    <div id="pwa-generic-guide" class="hidden">
+      <p class="text-sm text-gray-600 dark:text-gray-300">مرورگر شما نصب خودکار را پشتیبانی نمی‌کند.<br>از منوی مرورگر گزینه «Add to Home Screen» یا «Install App» را انتخاب کنید.</p>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button id="pwa-install-confirm" class="hidden flex-1 bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition">نصب</button>
+      <button onclick="closePwaModal()" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-200 transition">بستن</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

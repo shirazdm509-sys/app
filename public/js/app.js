@@ -674,21 +674,56 @@ registerServiceWorker();
 // PWA Install Prompt
 // ====================================================
 let _pwaInstallPrompt = null;
+const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const _isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+function _showInstallBtn() {
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.classList.remove('hidden');
+}
+
+// نمایش دکمه اگر standalone نباشد
+if (!_isStandalone) {
+    document.addEventListener('DOMContentLoaded', _showInstallBtn);
+}
+
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     _pwaInstallPrompt = e;
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.classList.remove('hidden');
+    _showInstallBtn();
 });
+
 window.addEventListener('appinstalled', () => {
     _pwaInstallPrompt = null;
     const btn = document.getElementById('pwa-install-btn');
     if (btn) btn.classList.add('hidden');
 });
+
 function showPwaInstallPrompt() {
+    if (_isStandalone) return;
     if (_pwaInstallPrompt) {
+        // Chrome / Android / Edge - نصب مستقیم
         _pwaInstallPrompt.prompt();
         _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; });
+    } else if (_isIos) {
+        // iOS Safari - راهنمای دستی
+        const modal = document.getElementById('pwa-install-modal');
+        const iosGuide = document.getElementById('pwa-ios-guide');
+        if (modal && iosGuide) { modal.classList.remove('hidden'); iosGuide.classList.remove('hidden'); }
+    } else {
+        // سایر مرورگرها
+        const modal = document.getElementById('pwa-install-modal');
+        const genericGuide = document.getElementById('pwa-generic-guide');
+        if (modal && genericGuide) { modal.classList.remove('hidden'); genericGuide.classList.remove('hidden'); }
+    }
+}
+
+function closePwaModal() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('pwa-ios-guide')?.classList.add('hidden');
+        document.getElementById('pwa-generic-guide')?.classList.add('hidden');
     }
 }
 
