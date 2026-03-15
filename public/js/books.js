@@ -435,11 +435,14 @@ function saveHighlights() { const k = getHighlightKey(); localStorage.setItem(k,
 
 const HIGHLIGHT_CONTAINERS = ['text-content', 'single-post-content', 'news-single-content', 'statements-single-content'];
 
-// ذخیره selection روی موبایل (iOS selection را قبل از onclick پاک می‌کند)
+// ذخیره selection روی موبایل — فقط اگه selection فعال داریم ذخیره کن
 let _savedRange = null;
 function saveSelectionForMobile() {
     const sel = window.getSelection();
-    _savedRange = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        _savedRange = sel.getRangeAt(0).cloneRange();
+    }
+    // اگه selection خالیه، _savedRange رو دست نزن — مقدار قبلی حفظ میشه
 }
 // ذخیره + پاک کردن selection → جلوگیری از منوی native مرورگر
 function saveAndClearSelection() {
