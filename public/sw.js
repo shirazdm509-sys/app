@@ -1,13 +1,22 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v5';
-const STATIC_CACHE = 'nashr-static-v5';
-const DYNAMIC_CACHE = 'nashr-dynamic-v5';
+const CACHE_NAME = 'nashr-asar-v6';
+const STATIC_CACHE = 'nashr-static-v6';
+const DYNAMIC_CACHE = 'nashr-dynamic-v6';
 
 const STATIC_ASSETS = [
   '/',
   '/css/style.css',
+  '/css/app.css',
   '/js/app.js',
+  '/js/books.js',
+  '/js/utils.js',
+  '/js/offline.js',
+  '/js/lectures.js',
+  '/js/media.js',
+  '/js/news.js',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 function offlineResponse(msg) {

@@ -626,6 +626,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     // مدیریت انتخاب متن (بدون منوی native مرورگر)
     // ──────────────────────────────────────────────
     const _isMobile = window.matchMedia('(pointer: coarse)').matches;
+    let _selChangeTimer = null;
 
     function _handleSelectionEnd() {
         const sel = window.getSelection();
@@ -641,22 +642,38 @@ document.addEventListener('DOMContentLoaded',()=>{
         showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
     }
 
-    // موبایل: touchend (بعد از رها کردن انگشت)
-    document.addEventListener('touchend', () => {
-        // کمی صبر تا مرورگر selection را قطعی کند
-        setTimeout(_handleSelectionEnd, 30);
+    // استفاده از selectionchange برای سازگاری بهتر با اندروید
+    // وقتی کاربر متنی انتخاب می‌کنه، با تاخیر selection رو میگیریم و پاک میکنیم
+    // تا منوی native اندروید فرصت نمایش پیدا نکنه
+    document.addEventListener('selectionchange', () => {
+        if (_selChangeTimer) clearTimeout(_selChangeTimer);
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+        if (typeof getHighlightContainer !== 'function') return;
+        const container = getHighlightContainer(sel.anchorNode);
+        if (!container) return;
+        // تاخیر کوتاه روی موبایل تا selection نهایی بشه، بعد فوری بگیر و پاک کن
+        _selChangeTimer = setTimeout(_handleSelectionEnd, _isMobile ? 150 : 50);
     });
 
-    // دسکتاپ: mouseup
+    // دسکتاپ: mouseup (پشتیبان)
     document.addEventListener('mouseup', () => {
         if (_isMobile) return;
         setTimeout(_handleSelectionEnd, 30);
     });
 
-    // جلوگیری از منوی راست‌کلیک در محتوا
+    // جلوگیری از منوی راست‌کلیک و منوی بلند-لمس در محتوای متنی
     document.addEventListener('contextmenu', (e) => {
         if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
             e.preventDefault();
+        }
+    });
+
+    // جلوگیری از selectstart اضافی اندروید (گزینه‌های copy/paste سیستم)
+    document.addEventListener('selectstart', (e) => {
+        if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
+            // اجازه selection بده ولی callout رو ببند
+            e.target.style.webkitTouchCallout = 'none';
         }
     });
 
@@ -688,7 +705,7 @@ function handleBackButton() {
     // لایه‌ها به ترتیب z-index از بالا به پایین
     if (_isVisible('pwa-install-modal'))    { closePwaModal();      return; }
     if (_isVisible('image-modal'))          { closeImageModal();    return; }
-    if (_isVisible('webview-modal'))        { closeWebview();       return; }
+    if (_isVisible('webview-modal'))        { closeWebView();       return; }
     if (_isVisible('notif-panel'))          { closeNotifications(); return; }
     if (_isVisible('global-search-modal'))  { closeGlobalSearch();  return; }
     if (_isVisible('note-modal'))           { closeNoteModal();     return; }
@@ -701,7 +718,7 @@ function handleBackButton() {
     for (const id of singleViews) {
         if (_isVisible(id)) { document.getElementById(id).classList.add('hidden'); return; }
     }
-    if (_isVisible('qa-conversation-view')) { closeQAConversation(); return; }
+    if (_isVisible('qa-conversation')) { closeQAConversation(); return; }
 
     // برگشت به صفحه قبلی در stack (بدون push مجدد)
     if (_screenStack.length > 1) {
@@ -728,14 +745,26 @@ function handleBackButton() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // یک state اضافه تا back button در مرورگر/اندروید interceptشه
-    history.pushState({ pwaApp: true }, document.title, location.href);
+    // چند state اضافه تا back button در مرورگر/اندروید مطمئناً intercept بشه
+    // حتی اگه race condition باشه، با ۳ state شانس خروج تصادفی صفره
+    for (let i = 0; i < 3; i++) {
+        history.pushState({ pwaApp: true, depth: i }, document.title, location.href);
+    }
 });
 
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (e) => {
     // بلافاصله state رو برگردون تا back بعدی هم کار کنه
     history.pushState({ pwaApp: true }, document.title, location.href);
     handleBackButton();
+});
+
+// جلوگیری از خروج تصادفی وقتی PWA standalone هست
+window.addEventListener('beforeunload', (e) => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    if (isStandalone) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
 });
 
 init();

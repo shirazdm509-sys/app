@@ -21,7 +21,24 @@ button, a, label, [role="button"] { touch-action: manipulation; cursor: pointer;
 #text-content,
 #single-post-content,
 #news-single-content,
-#statements-single-content { -webkit-user-select: text; user-select: text; -webkit-touch-callout: none; }
+#statements-single-content {
+    -webkit-user-select: text; user-select: text;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+/* پنهان کردن منوی selection اندروید - هندل‌های انتخاب */
+#text-content::selection,
+#single-post-content::selection,
+#news-single-content::selection,
+#statements-single-content::selection {
+    background: rgba(13, 148, 136, 0.25);
+}
+#text-content *::selection,
+#single-post-content *::selection,
+#news-single-content *::selection,
+#statements-single-content *::selection {
+    background: rgba(13, 148, 136, 0.25);
+}
 /* ورودی‌ها */
 input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; touch-action: manipulation; }
 body {
@@ -143,14 +160,10 @@ body {
 .highlight-green { background: #bbf7d0 !important; color: #14532d !important; border-radius: 3px; padding: 0 2px; }
 .highlight-blue { background: #bfdbfe !important; color: #1e3a8a !important; border-radius: 3px; padding: 0 2px; }
 #highlight-toolbar {
-    position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%);
-    background: #1f2937; color: white;
-    border-radius: 40px; padding: 8px 16px;
-    display: none; gap: 8px; align-items: center;
-    z-index: 210; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 260; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     white-space: nowrap;
 }
-#highlight-toolbar.show { display: flex; animation: fadeIn 0.2s ease; }
+#highlight-toolbar:not(.hidden) { animation: fadeIn 0.2s ease; }
 .hl-btn { width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; cursor: pointer; transition: transform 0.2s; }
 .hl-btn:hover { transform: scale(1.2); }
 
