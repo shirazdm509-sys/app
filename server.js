@@ -36,10 +36,11 @@ app.use(cors());
 
 // Rate limiting
 if (rateLimit) {
-    const generalLimiter = rateLimit({ windowMs: 15*60*1000, max: 300 });
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 15, message: { error: 'تعداد تلاش بیش از حد است' } });
+    // فقط روی API اعمال میشه نه فایل‌های استاتیک
+    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500 });
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, message: { error: 'تعداد تلاش بیش از حد است' } });
     app.use('/api/auth', authLimiter);
-    app.use(generalLimiter);
+    app.use('/api/', apiLimiter);
 }
 
 app.use(express.json({ limit: '10mb' }));
@@ -63,15 +64,16 @@ app.get('/manifest.json', (req, res) => {
             scope: '/',
             lang: 'fa',
             dir: 'rtl',
+            id: '/',
             icons: [
-                { src: '/icons/icon-72.png', sizes: '72x72', type: 'image/png' },
-                { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' },
-                { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png' },
-                { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png' },
-                { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png' },
-                { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-                { src: '/icons/icon-384.png', sizes: '384x384', type: 'image/png' },
-                { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+                { src: '/icons/icon-72.png', sizes: '72x72', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-384.png', sizes: '384x384', type: 'image/png', purpose: 'any maskable' },
+                { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
             ]
         };
         res.setHeader('Content-Type', 'application/manifest+json');
@@ -80,6 +82,15 @@ app.get('/manifest.json', (req, res) => {
     });
 });
 
+// HTML files: no-cache so updates are reflected immediately
+app.use((req, res, next) => {
+    if (req.path.endsWith('.html') || req.path === '/') {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true }));
 
 // DB
@@ -128,6 +139,11 @@ function initDb() {
             ['pwa_theme_color','#0d9488'],
             ['pwa_bg_color','#ffffff'],
             ['dark_mode_enabled','1'],
+            ['splash_bg_color','#ffffff'],
+            ['splash_title','مرکز نشر آثار'],
+            ['splash_subtitle','در حال آماده‌سازی و دریافت اطلاعات...'],
+            ['splash_spinner_color','#0d9488'],
+            ['splash_icon_url',''],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
@@ -183,11 +199,17 @@ function findBestTable(bookDb) {
 }
 function countPages(p){
     return new Promise(resolve=>{
+        // Timeout after 20 seconds to avoid hanging on large databases
+        const timer = setTimeout(()=>{ resolve(0); }, 20000);
         const db=new sqlite3.Database(p,sqlite3.OPEN_READONLY,async err=>{
-            if(err) return resolve(0);
+            if(err){ clearTimeout(timer); return resolve(0); }
             const t=await findBestTable(db);
-            if(!t){db.close();return resolve(0);}
-            db.get(`SELECT COUNT(*) as cnt FROM "${t}"`,[],(err,r)=>{db.close();resolve(err?0:r.cnt);});
+            if(!t){ clearTimeout(timer); db.close(); return resolve(0); }
+            db.get(`SELECT COUNT(*) as cnt FROM "${t}"`,[],(err,r)=>{
+                clearTimeout(timer);
+                db.close();
+                resolve(err?0:r.cnt);
+            });
         });
     });
 }
@@ -235,6 +257,82 @@ app.get('/api/books/:id/pages',(req,res)=>{
             });
         });
     });
+});
+
+// === API SEARCH ===
+app.get('/api/search', async (req, res) => {
+    const q = (req.query.q || '').trim().toLowerCase();
+    if (!q || q.length < 2) return res.json({ books: [], pages: [] });
+
+    // Search in book titles/authors
+    mainDb.all(
+        `SELECT id,title,author,cover,page_count FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY created_at DESC`,
+        [`%${q}%`, `%${q}%`],
+        async (err, bookMatches) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            // Search in page content of all books
+            mainDb.all('SELECT id, title, author, cover, db_filename FROM books', [], async (err2, allB) => {
+                if (err2 || !allB) return res.json({ books: bookMatches || [], pages: [] });
+
+                const pageResults = [];
+                const MAX_RESULTS = 20;
+
+                for (const book of allB) {
+                    if (pageResults.length >= MAX_RESULTS) break;
+                    if (!book.db_filename) continue;
+                    const dbp = path.resolve(__dirname, 'books', path.basename(book.db_filename));
+                    if (!fs.existsSync(dbp)) continue;
+
+                    await new Promise(resolve => {
+                        const bDb = new sqlite3.Database(dbp, sqlite3.OPEN_READONLY, async openErr => {
+                            if (openErr) return resolve();
+                            const tbl = await findBestTable(bDb);
+                            if (!tbl) { bDb.close(); return resolve(); }
+                            bDb.all(`PRAGMA table_info("${tbl}")`, [], (_, cols) => {
+                                if (!cols) { bDb.close(); return resolve(); }
+                                const cn = cols.map(c => c.name), cnl = cn.map(c => c.toLowerCase().trim());
+                                const textCols = ['text', 'content', 'body', 'matn', 'description', 'html', 'متن'];
+                                const nameCols = ['name', 'title', 'subject', 'topic', 'heading', 'عنوان'];
+                                const pageCols = ['page', 'pagenumber', 'r'];
+                                const idCols = ['id', '_id', 'bookid', 'rowid'];
+                                const tcol = textCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const ncol = nameCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const pcol = pageCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const icol = idCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                                const searchCol = tcol !== undefined ? cn[tcol] : (ncol !== undefined ? cn[ncol] : null);
+                                if (!searchCol) { bDb.close(); return resolve(); }
+                                bDb.all(
+                                    `SELECT * FROM "${tbl}" WHERE LOWER("${searchCol}") LIKE ? LIMIT 5`,
+                                    [`%${q}%`],
+                                    (qErr, rows) => {
+                                        bDb.close();
+                                        if (!qErr && rows) {
+                                            rows.forEach((row, idx) => {
+                                                const getV = (ns) => { for (const k of Object.keys(row)) { if (ns.includes(k.toLowerCase().trim())) { let v = row[k]; if (Buffer.isBuffer(v)) v = v.toString('utf8'); return v; } } return null; };
+                                                const text = (getV(textCols) || '').toString();
+                                                const name = (getV(nameCols) || '').toString();
+                                                const pageNum = getV(pageCols) ?? idx;
+                                                const rowId = getV(idCols) ?? idx;
+                                                // Get snippet around match
+                                                const ltext = text.toLowerCase();
+                                                const pos = ltext.indexOf(q);
+                                                const snippet = pos >= 0 ? text.substring(Math.max(0, pos - 60), pos + 120) : text.substring(0, 180);
+                                                pageResults.push({ bookId: book.id, bookTitle: book.title, bookAuthor: book.author, bookCover: book.cover, pageId: rowId, pageName: name, pageNum, snippet });
+                                            });
+                                        }
+                                        resolve();
+                                    }
+                                );
+                            });
+                        });
+                    });
+                }
+
+                res.json({ books: bookMatches || [], pages: pageResults });
+            });
+        }
+    );
 });
 
 // === API SETTINGS (PUBLIC) ===
@@ -370,13 +468,12 @@ app.get('/api/tickets/:id',(req,res)=>{
 
 // === NOTIFICATIONS (PUBLIC - for users) ===
 app.get('/api/notifications',userAuth,(req,res)=>{
-    // Get broadcast notifications + ticket reply notifications not yet read
+    // Get broadcast notifications + ticket reply notifications for this user
     mainDb.all(`
         SELECT n.id, n.title, n.message, n.type, n.created_at,
                COALESCE(un.is_read,0) as is_read
         FROM notifications n
-        LEFT JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
-        WHERE n.type='broadcast'
+        INNER JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
         ORDER BY n.created_at DESC LIMIT 50
     `,[req.userId],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
@@ -389,11 +486,7 @@ app.post('/api/notifications/read',userAuth,(req,res)=>{
     mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,notifId],()=>res.json({success:true}));
 });
 app.post('/api/notifications/read-all',userAuth,(req,res)=>{
-    mainDb.all('SELECT id FROM notifications WHERE type="broadcast"',[],(err,notifs)=>{
-        if(!notifs||!notifs.length) return res.json({success:true});
-        notifs.forEach(n=>mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,n.id]));
-        res.json({success:true});
-    });
+    mainDb.run('UPDATE user_notifications SET is_read=1 WHERE user_id=?',[req.userId],()=>res.json({success:true}));
 });
 
 // === ADMIN APIS ===
