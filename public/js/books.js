@@ -543,25 +543,63 @@ function applyHighlightsToPage() {
 
     data.forEach(({ text, color }) => {
         if (!text || text.length < 2) return;
-        // جستجوی text node حاوی متن
-        const walker = document.createTreeWalker(tc, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while ((node = walker.nextNode())) {
-            if (node.parentElement && node.parentElement.tagName === 'MARK') continue;
-            const idx = node.textContent.indexOf(text);
-            if (idx < 0) continue;
-            const range = document.createRange();
-            range.setStart(node, idx);
-            range.setEnd(node, idx + text.length);
-            const mark = document.createElement('mark');
-            mark.style.backgroundColor = color;
-            mark.style.borderRadius = '3px';
-            mark.style.padding = '0 2px';
-            mark.dataset.hlId = 'restored_' + Date.now();
-            try { range.surroundContents(mark); } catch(e) {}
-            break; // فقط اولین تکرار
-        }
+        _restoreHighlight(tc, text, color);
     });
+}
+
+// پیدا کردن متن در سراسر node‌ها (حتی اگه چند node رو پوشش بده)
+function _restoreHighlight(tc, text, color) {
+    // کل متن خام را بساز (بدون MARK‌ها)
+    const nodes = [];
+    const walker = document.createTreeWalker(tc, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.parentElement && node.parentElement.tagName === 'MARK') continue;
+        nodes.push(node);
+    }
+
+    // متن کامل رو از همه nodeها بساز و موقعیت هر node رو ردیابی کن
+    let fullText = '';
+    const offsets = []; // شروع هر node در fullText
+    nodes.forEach(n => { offsets.push(fullText.length); fullText += n.textContent; });
+
+    const idx = fullText.indexOf(text);
+    if (idx < 0) return;
+
+    const endIdx = idx + text.length;
+
+    // node شروع و پایان رو پیدا کن
+    let startNode = null, startOffset = 0, endNode = null, endOffset = 0;
+    for (let i = 0; i < nodes.length; i++) {
+        const nStart = offsets[i];
+        const nEnd = nStart + nodes[i].textContent.length;
+        if (!startNode && nEnd > idx) {
+            startNode = nodes[i];
+            startOffset = idx - nStart;
+        }
+        if (nEnd >= endIdx) {
+            endNode = nodes[i];
+            endOffset = endIdx - nStart;
+            break;
+        }
+    }
+    if (!startNode || !endNode) return;
+
+    const range = document.createRange();
+    range.setStart(startNode, startOffset);
+    range.setEnd(endNode, endOffset);
+
+    const mark = document.createElement('mark');
+    mark.style.backgroundColor = color;
+    mark.style.borderRadius = '3px';
+    mark.style.padding = '0 2px';
+    mark.dataset.hlId = 'restored_' + Date.now();
+    try {
+        range.surroundContents(mark);
+    } catch(e) {
+        // اگه متن روی چند element بود از extractContents استفاده کن
+        try { const frag = range.extractContents(); mark.appendChild(frag); range.insertNode(mark); } catch(e2) {}
+    }
 }
 
 async function shareSelectedText() {
