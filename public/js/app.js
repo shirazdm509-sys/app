@@ -626,54 +626,52 @@ document.addEventListener('DOMContentLoaded',()=>{
     // مدیریت انتخاب متن (بدون منوی native مرورگر)
     // ──────────────────────────────────────────────
     const _isMobile = window.matchMedia('(pointer: coarse)').matches;
-    let _selChangeTimer = null;
+    // پرچم: آیا selection فعال در یک container مجاز داریم؟
+    let _selInContainer = false;
+
+    // selectionchange فقط برای ردیابی وجود selection استفاده میشه
+    document.addEventListener('selectionchange', () => {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+            _selInContainer = false;
+            return;
+        }
+        if (typeof getHighlightContainer !== 'function') return;
+        _selInContainer = !!getHighlightContainer(sel.anchorNode);
+    });
 
     function _handleSelectionEnd() {
+        if (!_selInContainer) return;
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
         if (typeof getHighlightContainer !== 'function') return;
         const container = getHighlightContainer(sel.anchorNode);
         if (!container) return;
-        // موقعیت را قبل از پاک کردن بگیر
         const r = sel.getRangeAt(0).getBoundingClientRect();
         if (r.width === 0 && r.height === 0) return;
-        // ذخیره و پاک کردن فوری → native toolbar فرصت نمایش ندارد
+        // ذخیره و پاک کردن → منوی native اندروید ناپدید میشه
         if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
+        _selInContainer = false;
         showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
     }
 
-    // استفاده از selectionchange برای سازگاری بهتر با اندروید
-    // وقتی کاربر متنی انتخاب می‌کنه، با تاخیر selection رو میگیریم و پاک میکنیم
-    // تا منوی native اندروید فرصت نمایش پیدا نکنه
-    document.addEventListener('selectionchange', () => {
-        if (_selChangeTimer) clearTimeout(_selChangeTimer);
-        const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-        if (typeof getHighlightContainer !== 'function') return;
-        const container = getHighlightContainer(sel.anchorNode);
-        if (!container) return;
-        // تاخیر کوتاه روی موبایل تا selection نهایی بشه، بعد فوری بگیر و پاک کن
-        _selChangeTimer = setTimeout(_handleSelectionEnd, _isMobile ? 150 : 50);
+    // موبایل: touchend — بعد از رها کردن انگشت، selection نهایی شده
+    document.addEventListener('touchend', () => {
+        if (!_selInContainer) return;
+        // تاخیر کوتاه تا اندروید selection نهایی رو confirm کنه
+        setTimeout(_handleSelectionEnd, 100);
     });
 
-    // دسکتاپ: mouseup (پشتیبان)
+    // دسکتاپ: mouseup
     document.addEventListener('mouseup', () => {
         if (_isMobile) return;
         setTimeout(_handleSelectionEnd, 30);
     });
 
-    // جلوگیری از منوی راست‌کلیک و منوی بلند-لمس در محتوای متنی
+    // جلوگیری از منوی راست‌کلیک در محتوا
     document.addEventListener('contextmenu', (e) => {
         if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
             e.preventDefault();
-        }
-    });
-
-    // جلوگیری از selectstart اضافی اندروید (گزینه‌های copy/paste سیستم)
-    document.addEventListener('selectstart', (e) => {
-        if (typeof getHighlightContainer === 'function' && getHighlightContainer(e.target)) {
-            // اجازه selection بده ولی callout رو ببند
-            e.target.style.webkitTouchCallout = 'none';
         }
     });
 
