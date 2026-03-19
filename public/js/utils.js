@@ -5,7 +5,7 @@ window.addEventListener('load', () => {
     if (typeof tailwind === 'undefined') {
         const txt = document.getElementById('loading-text');
         const spn = document.getElementById('loading-spinner');
-        if (txt) txt.innerHTML = '<span style="color:#ef4444;font-size:16px;">❌ اینترنت شما مسدود است!</span><br><br>لطفاً فیلترشکن خود را روشن کرده و صفحه را رفرش کنید.';
+        if (txt) txt.innerHTML = '<span style="color:#ef4444;font-size:16px;">❌ خطا در بارگذاری</span><br><br>لطفاً صفحه را رفرش کنید.';
         if (spn) spn.style.display = 'none';
     }
 });

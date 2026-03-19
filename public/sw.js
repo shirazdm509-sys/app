@@ -1,7 +1,7 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v6';
-const STATIC_CACHE = 'nashr-static-v6';
-const DYNAMIC_CACHE = 'nashr-dynamic-v6';
+const CACHE_NAME = 'nashr-asar-v7';
+const STATIC_CACHE = 'nashr-static-v7';
+const DYNAMIC_CACHE = 'nashr-dynamic-v7';
 
 const STATIC_ASSETS = [
   '/',
@@ -17,6 +17,18 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/vendor/tailwind.js',
+  '/vendor/fa/all.local.min.css',
+  '/vendor/fa/webfonts/fa-solid-900.woff2',
+  '/vendor/fa/webfonts/fa-regular-400.woff2',
+  '/vendor/fa/webfonts/fa-brands-400.woff2',
+  '/vendor/fonts/vazir/font-face-local.css',
+  '/vendor/fonts/vazir/Vazir-Regular.woff2',
+  '/vendor/fonts/vazir/Vazir-Bold.woff2',
+  '/vendor/fonts/vazir/Vazir-Medium.woff2',
+  '/vendor/fonts/shabnam/font-face-local.css',
+  '/vendor/fonts/shabnam/Shabnam.woff2',
+  '/vendor/fonts/shabnam/Shabnam-Bold.woff2',
 ];
 
 function offlineResponse(msg) {
