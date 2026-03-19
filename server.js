@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+let JimpLib; try { JimpLib = require('jimp'); } catch(e) { JimpLib = null; }
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
 
 // VAPID keys (stored in env or defaults generated once)
@@ -48,10 +49,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
-    const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color'];
+    const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color','icon_version'];
     mainDb.all(`SELECT key,value FROM settings WHERE key IN (${keys.map(()=>'?').join(',')})`, keys, (err, rows) => {
         const s = {};
         if (rows) rows.forEach(r => { s[r.key] = r.value; });
+        const v = s.icon_version || '1';
+        const iconSizes = [72,96,128,144,152,192,384,512];
         const manifest = {
             name: s.pwa_name || 'مرکز نشر آثار آیت الله دستغیب',
             short_name: s.pwa_short_name || 'مرکز نشر آثار',
@@ -65,16 +68,12 @@ app.get('/manifest.json', (req, res) => {
             lang: 'fa',
             dir: 'rtl',
             id: '/',
-            icons: [
-                { src: '/icons/icon-72.png', sizes: '72x72', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-128.png', sizes: '128x128', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-144.png', sizes: '144x144', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-152.png', sizes: '152x152', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-384.png', sizes: '384x384', type: 'image/png', purpose: 'any maskable' },
-                { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-            ]
+            icons: iconSizes.map(sz => ({
+                src: `/icons/icon-${sz}.png?v=${v}`,
+                sizes: `${sz}x${sz}`,
+                type: 'image/png',
+                purpose: 'any maskable'
+            }))
         };
         res.setHeader('Content-Type', 'application/manifest+json');
         res.setHeader('Cache-Control', 'no-cache');
@@ -546,10 +545,28 @@ app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
 });
-app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=>{
+app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),async(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
     const fu=`/icons/${req.file.filename}`;
-    mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>res.json({success:true,favicon_url:fu}));
+    const srcPath = req.file.path;
+    // Generate all PWA icon sizes from uploaded image
+    if(JimpLib){
+        try{
+            const { Jimp: JimpClass } = JimpLib;
+            const sizes=[72,96,128,144,152,192,384,512];
+            const img = await JimpClass.read(srcPath);
+            for(const s of sizes){
+                const dest = path.join(__dirname,'public','icons',`icon-${s}.png`);
+                await img.clone().resize({w:s,h:s}).write(dest);
+            }
+        }catch(e){ console.warn('Icon resize error:',e.message); }
+    }
+    const newVersion = Date.now().toString();
+    mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
+        mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion],()=>{
+            res.json({success:true,favicon_url:fu});
+        });
+    });
 });
 
 // Admin Banners

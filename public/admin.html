@@ -1202,7 +1202,7 @@ async function uploadFavicon(){
   try{
     const r=await adminFetch('/api/admin/favicon',{method:'POST',body:fd});
     let d; try{d=await r.json();}catch(je){d={};}
-    if(r.ok&&d.success){showToast('آیکون آپلود شد');}
+    if(r.ok&&d.success){showToast('آیکون PWA آپلود شد — برای اعمال، برنامه را حذف و دوباره نصب کنید');}
     else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است',false);
     else showToast(d.error||'خطا در آپلود',false);
   }catch(e){ showToast('خطا در اتصال',false); }
