@@ -682,13 +682,13 @@ app.post('/api/admin/notifications',adminAuth,(req,res)=>{
     mainDb.run('INSERT INTO notifications (title,message,type) VALUES (?,?,"broadcast")',[title,msg],function(err){
         if(err) return res.status(500).json({error:err.message});
         const notifId=this.lastID;
-        // Assign to all users
+        // Assign to all users, then send push after inserts are queued
         mainDb.all('SELECT id FROM users',[],(err2,users)=>{
             if(users&&users.length) users.forEach(u=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[u.id,notifId]));
+            // Push is called after inserts are queued - SQLite serial queue ensures inserts complete first
+            sendPushToAll({title, body: msg, icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', tag:'broadcast-'+notifId, data:{url:'/'}});
+            res.json({success:true,id:notifId});
         });
-        // Send push notification to all subscribers
-        sendPushToAll({title, body: msg, icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', tag:'broadcast-'+notifId, data:{url:'/'}});
-        res.json({success:true,id:notifId});
     });
 });
 app.delete('/api/admin/notifications/:id',adminAuth,(req,res)=>{
