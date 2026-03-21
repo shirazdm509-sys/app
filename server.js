@@ -611,7 +611,10 @@ app.delete('/api/admin/sliders/:id',adminAuth,(req,res)=>{
 
 // Admin Users
 app.get('/api/admin/users',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT u.id,u.username,u.created_at,(SELECT COUNT(*) FROM messages WHERE user_id=u.id) as msg_count,(SELECT created_at FROM messages WHERE user_id=u.id ORDER BY created_at DESC LIMIT 1) as last_active FROM users u ORDER BY u.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT u.id,u.username,u.created_at,(SELECT COUNT(*) FROM messages WHERE user_id=u.id) as msg_count,(SELECT created_at FROM messages WHERE user_id=u.id ORDER BY created_at DESC LIMIT 1) as last_active FROM users u ORDER BY u.created_at DESC`,[],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
 });
 app.delete('/api/admin/users/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});

@@ -1035,6 +1035,7 @@ async function loadUsers(){
     const r=await adminFetch('/api/admin/users');
     const users=await r.json();
     const tb=document.getElementById('users-tbody');
+    if(!r.ok){tb.innerHTML=`<tr><td colspan="6" class="text-center py-10 text-red-400">خطا: ${users.error||r.status}</td></tr>`;return;}
     if(!Array.isArray(users)||!users.length){tb.innerHTML='<tr><td colspan="6" class="text-center py-10 text-gray-400">کاربری یافت نشد</td></tr>';return;}
     tb.innerHTML=users.map(u=>`
       <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
