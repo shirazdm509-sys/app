@@ -1111,8 +1111,20 @@ async function saveSettings(){
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-    if(r.ok) showToast('تنظیمات ذخیره شد');
-    else showToast('خطا در ذخیره',false);
+    if(r.ok){
+      showToast('تنظیمات ذخیره شد');
+      // آپدیت localStorage برای اعمال فوری در splash screen
+      try{
+        const cur=JSON.parse(localStorage.getItem('_splashSettings')||'{}');
+        localStorage.setItem('_splashSettings',JSON.stringify({
+          ...cur,
+          splash_title:data.splash_title,
+          splash_subtitle:data.splash_subtitle,
+          splash_bg_color:data.splash_bg_color,
+          splash_spinner_color:data.splash_spinner_color
+        }));
+      }catch(e2){}
+    }else showToast('خطا در ذخیره',false);
   }catch(e){}
 }
 function setColorSwatch(type,color){
@@ -1166,6 +1178,7 @@ async function uploadSplashIcon(){
       if(prev&&ph){prev.src=d.logo_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
       // ذخیره URL در settings
       await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({splash_icon_url:d.logo_url})});
+      try{const cur=JSON.parse(localStorage.getItem('_splashSettings')||'{}');localStorage.setItem('_splashSettings',JSON.stringify({...cur,splash_icon_url:d.logo_url}));}catch(e2){}
       updateSplashPreview();
     }else showToast(d.error||'خطا در آپلود',false);
   }catch(e){showToast('خطا',false);}
@@ -1177,6 +1190,7 @@ async function clearSplashIcon(){
     const ph=document.getElementById('splash-icon-ph');
     if(prev&&ph){prev.src='';prev.classList.add('hidden');ph.classList.remove('hidden');}
     document.getElementById('splash-icon-input').value='';
+    try{const cur=JSON.parse(localStorage.getItem('_splashSettings')||'{}');cur.splash_icon_url='';localStorage.setItem('_splashSettings',JSON.stringify(cur));}catch(e2){}
     showToast('آیکون حذف شد');
     updateSplashPreview();
   }catch(e){showToast('خطا',false);}

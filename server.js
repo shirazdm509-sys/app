@@ -544,6 +544,11 @@ app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
 });
+// آپلود فایل (بدون ذخیره در تنظیمات - فقط آپلود و برگشت URL)
+app.post('/api/admin/upload-logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
+    res.json({success:true,logo_url:`/logos/${req.file.filename}`});
+});
 app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
     const fu=`/icons/${req.file.filename}`;
