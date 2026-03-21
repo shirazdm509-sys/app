@@ -7,7 +7,6 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-let JimpLib; try { JimpLib = require('jimp'); } catch(e) { JimpLib = null; }
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
 
 // VAPID keys (stored in env or defaults generated once)
@@ -545,22 +544,15 @@ app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
 });
-app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),async(req,res)=>{
+app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
     const fu=`/icons/${req.file.filename}`;
     const srcPath = req.file.path;
-    // Generate all PWA icon sizes from uploaded image
-    if(JimpLib){
-        try{
-            const { Jimp: JimpClass } = JimpLib;
-            const sizes=[72,96,128,144,152,192,384,512];
-            const img = await JimpClass.read(srcPath);
-            for(const s of sizes){
-                const dest = path.join(__dirname,'public','icons',`icon-${s}.png`);
-                await img.clone().resize({w:s,h:s}).write(dest);
-            }
-        }catch(e){ console.warn('Icon resize error:',e.message); }
-    }
+    // Copy uploaded file to all PWA icon sizes (browser handles scaling)
+    const sizes=[72,96,128,144,152,192,384,512];
+    sizes.forEach(s=>{
+        try{ fs.copyFileSync(srcPath, path.join(__dirname,'public','icons',`icon-${s}.png`)); }catch(e){}
+    });
     const newVersion = Date.now().toString();
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
         mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion],()=>{
