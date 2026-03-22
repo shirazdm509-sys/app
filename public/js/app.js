@@ -481,11 +481,17 @@ async function refreshAllTicketStatuses() { await renderQATickets(); }
 let _notifications = [];
 
 async function loadNotifications() {
-    if (!qaUser) return;
     try {
-        const r = await fetch('/api/notifications', { headers: {'x-user-id': String(qaUser.id)} });
-        if (!r.ok) return;
-        _notifications = await r.json();
+        if (qaUser) {
+            const r = await fetch('/api/notifications', { headers: {'x-user-id': String(qaUser.id)} });
+            if (r.ok) _notifications = await r.json();
+        } else {
+            const r = await fetch('/api/notifications/public');
+            if (r.ok) {
+                const pub = await r.json();
+                _notifications = pub.map(n => ({ ...n, is_read: 0 }));
+            }
+        }
         const unread = _notifications.filter(n => !n.is_read).length;
         const badge = document.getElementById('notif-badge');
         if (badge) { if(unread>0){badge.classList.remove('hidden');}else{badge.classList.add('hidden');} }
@@ -497,7 +503,7 @@ function openNotifications() {
     if (!panel) return;
     panel.classList.remove('hidden');
     renderNotifications();
-    if (qaUser) loadNotifications();
+    loadNotifications();
 }
 
 function closeNotifications() {
@@ -508,10 +514,6 @@ function closeNotifications() {
 function renderNotifications() {
     const c = document.getElementById('notif-list');
     if (!c) return;
-    if (!qaUser) {
-        c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell-slash text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">برای مشاهده اعلان‌ها وارد شوید</p><button onclick="closeNotifications();navToScreen('qa')" class="mt-4 bg-brand-600 text-white px-5 py-2 rounded-xl text-xs font-bold">ورود به حساب</button></div>`;
-        return;
-    }
     if (!_notifications.length) {
         c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">اعلانی وجود ندارد</p></div>`;
         return;
@@ -821,65 +823,79 @@ const _isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const _isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
 const _isAndroid = /android/i.test(navigator.userAgent);
 
-function _showInstallBtn() {
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.classList.remove('hidden');
+let _pwaAutoCloseTimer = null;
+
+function _showPwaPopup() {
+    if (_isStandalone) return;
+    showPwaInstallPrompt();
 }
 
-// iOS همیشه دکمه نصب نشان بده
+// iOS - نمایش popup پس از لود صفحه
 if (!_isStandalone && _isIos) {
-    document.addEventListener('DOMContentLoaded', _showInstallBtn);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_showPwaPopup, 1500));
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     _pwaInstallPrompt = e;
-    _showInstallBtn();
+    setTimeout(_showPwaPopup, 1500);
 });
 
 window.addEventListener('appinstalled', () => {
     _pwaInstallPrompt = null;
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.classList.add('hidden');
+    closePwaModal();
 });
 
 function showPwaInstallPrompt() {
     if (_isStandalone) return;
+    const modal = document.getElementById('pwa-install-modal');
+    if (!modal) return;
+
+    // پنهان کردن راهنماها
+    document.getElementById('pwa-ios-guide')?.classList.add('hidden');
+    document.getElementById('pwa-generic-guide')?.classList.add('hidden');
+    const confirmBtn = document.getElementById('pwa-install-confirm');
+
     if (_pwaInstallPrompt) {
-        // Chrome / Android / Edge - نصب مستقیم
-        _pwaInstallPrompt.prompt();
-        _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; });
+        // Chrome / Android / Edge - دکمه نصب مستقیم
+        if (confirmBtn) {
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.onclick = () => {
+                _pwaInstallPrompt.prompt();
+                _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; closePwaModal(); });
+            };
+        }
     } else if (_isIos) {
-        // iOS Safari - راهنمای دستی
-        const modal = document.getElementById('pwa-install-modal');
-        const iosGuide = document.getElementById('pwa-ios-guide');
-        if (modal && iosGuide) { modal.classList.remove('hidden'); iosGuide.classList.remove('hidden'); }
+        if (confirmBtn) confirmBtn.classList.add('hidden');
+        document.getElementById('pwa-ios-guide')?.classList.remove('hidden');
     } else {
-        // Samsung / Firefox / سایر مرورگرهای اندروید
-        const modal = document.getElementById('pwa-install-modal');
+        if (confirmBtn) confirmBtn.classList.add('hidden');
         const genericGuide = document.getElementById('pwa-generic-guide');
-        if (modal && genericGuide) {
+        if (genericGuide) {
             let msg = '';
-            if (_isSamsungBrowser) {
-                msg = 'در مرورگر سامسونگ: منوی ⋮ بالای صفحه → <b>«Add page to»</b> → <b>«Home screen»</b>';
-            } else if (_isAndroid) {
-                msg = 'در منوی مرورگر (⋮ یا ☰) گزینه <b>«Add to Home Screen»</b> یا <b>«نصب اپلیکیشن»</b> را انتخاب کنید.';
-            } else {
-                msg = 'از منوی مرورگر گزینه <b>«Add to Home Screen»</b> یا <b>«Install App»</b> را انتخاب کنید.';
-            }
+            if (_isSamsungBrowser) msg = 'در مرورگر سامسونگ: منوی ⋮ بالای صفحه → <b>«Add page to»</b> → <b>«Home screen»</b>';
+            else if (_isAndroid) msg = 'در منوی مرورگر (⋮ یا ☰) گزینه <b>«Add to Home Screen»</b> یا <b>«نصب اپلیکیشن»</b> را انتخاب کنید.';
+            else msg = 'از منوی مرورگر گزینه <b>«Add to Home Screen»</b> یا <b>«Install App»</b> را انتخاب کنید.';
             genericGuide.innerHTML = `<p class="text-sm text-gray-600">${msg}</p>`;
-            modal.classList.remove('hidden');
             genericGuide.classList.remove('hidden');
         }
     }
+
+    modal.classList.remove('hidden');
+
+    // بستن خودکار پس از ۱۰ ثانیه
+    clearTimeout(_pwaAutoCloseTimer);
+    _pwaAutoCloseTimer = setTimeout(closePwaModal, 10000);
 }
 
 function closePwaModal() {
+    clearTimeout(_pwaAutoCloseTimer);
     const modal = document.getElementById('pwa-install-modal');
     if (modal) {
         modal.classList.add('hidden');
         document.getElementById('pwa-ios-guide')?.classList.add('hidden');
         document.getElementById('pwa-generic-guide')?.classList.add('hidden');
+        document.getElementById('pwa-install-confirm')?.classList.add('hidden');
     }
 }
 

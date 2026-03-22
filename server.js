@@ -465,7 +465,15 @@ app.get('/api/tickets/:id',(req,res)=>{
     });
 });
 
-// === NOTIFICATIONS (PUBLIC - for users) ===
+// === NOTIFICATIONS PUBLIC (broadcast - no login needed) ===
+app.get('/api/notifications/public',(req,res)=>{
+    mainDb.all(`SELECT id, title, message, type, created_at FROM notifications WHERE type='broadcast' ORDER BY created_at DESC LIMIT 20`,[],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+
+// === NOTIFICATIONS (for logged in users) ===
 app.get('/api/notifications',userAuth,(req,res)=>{
     // Get broadcast notifications + ticket reply notifications for this user
     mainDb.all(`
