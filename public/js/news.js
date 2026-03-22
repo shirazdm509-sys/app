@@ -12,7 +12,15 @@ function setNewsLoading(show) {
     else { el.classList.add('hidden'); el.classList.remove('flex'); }
 }
 
-async function initNews() { showNewsAllPosts(); }
+async function initNews() {
+    if (allWPCats.length === 0) {
+        try {
+            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+            allWPCats = await res.json();
+        } catch(e) {}
+    }
+    showNewsAllPosts();
+}
 
 async function showNewsAllPosts() {
     newsState.view = 'posts';
@@ -22,7 +30,8 @@ async function showNewsAllPosts() {
     document.getElementById('news-single-view').classList.add('hidden');
     const postsView = document.getElementById('news-posts-view');
     postsView.classList.remove('hidden'); postsView.classList.add('flex');
-    if (cachedNewsPosts.length > 0) { postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news'); return; }
+    if (cachedNewsPosts.length > 0 && newsState.currentCat.id !== null) { postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news'); return; }
+    cachedNewsPosts = [];
     postsView.innerHTML = '';
     setNewsLoading(true);
     try {
@@ -108,7 +117,7 @@ function newsNavBack() {
 // ====================================================
 let statementsState = { view: 'main', currentCat: { id: null, name: '' } };
 let cachedStatementsPosts = [];
-const STATEMENTS_CAT_NAMES = ['بیانیه', 'اطلاعیه', 'بیانیه‌ها'];
+const STATEMENTS_CAT_NAMES = ['بیانیه', 'اطلاعیه', 'بیانیه‌ها', 'پیام ها', 'پیام‌ها'];
 
 function setStatementsLoading(show) {
     const el = document.getElementById('statements-loading');
@@ -117,7 +126,15 @@ function setStatementsLoading(show) {
     else { el.classList.add('hidden'); el.classList.remove('flex'); }
 }
 
-async function initStatements() { showStatementsAllPosts(); }
+async function initStatements() {
+    if (allWPCats.length === 0) {
+        try {
+            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+            allWPCats = await res.json();
+        } catch(e) {}
+    }
+    showStatementsAllPosts();
+}
 
 async function showStatementsAllPosts() {
     statementsState.view = 'posts';
@@ -128,7 +145,8 @@ async function showStatementsAllPosts() {
     document.getElementById('statements-single-view').classList.add('hidden');
     const postsView = document.getElementById('statements-posts-view');
     postsView.classList.remove('hidden'); postsView.classList.add('flex');
-    if (cachedStatementsPosts.length > 0) { postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements'); return; }
+    if (cachedStatementsPosts.length > 0 && statementsState.currentCat.id !== null) { postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements'); return; }
+    cachedStatementsPosts = [];
     postsView.innerHTML = '';
     setStatementsLoading(true);
     try {
