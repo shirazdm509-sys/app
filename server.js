@@ -76,7 +76,7 @@ app.get('/manifest.json', (req, res) => {
         };
         res.setHeader('Content-Type', 'application/manifest+json');
         res.setHeader('Cache-Control', 'no-cache');
-        res.json(manifest);
+        res.send(JSON.stringify(manifest));
     });
 });
 
@@ -128,6 +128,7 @@ function initDb() {
             ['live_embed',''],
             ['slider_padding','0'],
             ['slider_radius','0'],
+            ['slider_height','180'],
             ['banner_padding','4'],
             ['banner_radius','16'],
             ['banner_height','120'],
@@ -574,7 +575,12 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
     const pos=+req.params.pos;if(isNaN(pos)||pos<1||pos>3) return res.status(400).json({error:'موقعیت نامعتبر'});
     mainDb.get('SELECT * FROM banners WHERE position=?',[pos],(err,bn)=>{
         let img=bn?bn.image:'';
-        if(req.file){if(img&&img.length>2&&img.trim().length>0){const op=path.resolve(__dirname,'public',img.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}img=`/banners/${req.file.filename}`;}
+        if(req.file){
+            if(img&&img.length>2&&img.trim().length>0&&!img.startsWith('http')){const op=path.resolve(__dirname,'public',img.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}
+            img=`/banners/${req.file.filename}`;
+        } else if(req.body.image_url&&req.body.image_url.trim().length>5) {
+            img=san(req.body.image_url.trim());
+        }
         const act=req.body.active==='1'||req.body.active==='true'?1:0;
         const title=san(req.body.title||'');
         const link=san(req.body.link||'');
@@ -590,10 +596,11 @@ app.get('/api/admin/sliders',adminAuth,(req,res)=>{
     mainDb.all('SELECT * FROM sliders ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
 app.post('/api/admin/sliders',adminAuth,uploadImage.single('slider_image'),(req,res)=>{
-    if(!req.file) return res.status(400).json({error:'تصویر اسلایدر الزامی است'});
+    const imageUrl = req.body.image_url && req.body.image_url.trim().length > 5 ? san(req.body.image_url.trim()) : null;
+    if(!req.file && !imageUrl) return res.status(400).json({error:'تصویر یا لینک تصویر الزامی است'});
     mainDb.get('SELECT COUNT(*) as c FROM sliders',[],(err,r)=>{
         if(r&&r.c>=10) return res.status(400).json({error:'حداکثر ۱۰ اسلاید مجاز است'});
-        const img=`/sliders/${req.file.filename}`;
+        const img = req.file ? `/sliders/${req.file.filename}` : imageUrl;
         const section = ['main','after_books','after_shortcuts','after_lectures','after_banners'].includes(req.body.display_section) ? req.body.display_section : 'main';
         mainDb.run('INSERT INTO sliders (title,image,link,sort_order,display_section) VALUES (?,?,?,?,?)',[san(req.body.title||''),img,san(req.body.link||''),r?r.c:0,section],function(err){
             if(err) return res.status(500).json({error:err.message});

@@ -26,7 +26,13 @@ async function showNewsAllPosts() {
     postsView.innerHTML = '';
     setNewsLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts?_embed=1&per_page=50`);
+        // پیدا کردن ID دسته اخبار
+        const cats = Array.isArray(allWPCats) ? allWPCats : [];
+        const newsCat = cats.find(c => NEWS_CAT_NAMES.some(n => c.name.trim().includes(n)) && c.count > 0);
+        const url = newsCat
+            ? `${WP_API_URL}/posts?categories=${newsCat.id}&_embed=1&per_page=50`
+            : `${WP_API_URL}/posts?_embed=1&per_page=50`;
+        const res = await fetch(url);
         cachedNewsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news');
     } catch(e) {
@@ -126,7 +132,13 @@ async function showStatementsAllPosts() {
     postsView.innerHTML = '';
     setStatementsLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts?_embed=1&per_page=50`);
+        // پیدا کردن ID دسته بیانیه
+        const cats = Array.isArray(allWPCats) ? allWPCats : [];
+        const stmtCat = cats.find(c => STATEMENTS_CAT_NAMES.some(n => c.name.trim().includes(n)) && c.count > 0);
+        const url = stmtCat
+            ? `${WP_API_URL}/posts?categories=${stmtCat.id}&_embed=1&per_page=50`
+            : `${WP_API_URL}/posts?_embed=1&per_page=50`;
+        const res = await fetch(url);
         cachedStatementsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements');
     } catch(e) {

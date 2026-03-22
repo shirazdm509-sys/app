@@ -77,7 +77,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <form id="slider-form" onsubmit="addSlider(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان (اختیاری)</label><input type="text" id="slider-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان اسلاید"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label><input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://..."></div>
-        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید *</label><input type="file" id="slider-image" accept="image/*" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید <span class="text-gray-400 font-normal">(فایل یا لینک URL)</span></label>
+          <div class="flex flex-col gap-2">
+            <input type="file" id="slider-image" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('slider-image-url').value=''">
+            <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+            <input type="url" id="slider-image-url" placeholder="https://example.com/image.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('slider-image').value=''">
+          </div>
+        </div>
         <div class="md:col-span-2"><button type="submit" id="btn-add-slider" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن اسلاید</button></div>
       </form>
     </div>
@@ -95,8 +102,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <input type="range" id="s-slider_radius" min="0" max="32" value="0" class="w-full" oninput="document.getElementById('slider-radius-val').textContent=this.value">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع اسلایدر - <span id="slider-height-val">180</span>px</label>
-          <input type="range" id="s-slider_height" min="100" max="400" value="180" step="10" class="w-full" oninput="document.getElementById('slider-height-val').textContent=this.value">
+          <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع اسلایدر (px)</label>
+          <div class="flex items-center gap-3">
+            <input type="range" id="s-slider_height" min="100" max="600" value="180" step="10" class="flex-1" oninput="document.getElementById('slider-height-num').value=this.value;document.getElementById('slider-height-val').textContent=this.value">
+            <input type="number" id="slider-height-num" value="180" min="100" max="600" class="w-20 bg-gray-50 border border-gray-200 p-2 rounded-xl text-center text-sm outline-none focus:border-teal-500" oninput="document.getElementById('s-slider_height').value=this.value;document.getElementById('slider-height-val').textContent=this.value">
+            <span class="text-xs text-gray-400 hidden" id="slider-height-val">180</span>
+          </div>
         </div>
       </div>
       <button onclick="saveSliderSettings()" class="mt-5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره تنظیمات اسلایدر</button>
@@ -130,8 +141,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <input type="range" id="s-banner_radius" min="0" max="32" value="16" class="w-full" oninput="document.getElementById('banner-radius-val').textContent=this.value">
         </div>
         <div>
-          <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع بنر - <span id="banner-height-val">120</span>px</label>
-          <input type="range" id="s-banner_height" min="60" max="300" value="120" step="10" class="w-full" oninput="document.getElementById('banner-height-val').textContent=this.value">
+          <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع بنر (px)</label>
+          <div class="flex items-center gap-3">
+            <input type="range" id="s-banner_height" min="60" max="500" value="120" step="10" class="flex-1" oninput="document.getElementById('banner-height-num').value=this.value;document.getElementById('banner-height-val').textContent=this.value">
+            <input type="number" id="banner-height-num" value="120" min="60" max="500" class="w-20 bg-gray-50 border border-gray-200 p-2 rounded-xl text-center text-sm outline-none focus:border-teal-500" oninput="document.getElementById('s-banner_height').value=this.value;document.getElementById('banner-height-val').textContent=this.value">
+            <span class="text-xs text-gray-400 hidden" id="banner-height-val">120</span>
+          </div>
         </div>
       </div>
       <button onclick="saveBannerSettings()" class="mt-5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره تنظیمات بنر</button>
@@ -688,10 +703,12 @@ async function saveBookEdit(){
 async function addSlider(e){
   e.preventDefault();
   const img=document.getElementById('slider-image').files[0];
-  if(!img) return showToast('تصویر الزامی است',false);
-  if(img.size > 10*1024*1024) return showToast('حجم تصویر نباید بیشتر از ۱۰ مگابایت باشد',false);
+  const imgUrl=document.getElementById('slider-image-url')?.value?.trim()||'';
+  if(!img && !imgUrl) return showToast('تصویر یا لینک تصویر الزامی است',false);
+  if(img && img.size > 10*1024*1024) return showToast('حجم تصویر نباید بیشتر از ۱۰ مگابایت باشد',false);
   const fd=new FormData();
-  fd.append('slider_image',img);
+  if(img) fd.append('slider_image',img);
+  else fd.append('image_url',imgUrl);
   fd.append('title',document.getElementById('slider-title').value);
   fd.append('link',document.getElementById('slider-link').value);
   fd.append('display_section',document.getElementById('slider-section')?document.getElementById('slider-section').value||'main':'main');
@@ -744,7 +761,7 @@ async function loadSliderSettings(){
     const sh=document.getElementById('s-slider_height');
     if(sp){sp.value=s.slider_padding||'0';document.getElementById('slider-padding-val').textContent=s.slider_padding||'0';}
     if(sr){sr.value=s.slider_radius||'0';document.getElementById('slider-radius-val').textContent=s.slider_radius||'0';}
-    if(sh){sh.value=s.slider_height||'180';document.getElementById('slider-height-val').textContent=s.slider_height||'180';}
+    if(sh){const hv=s.slider_height||'180';sh.value=hv;document.getElementById('slider-height-val').textContent=hv;const shn=document.getElementById('slider-height-num');if(shn)shn.value=hv;}
   }catch(e){}
 }
 async function saveSliderSettings(){
@@ -782,7 +799,11 @@ function renderBannerCards(bns){
         ${b.image&&b.image.trim().length>2?`<img id="banner-preview-${pos}" src="${b.image}" class="w-full h-full object-cover">`:`<div id="banner-preview-${pos}" class="w-full h-full flex flex-col items-center justify-center text-gray-400 gap-1"><i class="fas fa-image text-3xl"></i><span class="text-xs">کلیک برای انتخاب تصویر</span></div>`}
         <div class="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-sm font-bold rounded-xl">تغییر تصویر</div>
       </div>
-      <input type="file" id="banner-img-${pos}" accept="image/*" class="hidden" onchange="previewBanner(${pos},this)">
+      <input type="file" id="banner-img-${pos}" accept="image/*" class="hidden" onchange="previewBanner(${pos},this);document.getElementById('banner-url-${pos}').value=''">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">یا لینک تصویر (URL)</label>
+        <input type="url" id="banner-url-${pos}" value="" placeholder="https://example.com/banner.jpg" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" oninput="if(this.value.trim()){document.getElementById('banner-img-${pos}').value='';previewBannerUrl(${pos},this.value);}">
+      </div>
       <input type="text" id="banner-title-${pos}" value="${b.title||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="عنوان بنر (اختیاری)">
       <input type="text" id="banner-link-${pos}" value="${b.link||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="لینک بنر (https://...)">
       <div>
@@ -807,15 +828,22 @@ function previewBanner(pos,input){
     const prev=document.getElementById('banner-preview-'+pos);
     if(prev.tagName==='IMG'){prev.src=e.target.result;}
     else{const img=document.createElement('img');img.id='banner-preview-'+pos;img.src=e.target.result;img.className='w-full h-full object-cover';prev.replaceWith(img);}
-    // Auto-activate when image selected
     document.getElementById('banner-active-'+pos).checked=true;
   };r.readAsDataURL(input.files[0]);
+}
+function previewBannerUrl(pos,url){
+  if(!url.trim()) return;
+  const prev=document.getElementById('banner-preview-'+pos);
+  if(prev.tagName==='IMG'){prev.src=url;}
+  else{const img=document.createElement('img');img.id='banner-preview-'+pos;img.src=url;img.className='w-full h-full object-cover';prev.replaceWith(img);}
+  document.getElementById('banner-active-'+pos).checked=true;
 }
 async function saveBanners(){
   let saved=0;
   for(let pos=1;pos<=3;pos++){
     const img=document.getElementById('banner-img-'+pos).files[0];
     if(img && img.size > 10*1024*1024){ showToast(`تصویر بنر ${pos} بیش از ۱۰ مگابایت است`,false); continue; }
+    const imageUrl=document.getElementById('banner-url-'+pos)?.value?.trim()||'';
     const link=document.getElementById('banner-link-'+pos).value;
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
@@ -826,6 +854,7 @@ async function saveBanners(){
     fd.append('active',active?'1':'0');
     fd.append('page_section',section);
     if(img) fd.append('banner_image',img);
+    else if(imageUrl) fd.append('image_url',imageUrl);
     try{
       const r=await adminFetch('/api/admin/banners/'+pos,{method:'PUT',body:fd});
       let d; try{d=await r.json();}catch(je){d={};}
@@ -844,7 +873,7 @@ async function loadBannerSettings(){
     const valIds=['banner-padding-val','banner-radius-val','banner-height-val'];
     fields.forEach((f,i)=>{
       const el=document.getElementById('s-'+f);
-      if(el){el.value=s[f]||el.value;document.getElementById(valIds[i]).textContent=s[f]||el.value;}
+      if(el){const v=s[f]||el.value;el.value=v;document.getElementById(valIds[i]).textContent=v;const numId=f==='banner_height'?'banner-height-num':null;if(numId){const ne=document.getElementById(numId);if(ne)ne.value=v;}}
     });
   }catch(e){}
 }

@@ -818,14 +818,16 @@ registerServiceWorker();
 let _pwaInstallPrompt = null;
 const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 const _isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const _isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
+const _isAndroid = /android/i.test(navigator.userAgent);
 
 function _showInstallBtn() {
     const btn = document.getElementById('pwa-install-btn');
     if (btn) btn.classList.remove('hidden');
 }
 
-// نمایش دکمه اگر standalone نباشد
-if (!_isStandalone) {
+// iOS همیشه دکمه نصب نشان بده
+if (!_isStandalone && _isIos) {
     document.addEventListener('DOMContentLoaded', _showInstallBtn);
 }
 
@@ -853,10 +855,22 @@ function showPwaInstallPrompt() {
         const iosGuide = document.getElementById('pwa-ios-guide');
         if (modal && iosGuide) { modal.classList.remove('hidden'); iosGuide.classList.remove('hidden'); }
     } else {
-        // سایر مرورگرها
+        // Samsung / Firefox / سایر مرورگرهای اندروید
         const modal = document.getElementById('pwa-install-modal');
         const genericGuide = document.getElementById('pwa-generic-guide');
-        if (modal && genericGuide) { modal.classList.remove('hidden'); genericGuide.classList.remove('hidden'); }
+        if (modal && genericGuide) {
+            let msg = '';
+            if (_isSamsungBrowser) {
+                msg = 'در مرورگر سامسونگ: منوی ⋮ بالای صفحه → <b>«Add page to»</b> → <b>«Home screen»</b>';
+            } else if (_isAndroid) {
+                msg = 'در منوی مرورگر (⋮ یا ☰) گزینه <b>«Add to Home Screen»</b> یا <b>«نصب اپلیکیشن»</b> را انتخاب کنید.';
+            } else {
+                msg = 'از منوی مرورگر گزینه <b>«Add to Home Screen»</b> یا <b>«Install App»</b> را انتخاب کنید.';
+            }
+            genericGuide.innerHTML = `<p class="text-sm text-gray-600">${msg}</p>`;
+            modal.classList.remove('hidden');
+            genericGuide.classList.remove('hidden');
+        }
     }
 }
 

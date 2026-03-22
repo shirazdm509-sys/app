@@ -1,7 +1,7 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v7';
-const STATIC_CACHE = 'nashr-static-v7';
-const DYNAMIC_CACHE = 'nashr-dynamic-v7';
+const CACHE_NAME = 'nashr-asar-v8';
+const STATIC_CACHE = 'nashr-static-v8';
+const DYNAMIC_CACHE = 'nashr-dynamic-v8';
 
 const STATIC_ASSETS = [
   '/',
@@ -14,9 +14,6 @@ const STATIC_ASSETS = [
   '/js/lectures.js',
   '/js/media.js',
   '/js/news.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
   '/vendor/tailwind.js',
   '/vendor/fa/all.local.min.css',
   '/vendor/fa/webfonts/fa-solid-900.woff2',
@@ -88,6 +85,20 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.match(event.request).then(r => r || offlineResponse('wp offline')))
+    );
+    return;
+  }
+
+  // Icons — always network first so new favicon uploads are immediately visible
+  if (url.pathname.startsWith('/icons/') || url.pathname.startsWith('/logos/') || url.pathname.startsWith('/banners/') || url.pathname.startsWith('/sliders/')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(r => r || new Response('', { status: 404 })))
     );
     return;
   }
