@@ -1,9 +1,9 @@
 // ====================================================
 // متغیرهای رسانه
 // ====================================================
-let wpMediaPlaylists = [];
-let wpMediaState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
-let cachedMediaPosts = [];
+// گالری ویدیو محلی
+let _videoCatsLoaded = false;
+let videoCachedItems = [];
 
 // گالری محلی عکس
 let galleryCurrentPhotos = [];
@@ -40,7 +40,7 @@ function switchMediaTab(tab) {
     const vc = document.getElementById('wp-media-player-container');
     if(tab !== 'video' && vc) vc.innerHTML = '';
 
-    if (tab === 'video' && wpMediaPlaylists.length === 0) fetchWPMediaPlaylists();
+    if (tab === 'video') initVideoGallery();
     if (tab === 'photo') initGallery();
     if (tab === 'audio') initAudioGallery();
 }
@@ -100,120 +100,161 @@ async function initLiveScreen() {
 }
 
 // ====================================================
-// بخش ویدیو
+// گالری ویدیو آپارات محلی
 // ====================================================
-async function fetchWPMediaPlaylists() {
-    setMediaLoading(true);
-    const plView = document.getElementById('wp-media-playlists-view');
-    try {
-        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
-        if(!res.ok) throw new Error('WP API Error');
-        const cats = await res.json();
 
-        const targetNames = ['ویدئو کلیپ', 'ویدیو کلیپ', 'ویدیوکلیپ', 'ویدئوکلیپ', 'ویدیوها', 'ویدئوها', 'ویدیو', 'فیلم'];
-        const mainVideoCat = cats.find(c => targetNames.includes(c.name.trim()) || c.slug.includes('video'));
-
-        let displayCats = mainVideoCat ? cats.filter(c => (c.id === mainVideoCat.id || c.parent === mainVideoCat.id) && c.count > 0) : cats.filter(c => c.count > 0);
-
-        if(displayCats.length > 0) {
-            wpMediaPlaylists = displayCats;
-            plView.innerHTML = displayCats.map((pl, i) => {
-                const colors = ['text-rose-500 bg-rose-50', 'text-blue-500 bg-blue-50', 'text-emerald-500 bg-emerald-50', 'text-amber-500 bg-amber-50'];
-                return `<div onclick="showWPMediaVideos('${pl.id}', '${pl.name.replace(/'/g, "\\'")}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95 text-center"><div class="w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-play-circle"></i></div><h3 class="font-bold text-xs text-gray-800 line-clamp-2">${pl.name}</h3></div>`;
-            }).join('');
-        } else plView.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-500 font-bold text-sm">دسته‌بندی ویدیوها یافت نشد.</div>';
-    } catch(e) { plView.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400"><p class="text-sm font-bold">خطا در دریافت اطلاعات</p><button onclick="fetchWPMediaPlaylists()" class="mt-4 bg-rose-50 text-rose-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; }
-    finally { setMediaLoading(false); }
+async function initVideoGallery() {
+    if (_videoCatsLoaded) return;
+    await loadVideoCategories();
 }
 
-async function showWPMediaVideos(categoryId, title) {
-    wpMediaState.view = 'videos';
-    document.getElementById('wp-media-playlists-view').classList.add('hidden');
-    document.getElementById('wp-media-single-view').classList.add('hidden');
-    document.getElementById('wp-media-single-view').classList.remove('flex');
-    const videosView = document.getElementById('wp-media-videos-view');
-    videosView.classList.remove('hidden'); videosView.classList.add('flex');
-
-    const listContainer = document.getElementById('wp-media-videos-list');
-    listContainer.innerHTML = '';
-    document.getElementById('wp-media-playlist-title').textContent = title;
-
+async function loadVideoCategories() {
     setMediaLoading(true);
+    const view = document.getElementById('video-categories-view');
+    const listView = document.getElementById('video-list-view');
+    const playerView = document.getElementById('video-player-view');
+    if(listView) listView.classList.add('hidden');
+    if(playerView) playerView.classList.add('hidden');
+    if(view) view.classList.remove('hidden');
+
     try {
-        const res = await fetch(`${WP_API_URL}/posts?categories=${categoryId}&_embed=1&per_page=50`);
-        const data = await res.json();
+        const res = await fetch('/api/videos/categories');
+        const cats = await res.json();
+        _videoCatsLoaded = true;
 
-        let validPosts = [];
-        if(data && data.length > 0) {
-            data.forEach(post => {
-                const mediaInfo = extractMediaFromPost(post);
-                if (mediaInfo.iframes.length > 0 || mediaInfo.videos.length > 0) {
-                    post.extractedMedia = mediaInfo;
-                    validPosts.push(post);
-                }
-            });
-        }
-
-        cachedMediaPosts = validPosts;
-
-        if(validPosts.length > 0) {
-            listContainer.innerHTML = validPosts.map(post => {
-                let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+        if(cats && cats.length > 0) {
+            const colors = [
+                'from-rose-500 to-rose-700',
+                'from-blue-500 to-blue-700',
+                'from-violet-500 to-violet-700',
+                'from-amber-500 to-amber-700',
+                'from-teal-500 to-teal-700',
+                'from-emerald-500 to-emerald-700',
+                'from-pink-500 to-pink-700',
+                'from-indigo-500 to-indigo-700',
+            ];
+            view.innerHTML = cats.map((cat, i) => {
+                const grad = colors[i % colors.length];
+                const coverHtml = cat.cover
+                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
                 return `
-                <div onclick="playWPMediaVideo(${post.id}, '${post.title.rendered.replace(/'/g, "\\'")}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
-                    <div class="w-24 h-16 bg-gray-200 rounded-xl overflow-hidden relative shadow-sm shrink-0">
-                        ${imgUrl ? `<img src="${imgUrl}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-rose-50 flex items-center justify-center"><i class="fas fa-video text-rose-300 text-xl"></i></div>`}
-                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center"><i class="fas fa-play text-white text-lg opacity-90 drop-shadow-md"></i></div>
+                <div onclick="loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                    <div class="w-full aspect-video overflow-hidden relative">
+                        ${coverHtml}
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
+                            <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
+                            <p class="text-[10px] text-white/70 mt-0.5">${cat.video_count} ویدیو</p>
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg">
+                                <i class="fas fa-play text-white text-lg mr-[-2px]"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex flex-col justify-center min-w-0 flex-1"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1.5">${post.title.rendered}</h4></div>
                 </div>`;
             }).join('');
-        } else listContainer.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs font-bold">هیچ ویدیویی در این بخش یافت نشد.</div>`;
-    } catch(e) { listContainer.innerHTML = `<div class="text-center py-10 text-gray-400"><button onclick="showWPMediaVideos('${categoryId}', '${title}')" class="bg-gray-100 px-4 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; }
-    finally { setMediaLoading(false); }
+        } else {
+            view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
+                <i class="fas fa-film text-5xl opacity-20"></i>
+                <p class="text-sm font-bold opacity-50">هنوز ویدیویی اضافه نشده</p>
+                <p class="text-xs opacity-40">از پنل مدیریت ویدیو اضافه کنید</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
+            <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
+            <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
+            <button onclick="_videoCatsLoaded=false;loadVideoCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+        </div>`;
+    } finally { setMediaLoading(false); }
 }
 
-function playWPMediaVideo(postId, title) {
-    const post = cachedMediaPosts.find(p => p.id === postId);
-    if(!post || !post.extractedMedia) return;
+async function loadVideoList(categoryId, title, count) {
+    setMediaLoading(true);
+    const catsView = document.getElementById('video-categories-view');
+    const listView = document.getElementById('video-list-view');
+    const playerView = document.getElementById('video-player-view');
+    const list = document.getElementById('video-items-list');
 
-    wpMediaState.view = 'single';
-    document.getElementById('wp-media-videos-view').classList.add('hidden');
-    document.getElementById('wp-media-videos-view').classList.remove('flex');
-    const singleView = document.getElementById('wp-media-single-view');
-    singleView.classList.remove('hidden'); singleView.classList.add('flex');
+    if(catsView) catsView.classList.add('hidden');
+    if(playerView) playerView.classList.add('hidden');
+    if(listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
+    document.getElementById('video-cat-title').textContent = title;
+    document.getElementById('video-count-badge').textContent = count > 0 ? `${count} ویدیو` : '';
+    if(list) list.innerHTML = '';
 
-    document.getElementById('wp-media-video-title').innerHTML = title;
+    try {
+        const res = await fetch(`/api/videos/categories/${categoryId}/items`);
+        const items = await res.json();
+        videoCachedItems = items;
 
-    let playerHtml = '';
-    post.extractedMedia.iframes.forEach(src => playerHtml += `<div class="h_iframe-aparat_embed_frame mb-4"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`);
-    post.extractedMedia.videos.forEach(src => playerHtml += `<video controls src="${src}" style="width:100%; border-radius:12px; margin-bottom:15px;"></video>`);
+        if(items && items.length > 0) {
+            list.innerHTML = items.map(v => `
+                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                    <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">
+                        ${v.thumbnail
+                            ? `<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">`
+                            : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`}
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40">
+                                <i class="fas fa-play text-white text-sm mr-[-1px]"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
+                        ${v.description ? `<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>` : ''}
+                    </div>
+                </div>`).join('');
+        } else {
+            list.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+                <i class="fas fa-video text-4xl opacity-20"></i>
+                <p class="text-xs font-bold opacity-50">هیچ ویدیویی در این دسته وجود ندارد</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(list) list.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs">خطا در بارگذاری</div>`;
+    } finally { setMediaLoading(false); }
+}
 
-    document.getElementById('wp-media-player-container').innerHTML = playerHtml;
+function playVideoItem(itemId) {
+    const item = videoCachedItems.find(v => v.id === itemId);
+    if(!item) return;
 
-    const contentContainer = document.getElementById('wp-media-post-content');
-    if (post.extractedMedia.cleanHtml.trim() !== '') {
-        contentContainer.innerHTML = post.extractedMedia.cleanHtml;
-        contentContainer.style.display = 'block';
+    const listView = document.getElementById('video-list-view');
+    const playerView = document.getElementById('video-player-view');
+    if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
+    if(playerView) { playerView.classList.remove('hidden'); playerView.classList.add('flex'); }
+
+    document.getElementById('video-player-title').textContent = item.title;
+    document.getElementById('video-aparat-iframe').src = item.embed_url;
+
+    const descEl = document.getElementById('video-player-desc');
+    if(item.description && item.description.trim()) {
+        descEl.textContent = item.description;
+        descEl.classList.remove('hidden');
     } else {
-        contentContainer.style.display = 'none';
+        descEl.classList.add('hidden');
     }
 }
 
-function backToWPMediaPlaylists() {
-    wpMediaState.view = 'playlists';
-    document.getElementById('wp-media-videos-view').classList.add('hidden');
-    document.getElementById('wp-media-videos-view').classList.remove('flex');
-    document.getElementById('wp-media-playlists-view').classList.remove('hidden');
+function backToVideoCategories() {
+    _videoCatsLoaded = false;
+    const catsView = document.getElementById('video-categories-view');
+    const listView = document.getElementById('video-list-view');
+    const playerView = document.getElementById('video-player-view');
+    if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
+    if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
+    if(catsView) catsView.classList.remove('hidden');
+    loadVideoCategories();
 }
 
-function backToWPMediaVideos() {
-    wpMediaState.view = 'videos';
-    document.getElementById('wp-media-single-view').classList.add('hidden');
-    document.getElementById('wp-media-single-view').classList.remove('flex');
-    document.getElementById('wp-media-videos-view').classList.remove('hidden');
-    document.getElementById('wp-media-videos-view').classList.add('flex');
-    document.getElementById('wp-media-player-container').innerHTML = '';
+function backToVideoList() {
+    const listView = document.getElementById('video-list-view');
+    const playerView = document.getElementById('video-player-view');
+    if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
+    if(listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
 }
 
 // ====================================================

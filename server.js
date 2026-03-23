@@ -118,6 +118,8 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT DEFAULT '', image TEXT NOT NULL, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES gallery_categories(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS audio_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS audio_tracks (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, artist TEXT DEFAULT '', audio_url TEXT NOT NULL, cover TEXT DEFAULT '', duration INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES audio_categories(id))`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS video_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS video_items (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, embed_url TEXT NOT NULL, thumbnail TEXT DEFAULT '', description TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES video_categories(id))`);
 
 
         const defaults = [
@@ -918,6 +920,109 @@ app.delete('/api/admin/audio/tracks/:id',adminAuth,(req,res)=>{
         if(t&&t.audio_url&&t.audio_url.startsWith('/audio/')){const fp=path.resolve(__dirname,'public',t.audio_url.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
         if(t&&t.cover&&t.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',t.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
         mainDb.run('DELETE FROM audio_tracks WHERE id=?',[id],()=>res.json({success:true}));
+    });
+});
+
+// === APARAT URL PARSER ===
+function parseAparatEmbed(raw) {
+    if(!raw || !raw.trim()) return null;
+    raw = raw.trim();
+    // Extract src from iframe HTML
+    if(raw.includes('<iframe')) {
+        const m = raw.match(/src\s*=\s*["']([^"']+)["']/i);
+        if(m && m[1]) raw = m[1];
+        else return null;
+    }
+    // Already an embed/player URL → use as-is
+    if(/aparat\.com\/(video\/video\/embed|vplayer\.php|embed)/.test(raw) || /player\.aparat\.com\/embed/.test(raw)) {
+        return raw;
+    }
+    // Direct video page: https://www.aparat.com/v/HASH or https://aparat.com/v/HASH
+    const directMatch = raw.match(/aparat\.com\/v\/([a-zA-Z0-9]+)/i);
+    if(directMatch) {
+        return `https://www.aparat.com/video/video/embed/videohash/${directMatch[1]}/vt/frame`;
+    }
+    // videohash already in URL
+    const hashMatch = raw.match(/videohash\/([a-zA-Z0-9]+)/i);
+    if(hashMatch) return raw;
+    // Fallback: if it's a valid URL, try using it directly
+    if(/^https?:\/\//.test(raw)) return raw;
+    return null;
+}
+
+function extractAparatThumb(embedUrl) {
+    if(!embedUrl) return '';
+    const m = embedUrl.match(/videohash\/([a-zA-Z0-9]+)/i) || embedUrl.match(/embed\/([a-zA-Z0-9]+)/i);
+    if(m) return `https://static.cdn.asset.aparat.com/avt/${m[1]}_16.jpg`;
+    return '';
+}
+
+// === PUBLIC VIDEO API ===
+app.get('/api/videos/categories',(req,res)=>{
+    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+app.get('/api/videos/categories/:id/items',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT * FROM video_items WHERE category_id=? ORDER BY sort_order ASC, created_at ASC',[id],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+
+// === ADMIN VIDEO API ===
+app.get('/api/admin/video/categories',adminAuth,(req,res)=>{
+    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/video/categories',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const name=san(req.body.name||'').trim();
+    if(!name) return res.status(400).json({error:'نام دسته‌بندی الزامی است'});
+    const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    const cover=req.file?`/gallery/${req.file.filename}`:(coverUrl||'');
+    const desc=san(req.body.description||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM video_categories',[],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO video_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            res.json({success:true,id:this.lastID});
+        });
+    });
+});
+app.delete('/api/admin/video/categories/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT cover FROM video_categories WHERE id=?',[id],(err,cat)=>{
+        if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        mainDb.run('DELETE FROM video_items WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM video_categories WHERE id=?',[id],()=>res.json({success:true})));
+    });
+});
+app.post('/api/admin/video/items',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const catId=+req.body.category_id;if(isNaN(catId)) return res.status(400).json({error:'دسته‌بندی الزامی است'});
+    const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان ویدیو الزامی است'});
+    const rawEmbed=san(req.body.embed_input||'');
+    const embedUrl=parseAparatEmbed(rawEmbed);
+    if(!embedUrl) return res.status(400).json({error:'لینک یا کد آپارات نامعتبر است'});
+    // Thumbnail: uploaded file, provided URL, or auto-extracted from embed
+    const thumbUrlInput=req.body.thumbnail_url&&req.body.thumbnail_url.trim().length>5?san(req.body.thumbnail_url.trim()):null;
+    const thumbFile=req.file;
+    let thumbnail=thumbFile?`/gallery/${thumbFile.filename}`:(thumbUrlInput||extractAparatThumb(embedUrl));
+    const desc=san(req.body.description||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM video_items WHERE category_id=?',[catId],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO video_items (category_id,title,embed_url,thumbnail,description,sort_order) VALUES (?,?,?,?,?,?)',[catId,title,embedUrl,thumbnail,desc,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            // Auto-set category cover if empty
+            if(thumbnail) mainDb.run('UPDATE video_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[thumbnail,catId]);
+            res.json({success:true,id:this.lastID,embed_url:embedUrl,thumbnail});
+        });
+    });
+});
+app.delete('/api/admin/video/items/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT thumbnail FROM video_items WHERE id=?',[id],(err,v)=>{
+        if(v&&v.thumbnail&&v.thumbnail.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',v.thumbnail.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        mainDb.run('DELETE FROM video_items WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
 

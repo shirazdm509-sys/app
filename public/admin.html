@@ -41,6 +41,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('books')" id="tab-btn-books" class="tab-active w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-book w-5"></i>مدیریت کتاب‌ها</button>
     <button onclick="switchTab('slider')" id="tab-btn-slider" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-images w-5"></i>اسلایدر</button>
     <button onclick="switchTab('banners')" id="tab-btn-banners" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-ad w-5"></i>بنرها</button>
+    <button onclick="switchTab('videogallery')" id="tab-btn-videogallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-film w-5"></i>گالری ویدیو</button>
     <button onclick="switchTab('gallery')" id="tab-btn-gallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-camera w-5"></i>گالری عکس</button>
     <button onclick="switchTab('audiogallery')" id="tab-btn-audiogallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-headphones w-5"></i>گالری صوت</button>
     <button onclick="switchTab('support')" id="tab-btn-support" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative"><i class="fas fa-headset w-5"></i>پشتیبانی<span id="support-badge" class="hidden absolute left-2 top-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span></button>
@@ -203,6 +204,70 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
           </div>
           <button type="submit" id="btn-add-gphoto" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن تصویر</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO GALLERY TAB -->
+  <div id="tab-videogallery" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <!-- افزودن دسته‌بندی -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی ویدیو</h2>
+      <form id="vcat-form" onsubmit="addVideoCategory(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام دسته‌بندی *</label><input type="text" id="vcat-name" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مثلاً: سخنرانی‌ها، مناجات"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><input type="text" id="vcat-desc" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="توضیح مختصر"></div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور <span class="text-gray-400 font-normal">(فایل یا لینک URL)</span></label>
+          <div class="flex flex-col gap-2">
+            <input type="file" id="vcat-cover-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('vcat-cover-url').value=''">
+            <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+            <input type="url" id="vcat-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('vcat-cover-file').value=''">
+          </div>
+        </div>
+        <div class="md:col-span-2"><button type="submit" id="btn-add-vcat" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن دسته‌بندی</button></div>
+      </form>
+    </div>
+
+    <!-- لیست دسته‌بندی‌ها -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-black">دسته‌بندی‌های ویدیو</h2>
+        <button onclick="loadVideoGalleryAdmin()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button>
+      </div>
+      <div id="video-admin-list" class="flex flex-col gap-6"></div>
+    </div>
+
+    <!-- مودال افزودن ویدیو -->
+    <div id="video-item-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-black text-base">افزودن ویدیو به <span id="vitem-modal-catname" class="text-teal-600"></span></h3>
+          <button onclick="closeVideoItemModal()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 flex items-center justify-center"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="video-item-form" onsubmit="addVideoItem(event)" class="flex flex-col gap-4">
+          <input type="hidden" id="vitem-cat-id">
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان ویدیو *</label><input type="text" id="vitem-title" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان ویدیو"></div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-500 mb-1">لینک یا کد امبد آپارات *</label>
+            <p class="text-[10px] text-gray-400 mb-2">می‌توانید لینک مستقیم ویدیو، لینک embed یا کد iframe کامل را وارد کنید</p>
+            <textarea id="vitem-embed" required rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm font-mono resize-none" placeholder="https://www.aparat.com/v/xxxxx&#10;یا&#10;&lt;iframe src=&quot;https://...&quot;&gt;&lt;/iframe&gt;"></textarea>
+            <div id="vitem-embed-preview" class="hidden mt-2 text-[10px] text-teal-600 bg-teal-50 p-2 rounded-lg break-all"></div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-500 mb-2">تصویر بندانگشتی <span class="text-gray-400 font-normal">(اختیاری - اگر خالی بماند از آپارات دریافت می‌شود)</span></label>
+            <div class="flex flex-col gap-2">
+              <input type="file" id="vitem-thumb-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('vitem-thumb-url').value=''">
+              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+              <input type="url" id="vitem-thumb-url" placeholder="https://example.com/thumb.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('vitem-thumb-file').value=''">
+            </div>
+          </div>
+
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><textarea id="vitem-desc" rows="2" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none" placeholder="توضیح کوتاه درباره ویدیو"></textarea></div>
+
+          <button type="submit" id="btn-add-vitem" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن ویدیو</button>
         </form>
       </div>
     </div>
@@ -661,7 +726,7 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabs=['books','slider','banners','gallery','audiogallery','support','broadcast','users','settings'];
+  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -674,6 +739,7 @@ function switchTab(tab) {
   if(tab==='books') loadBooks();
   if(tab==='slider') { loadSliders(); loadSliderSettings(); }
   if(tab==='banners') { loadBanners(); loadBannerSettings(); }
+  if(tab==='videogallery') loadVideoGalleryAdmin();
   if(tab==='gallery') loadGalleryAdmin();
   if(tab==='audiogallery') loadAudioGalleryAdmin();
   if(tab==='support'){
@@ -1664,6 +1730,166 @@ async function deleteAudioTrack(id,catId){
   try{
     const r=await adminFetch('/api/admin/audio/tracks/'+id,{method:'DELETE'});
     if(r.ok){showToast('صوت حذف شد');loadCategoryTracksAdmin(catId);}
+    else showToast('خطا',false);
+  }catch(e){showToast('خطا',false);}
+}
+
+// ====================================================
+// VIDEO GALLERY ADMIN
+// ====================================================
+async function loadVideoGalleryAdmin(){
+  try{
+    const r=await adminFetch('/api/admin/video/categories');
+    const cats=await r.json();
+    const c=document.getElementById('video-admin-list');
+    if(!cats||!cats.length){
+      c.innerHTML='<div class="text-center py-16 text-gray-400"><i class="fas fa-film text-4xl opacity-20 mb-3"></i><p class="text-sm font-bold opacity-50">هیچ دسته‌بندی ویدیویی وجود ندارد</p></div>';
+      return;
+    }
+    c.innerHTML=cats.map(cat=>`
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="vcat-${cat.id}">
+        <div class="flex items-center gap-4 p-4 border-b border-gray-100">
+          <div class="w-20 h-[45px] rounded-xl overflow-hidden shrink-0 bg-gray-900 flex items-center justify-center">
+            ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<i class="fas fa-film text-gray-600 text-xl"></i>`}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-black text-sm">${cat.name}</h3>
+            ${cat.description?`<p class="text-xs text-gray-400 mt-0.5">${cat.description}</p>`:''}
+            <span class="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full mt-1 inline-block">${cat.video_count} ویدیو</span>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button onclick="openVideoItemModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"><i class="fas fa-plus"></i>افزودن ویدیو</button>
+            <button onclick="deleteVideoCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-9 h-9 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+          </div>
+        </div>
+        <div id="vcat-items-${cat.id}" class="p-4">
+          ${cat.video_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز ویدیویی اضافه نشده</div>'}
+        </div>
+      </div>
+    `).join('');
+    cats.filter(c=>c.video_count>0).forEach(cat=>loadCategoryItemsAdmin(cat.id));
+  }catch(e){}
+}
+
+async function loadCategoryItemsAdmin(catId){
+  try{
+    const r=await adminFetch(`/api/videos/categories/${catId}/items`);
+    const items=await r.json();
+    const c=document.getElementById(`vcat-items-${catId}`);
+    if(!c) return;
+    if(!items||!items.length){c.innerHTML='<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز ویدیویی اضافه نشده</div>';return;}
+    c.innerHTML=`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${items.map(v=>`
+      <div class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group relative">
+        <div class="aspect-video bg-gray-900 relative overflow-hidden">
+          ${v.thumbnail?`<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">`:`<div class="w-full h-full flex items-center justify-center"><i class="fas fa-film text-gray-700 text-2xl"></i></div>`}
+          <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+            <i class="fas fa-play text-white text-2xl drop-shadow-lg"></i>
+          </div>
+        </div>
+        <div class="p-2.5 flex items-start gap-2">
+          <p class="font-bold text-xs flex-1 line-clamp-2">${v.title}</p>
+          <button onclick="deleteVideoItem(${v.id},${catId})" class="bg-rose-50 text-rose-500 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-rose-100 transition shrink-0 mt-0.5"><i class="fas fa-trash text-[10px]"></i></button>
+        </div>
+      </div>`).join('')}</div>`;
+  }catch(e){}
+}
+
+async function addVideoCategory(e){
+  e.preventDefault();
+  const name=document.getElementById('vcat-name').value.trim();
+  if(!name) return showToast('نام دسته‌بندی الزامی است',false);
+  const fd=new FormData();
+  fd.append('name',name);
+  fd.append('description',document.getElementById('vcat-desc').value);
+  const coverFile=document.getElementById('vcat-cover-file').files[0];
+  const coverUrl=document.getElementById('vcat-cover-url').value.trim();
+  if(coverFile) fd.append('gallery_image',coverFile);
+  else if(coverUrl) fd.append('cover_url',coverUrl);
+  const btn=document.getElementById('btn-add-vcat');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال افزودن...'; btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/video/categories',{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('دسته‌بندی افزوده شد');document.getElementById('vcat-form').reset();loadVideoGalleryAdmin();}
+    else showToast(d.error||'خطا',false);
+  }catch(err){showToast('خطا در ارتباط',false);}
+  finally{btn.innerHTML='<i class="fas fa-plus ml-1"></i>افزودن دسته‌بندی'; btn.disabled=false;}
+}
+
+async function deleteVideoCategory(id){
+  if(!confirm('این دسته‌بندی و تمام ویدیوهای آن حذف شود؟')) return;
+  try{
+    const r=await adminFetch('/api/admin/video/categories/'+id,{method:'DELETE'});
+    if(r.ok){showToast('دسته‌بندی حذف شد');loadVideoGalleryAdmin();}
+    else showToast('خطا',false);
+  }catch(e){showToast('خطا',false);}
+}
+
+function openVideoItemModal(catId,catName){
+  document.getElementById('vitem-cat-id').value=catId;
+  document.getElementById('vitem-modal-catname').textContent=catName;
+  document.getElementById('video-item-form').reset();
+  document.getElementById('vitem-embed-preview').classList.add('hidden');
+  const modal=document.getElementById('video-item-modal');
+  modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeVideoItemModal(){
+  const modal=document.getElementById('video-item-modal');
+  modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+document.addEventListener('click',function(ev){
+  const m=document.getElementById('video-item-modal');
+  if(m&&ev.target===m) closeVideoItemModal();
+});
+
+// نمایش پیش‌نمایش لینک پارس‌شده
+document.addEventListener('input',function(ev){
+  if(ev.target&&ev.target.id==='vitem-embed'){
+    const raw=ev.target.value.trim();
+    const preview=document.getElementById('vitem-embed-preview');
+    if(!raw){preview.classList.add('hidden');return;}
+    // Simple client-side preview
+    let src='';
+    if(raw.includes('<iframe')){const m=raw.match(/src\s*=\s*["']([^"']+)["']/i);if(m)src=m[1];}
+    else if(/aparat\.com\/v\/([a-zA-Z0-9]+)/i.test(raw)){const m=raw.match(/aparat\.com\/v\/([a-zA-Z0-9]+)/i);src=`https://www.aparat.com/video/video/embed/videohash/${m[1]}/vt/frame`;}
+    else if(/^https?:\/\//.test(raw)) src=raw;
+    if(src){preview.textContent='✓ لینک embed: '+src;preview.classList.remove('hidden');}
+    else{preview.textContent='فرمت شناسایی نشد';preview.classList.remove('hidden');preview.className='mt-2 text-[10px] text-rose-500 bg-rose-50 p-2 rounded-lg break-all';}
+  }
+});
+
+async function addVideoItem(e){
+  e.preventDefault();
+  const catId=document.getElementById('vitem-cat-id').value;
+  const title=document.getElementById('vitem-title').value.trim();
+  if(!title) return showToast('عنوان الزامی است',false);
+  const embed=document.getElementById('vitem-embed').value.trim();
+  if(!embed) return showToast('لینک آپارات الزامی است',false);
+  const fd=new FormData();
+  fd.append('category_id',catId);
+  fd.append('title',title);
+  fd.append('embed_input',embed);
+  fd.append('description',document.getElementById('vitem-desc').value);
+  const thumbFile=document.getElementById('vitem-thumb-file').files[0];
+  const thumbUrl=document.getElementById('vitem-thumb-url').value.trim();
+  if(thumbFile) fd.append('gallery_image',thumbFile);
+  else if(thumbUrl) fd.append('thumbnail_url',thumbUrl);
+  const btn=document.getElementById('btn-add-vitem');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال افزودن...'; btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/video/items',{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('ویدیو افزوده شد');closeVideoItemModal();loadVideoGalleryAdmin();}
+    else showToast(d.error||'خطا',false);
+  }catch(err){showToast('خطا در ارتباط',false);}
+  finally{btn.innerHTML='<i class="fas fa-plus ml-1"></i>افزودن ویدیو'; btn.disabled=false;}
+}
+
+async function deleteVideoItem(id,catId){
+  if(!confirm('این ویدیو حذف شود؟')) return;
+  try{
+    const r=await adminFetch('/api/admin/video/items/'+id,{method:'DELETE'});
+    if(r.ok){showToast('ویدیو حذف شد');loadCategoryItemsAdmin(catId);}
     else showToast('خطا',false);
   }catch(e){showToast('خطا',false);}
 }

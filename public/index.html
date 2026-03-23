@@ -304,25 +304,35 @@
                     <p class="text-xs font-bold text-gray-500 tracking-wide">در حال دریافت اطلاعات...</p>
                 </div>
 
-                <!-- 1. فیلم -->
-                <div id="media-content-video">
-                    <div id="wp-media-playlists-view" class="grid grid-cols-2 gap-4"></div>
-                    
-                    <div id="wp-media-videos-view" class="hidden flex-col gap-3">
-                        <div class="flex items-center gap-2 mb-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                            <button onclick="backToWPMediaPlaylists()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
-                            <h2 id="wp-media-playlist-title" class="font-bold text-sm text-gray-800 truncate">لیست ویدیوها</h2>
-                        </div>
-                        <div id="wp-media-videos-list" class="flex flex-col gap-3"></div>
-                    </div>
-                    
-                    <div id="wp-media-single-view" class="hidden flex-col gap-4">
+                <!-- 1. فیلم - گالری ویدیو آپارات -->
+                <div id="media-content-video" class="w-full">
+                    <!-- نمای دسته‌بندی‌ها -->
+                    <div id="video-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+
+                    <!-- نمای لیست ویدیوها -->
+                    <div id="video-list-view" class="hidden flex-col gap-3 w-full">
                         <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
-                            <button onclick="backToWPMediaVideos()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
-                            <h2 id="wp-media-video-title" class="font-bold text-xs text-gray-800 line-clamp-1">پخش ویدیو</h2>
+                            <button onclick="backToVideoCategories()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="video-cat-title" class="font-bold text-sm text-gray-800 truncate flex-1">ویدیوها</h2>
+                            <span id="video-count-badge" class="text-[10px] text-gray-400 font-medium shrink-0"></span>
                         </div>
-                        <div id="wp-media-player-container" class="w-full flex flex-col gap-4"></div>
-                        <div id="wp-media-post-content" class="wp-content bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2"></div>
+                        <div id="video-items-list" class="flex flex-col gap-3 w-full"></div>
+                    </div>
+
+                    <!-- نمای پخش ویدیو -->
+                    <div id="video-player-view" class="hidden flex-col gap-4 w-full">
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button onclick="backToVideoList()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="video-player-title" class="font-bold text-xs text-gray-800 line-clamp-2 flex-1 leading-snug">پخش ویدیو</h2>
+                        </div>
+                        <!-- پلیر آپارات -->
+                        <div class="relative w-full rounded-2xl overflow-hidden shadow-md bg-black" style="padding-top:56.25%">
+                            <iframe id="video-aparat-iframe" src="" scrolling="no" allowfullscreen="true"
+                                webkitallowfullscreen="true" mozallowfullscreen="true"
+                                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allow="autoplay">
+                            </iframe>
+                        </div>
+                        <div id="video-player-desc" class="hidden bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-xs text-gray-600 leading-relaxed"></div>
                     </div>
                 </div>
 
