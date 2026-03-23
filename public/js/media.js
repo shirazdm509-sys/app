@@ -5,9 +5,9 @@ let wpMediaPlaylists = [];
 let wpMediaState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
 let cachedMediaPosts = [];
 
-let wpPhotoPlaylists = [];
-let wpPhotoState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
-let cachedPhotoPosts = [];
+// گالری محلی
+let galleryCurrentPhotos = [];
+let galleryCurrentIndex = 0;
 
 // ====================================================
 // تب‌های رسانه
@@ -35,7 +35,7 @@ function switchMediaTab(tab) {
     if(tab !== 'video' && vc) vc.innerHTML = '';
 
     if (tab === 'video' && wpMediaPlaylists.length === 0) fetchWPMediaPlaylists();
-    if (tab === 'photo' && wpPhotoPlaylists.length === 0) fetchWPPhotoPlaylists();
+    if (tab === 'photo') initGallery();
 }
 
 function setMediaLoading(show) {
@@ -46,7 +46,7 @@ function setMediaLoading(show) {
     if (show) {
         loading.classList.remove('hidden'); loading.classList.add('flex');
         if(videoContent) { videoContent.style.opacity = '0.3'; videoContent.style.pointerEvents = 'none'; }
-        if(photoContent) { photoContent.style.opacity = '0.3'; photoContent.style.pointerEvents = 'none'; }
+        if(photoContent) { photoContent.style.opacity = '0.4'; photoContent.style.pointerEvents = 'none'; }
     } else {
         loading.classList.add('hidden'); loading.classList.remove('flex');
         if(videoContent) { videoContent.style.opacity = '1'; videoContent.style.pointerEvents = 'auto'; }
@@ -210,125 +210,205 @@ function backToWPMediaVideos() {
 }
 
 // ====================================================
-// بخش عکس
+// گالری عکس محلی
 // ====================================================
-async function fetchWPPhotoPlaylists() {
-    setMediaLoading(true);
-    const plView = document.getElementById('wp-photo-playlists-view');
-    try {
-        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
-        if(!res.ok) throw new Error('WP API Error');
-        const cats = await res.json();
+let _galleryCatsLoaded = false;
 
-        const targetNames = ['تصاویر', 'عکس', 'گالری', 'گالری تصاویر', 'عکس ها', 'گزارش تصویری'];
-        const mainPhotoCat = cats.find(c => targetNames.includes(c.name.trim()) || c.slug.includes('gallery') || c.slug.includes('photo') || c.slug.includes('image'));
-
-        let displayCats = mainPhotoCat ? cats.filter(c => (c.id === mainPhotoCat.id || c.parent === mainPhotoCat.id) && c.count > 0) : cats.filter(c => c.count > 0);
-
-        if(displayCats.length > 0) {
-            wpPhotoPlaylists = displayCats;
-            plView.innerHTML = displayCats.map((pl, i) => {
-                const colors = ['text-emerald-500 bg-emerald-50', 'text-cyan-500 bg-cyan-50', 'text-teal-500 bg-teal-50', 'text-green-500 bg-green-50'];
-                return `<div onclick="showWPPhotoPosts('${pl.id}', '${pl.name.replace(/'/g, "\\'")}')" class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition active:scale-95 text-center"><div class="w-14 h-14 ${colors[i % colors.length]} rounded-full flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-images transform -translate-y-0.5"></i></div><h3 class="font-bold text-xs text-gray-800 line-clamp-2">${pl.name}</h3></div>`;
-            }).join('');
-        } else plView.innerHTML = '<div class="col-span-2 text-center py-10 text-gray-500 font-bold text-sm">دسته‌بندی تصاویر یافت نشد.</div>';
-    } catch(e) { plView.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400"><button onclick="fetchWPPhotoPlaylists()" class="mt-4 bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; }
-    finally { setMediaLoading(false); }
+async function initGallery() {
+    if (_galleryCatsLoaded) return;
+    await loadGalleryCategories();
 }
 
-async function showWPPhotoPosts(categoryId, title) {
-    wpPhotoState.view = 'posts';
-    document.getElementById('wp-photo-playlists-view').classList.add('hidden');
-    document.getElementById('wp-photo-single-view').classList.add('hidden');
-    document.getElementById('wp-photo-single-view').classList.remove('flex');
-    const postsView = document.getElementById('wp-photo-posts-view');
-    postsView.classList.remove('hidden'); postsView.classList.add('flex');
-
-    const listContainer = document.getElementById('wp-photo-posts-list');
-    listContainer.innerHTML = '';
-    document.getElementById('wp-photo-playlist-title').textContent = title;
-
+async function loadGalleryCategories() {
     setMediaLoading(true);
+    const view = document.getElementById('gallery-categories-view');
+    const photosView = document.getElementById('gallery-photos-view');
+    if(photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
+    if(view) view.classList.remove('hidden');
+
     try {
-        const res = await fetch(`${WP_API_URL}/posts?categories=${categoryId}&_embed=1&per_page=50`);
-        const data = await res.json();
+        const res = await fetch('/api/gallery/categories');
+        const cats = await res.json();
+        _galleryCatsLoaded = true;
 
-        let validPosts = [];
-        if(data && data.length > 0) {
-            data.forEach(post => {
-                const mediaInfo = extractMediaFromPost(post);
-                if (post._embedded && post._embedded['wp:featuredmedia']) {
-                    mediaInfo.images.unshift(post._embedded['wp:featuredmedia'][0].source_url);
-                }
-                mediaInfo.images = [...new Set(mediaInfo.images)];
-                if (mediaInfo.images.length > 0) {
-                    post.extractedMedia = mediaInfo;
-                    validPosts.push(post);
-                }
-            });
-        }
-
-        cachedPhotoPosts = validPosts;
-
-        if(validPosts.length > 0) {
-            listContainer.innerHTML = validPosts.map(post => {
-                const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
-                const firstImage = post.extractedMedia.images[0];
+        if(cats && cats.length > 0) {
+            const colors = [
+                'from-teal-400 to-teal-600',
+                'from-emerald-400 to-emerald-600',
+                'from-cyan-400 to-cyan-600',
+                'from-blue-400 to-blue-600',
+                'from-violet-400 to-violet-600',
+                'from-rose-400 to-rose-600',
+                'from-amber-400 to-amber-600',
+                'from-pink-400 to-pink-600',
+            ];
+            view.innerHTML = cats.map((cat, i) => {
+                const grad = colors[i % colors.length];
+                const coverHtml = cat.cover
+                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-images text-white text-3xl opacity-80"></i></div>`;
                 return `
-                <div onclick="showWPPhotoGallery(${post.id}, '${post.title.rendered.replace(/'/g, "\\'")}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-4 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                    <div class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden shrink-0 shadow-inner">
-                        <img src="${firstImage}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex flex-col justify-center min-w-0 flex-1">
-                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1.5">${post.title.rendered}</h4>
-                        <span class="text-[10px] font-medium text-gray-400"><i class="far fa-calendar ml-1"></i>${date} - ${post.extractedMedia.images.length} تصویر</span>
+                <div onclick="loadGalleryPhotos(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.photo_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                    <div class="w-full aspect-square overflow-hidden relative">
+                        ${coverHtml}
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                            <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
+                            <p class="text-[10px] text-white/70 mt-0.5">${cat.photo_count} تصویر</p>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
-        } else listContainer.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs font-bold">هیچ گالری در این بخش یافت نشد.</div>`;
-    } catch(e) { listContainer.innerHTML = `<div class="text-center py-10 text-gray-400"><button onclick="showWPPhotoPosts('${categoryId}', '${title}')" class="bg-gray-100 px-4 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`; }
-    finally { setMediaLoading(false); }
+        } else {
+            view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
+                <i class="fas fa-images text-5xl opacity-20"></i>
+                <p class="text-sm font-bold opacity-50">هنوز گالری‌ای ایجاد نشده</p>
+                <p class="text-xs opacity-40">از پنل مدیریت گالری اضافه کنید</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
+            <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
+            <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
+            <button onclick="_galleryCatsLoaded=false;loadGalleryCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+        </div>`;
+    } finally { setMediaLoading(false); }
 }
 
-function showWPPhotoGallery(postId, title) {
-    const post = cachedPhotoPosts.find(p => p.id === postId);
-    if(!post || !post.extractedMedia) return;
+async function loadGalleryPhotos(categoryId, title, count) {
+    setMediaLoading(true);
+    const catsView = document.getElementById('gallery-categories-view');
+    const photosView = document.getElementById('gallery-photos-view');
+    const grid = document.getElementById('gallery-photos-grid');
 
-    wpPhotoState.view = 'single';
-    document.getElementById('wp-photo-posts-view').classList.add('hidden');
-    document.getElementById('wp-photo-posts-view').classList.remove('flex');
-    const singleView = document.getElementById('wp-photo-single-view');
-    singleView.classList.remove('hidden'); singleView.classList.add('flex');
+    if(catsView) catsView.classList.add('hidden');
+    if(photosView) { photosView.classList.remove('hidden'); photosView.classList.add('flex'); }
+    document.getElementById('gallery-category-title').textContent = title;
+    document.getElementById('gallery-photo-count').textContent = count > 0 ? `${count} تصویر` : '';
+    if(grid) grid.innerHTML = '';
 
-    document.getElementById('wp-photo-post-title').innerHTML = title;
+    try {
+        const res = await fetch(`/api/gallery/categories/${categoryId}/photos`);
+        const photos = await res.json();
+        galleryCurrentPhotos = photos;
 
-    const container = document.getElementById('wp-photo-gallery-container');
-    container.innerHTML = post.extractedMedia.images.map(src => `
-        <div class="rounded-2xl overflow-hidden bg-gray-100 shadow-sm border border-gray-200 aspect-square cursor-pointer" onclick="openImageModal('${src}')">
-            <img src="${src}" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-        </div>
-    `).join('');
+        if(photos && photos.length > 0) {
+            grid.innerHTML = photos.map((ph, idx) => `
+                <div onclick="openGalleryImage(${idx})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative group shadow-sm">
+                    <img src="${ph.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div>
+                </div>`).join('');
+        } else {
+            grid.innerHTML = `<div class="col-span-3 flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+                <i class="fas fa-image text-4xl opacity-20"></i>
+                <p class="text-xs font-bold opacity-50">هیچ تصویری در این دسته وجود ندارد</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(grid) grid.innerHTML = `<div class="col-span-3 text-center py-10 text-gray-400 text-xs">خطا در بارگذاری</div>`;
+    } finally { setMediaLoading(false); }
+}
 
-    const contentContainer = document.getElementById('wp-photo-post-content');
-    if (post.extractedMedia.cleanHtml.trim() !== '') {
-        contentContainer.innerHTML = post.extractedMedia.cleanHtml;
-        contentContainer.style.display = 'block';
+function backToGalleryCategories() {
+    _galleryCatsLoaded = false;
+    const catsView = document.getElementById('gallery-categories-view');
+    const photosView = document.getElementById('gallery-photos-view');
+    if(photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
+    if(catsView) catsView.classList.remove('hidden');
+    loadGalleryCategories();
+}
+
+function openGalleryImage(index) {
+    if(!galleryCurrentPhotos || galleryCurrentPhotos.length === 0) return;
+    galleryCurrentIndex = index;
+    const modal = document.getElementById('image-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    updateModalImage();
+    updateModalDots();
+}
+
+function updateModalImage() {
+    const ph = galleryCurrentPhotos[galleryCurrentIndex];
+    if(!ph) return;
+    const img = document.getElementById('fullscreen-image');
+    const titleEl = document.getElementById('modal-image-title');
+    img.src = ph.image;
+    if(titleEl) titleEl.textContent = ph.title || '';
+
+    const prevBtn = document.getElementById('modal-prev-btn');
+    const nextBtn = document.getElementById('modal-next-btn');
+    if(prevBtn) prevBtn.style.visibility = galleryCurrentIndex > 0 ? 'visible' : 'hidden';
+    if(nextBtn) nextBtn.style.visibility = galleryCurrentIndex < galleryCurrentPhotos.length - 1 ? 'visible' : 'hidden';
+}
+
+function updateModalDots() {
+    const dotsEl = document.getElementById('modal-dots');
+    if(!dotsEl) return;
+    const total = galleryCurrentPhotos.length;
+    if(total <= 1) { dotsEl.innerHTML = ''; return; }
+    const maxDots = 8;
+    if(total <= maxDots) {
+        dotsEl.innerHTML = galleryCurrentPhotos.map((_,i) =>
+            `<div class="w-1.5 h-1.5 rounded-full transition-all ${i === galleryCurrentIndex ? 'bg-white w-4' : 'bg-white/40'}"></div>`
+        ).join('');
     } else {
-        contentContainer.style.display = 'none';
+        dotsEl.innerHTML = `<span class="text-white/60 text-xs font-bold">${galleryCurrentIndex + 1} / ${total}</span>`;
     }
 }
 
-function backToWPPhotoPlaylists() {
-    wpPhotoState.view = 'playlists';
-    document.getElementById('wp-photo-posts-view').classList.add('hidden');
-    document.getElementById('wp-photo-posts-view').classList.remove('flex');
-    document.getElementById('wp-photo-playlists-view').classList.remove('hidden');
+function navigateGallery(dir) {
+    const newIdx = galleryCurrentIndex + dir;
+    if(newIdx < 0 || newIdx >= galleryCurrentPhotos.length) return;
+    galleryCurrentIndex = newIdx;
+    updateModalImage();
+    updateModalDots();
 }
 
-function backToWPPhotoPosts() {
-    wpPhotoState.view = 'posts';
-    document.getElementById('wp-photo-single-view').classList.add('hidden');
-    document.getElementById('wp-photo-single-view').classList.remove('flex');
-    document.getElementById('wp-photo-posts-view').classList.remove('hidden');
-    document.getElementById('wp-photo-posts-view').classList.add('flex');
+function handleModalBackdropClick(e) {
+    if(e.target === document.getElementById('image-modal') || e.target === document.getElementById('modal-img-container')) {
+        closeImageModal();
+    }
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('image-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function downloadCurrentImage() {
+    const ph = galleryCurrentPhotos[galleryCurrentIndex];
+    if(!ph) return;
+    try {
+        const response = await fetch(ph.image);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = ph.image.split('.').pop().split('?')[0] || 'jpg';
+        a.download = (ph.title || 'تصویر') + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        const a = document.createElement('a');
+        a.href = ph.image;
+        a.target = '_blank';
+        a.click();
+    }
+}
+
+async function shareCurrentImage() {
+    const ph = galleryCurrentPhotos[galleryCurrentIndex];
+    if(!ph) return;
+    const shareData = { title: ph.title || 'تصویر گالری', url: ph.image };
+    try {
+        if(navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            await navigator.clipboard.writeText(ph.image);
+            if(typeof showToast === 'function') showToast('لینک تصویر کپی شد');
+        }
+    } catch(e) {}
 }

@@ -114,6 +114,8 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT DEFAULT '', image TEXT NOT NULL, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES gallery_categories(id))`);
 
 
         const defaults = [
@@ -153,7 +155,7 @@ function initDb() {
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','public/icons','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -161,7 +163,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons' };
+        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
@@ -757,6 +759,89 @@ function sendPushToAll(payload) {
         });
     });
 }
+
+// === PUBLIC GALLERY API ===
+app.get('/api/gallery/categories',(req,res)=>{
+    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count FROM gallery_categories gc ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+app.get('/api/gallery/categories/:id/photos',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT * FROM gallery_photos WHERE category_id=? ORDER BY sort_order ASC, created_at ASC',[id],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+
+// === ADMIN GALLERY API ===
+app.get('/api/admin/gallery/categories',adminAuth,(req,res)=>{
+    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count FROM gallery_categories gc ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/gallery/categories',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const name=san(req.body.name||'').trim();
+    if(!name) return res.status(400).json({error:'نام دسته‌بندی الزامی است'});
+    const imgUrl=req.body.image_url&&req.body.image_url.trim().length>5?san(req.body.image_url.trim()):null;
+    const cover=req.file?`/gallery/${req.file.filename}`:(imgUrl||'');
+    const desc=san(req.body.description||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM gallery_categories',[],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO gallery_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            res.json({success:true,id:this.lastID});
+        });
+    });
+});
+app.put('/api/admin/gallery/categories/:id',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT * FROM gallery_categories WHERE id=?',[id],(err,cat)=>{
+        if(err||!cat) return res.status(404).json({error:'دسته‌بندی یافت نشد'});
+        const name=san(req.body.name||cat.name).trim();
+        const desc=san(req.body.description||cat.description);
+        let cover=cat.cover;
+        if(req.file){
+            if(cover&&!cover.startsWith('http')){const op=path.resolve(__dirname,'public',cover.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}
+            cover=`/gallery/${req.file.filename}`;
+        } else if(req.body.image_url&&req.body.image_url.trim().length>5){
+            cover=san(req.body.image_url.trim());
+        }
+        mainDb.run('UPDATE gallery_categories SET name=?,description=?,cover=? WHERE id=?',[name,desc,cover,id],()=>res.json({success:true,cover}));
+    });
+});
+app.delete('/api/admin/gallery/categories/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT image FROM gallery_photos WHERE category_id=?',[id],(err,photos)=>{
+        (photos||[]).forEach(p=>{if(p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
+        mainDb.get('SELECT cover FROM gallery_categories WHERE id=?',[id],(err2,cat)=>{
+            if(cat&&cat.cover&&!cat.cover.startsWith('http')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+            mainDb.run('DELETE FROM gallery_photos WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM gallery_categories WHERE id=?',[id],()=>res.json({success:true})));
+        });
+    });
+});
+app.post('/api/admin/gallery/photos',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const catId=+req.body.category_id;if(isNaN(catId)) return res.status(400).json({error:'دسته‌بندی الزامی است'});
+    const imgUrl=req.body.image_url&&req.body.image_url.trim().length>5?san(req.body.image_url.trim()):null;
+    if(!req.file&&!imgUrl) return res.status(400).json({error:'تصویر یا لینک تصویر الزامی است'});
+    const img=req.file?`/gallery/${req.file.filename}`:imgUrl;
+    const title=san(req.body.title||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM gallery_photos WHERE category_id=?',[catId],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO gallery_photos (category_id,title,image,sort_order) VALUES (?,?,?,?)',[catId,title,img,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            // Update category cover if empty
+            mainDb.run('UPDATE gallery_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[img,catId]);
+            res.json({success:true,id:this.lastID,image:img});
+        });
+    });
+});
+app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT image FROM gallery_photos WHERE id=?',[id],(err,p)=>{
+        if(p&&p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        mainDb.run('DELETE FROM gallery_photos WHERE id=?',[id],()=>res.json({success:true}));
+    });
+});
 
 // Routes
 app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.html')));
