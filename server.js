@@ -172,7 +172,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
 });
-const uploadImage = multer({ storage, limits:{fileSize:10*1024*1024} });
+const uploadImage = multer({ storage, limits:{fileSize:50*1024*1024} });
 const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024} });
 const upload = multer({ storage, limits:{fileSize:400*1024*1024} });
 
@@ -1031,7 +1031,8 @@ app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.htm
 app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 app.get('/sw.js',(req,res)=>{res.setHeader('Content-Type','application/javascript');res.sendFile(path.join(__dirname,'public','sw.js'));});
 app.use((req,res)=>{if(req.path.startsWith('/api/')) return res.status(404).json({error:'مسیر یافت نشد'});res.sendFile(path.join(__dirname,'public','index.html'));});
-app.use((err,req,res,next)=>{console.error('Error:',err.message);if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۱۰ مگابایت، دیتابیس حداکثر ۴۰۰ مگابایت)'});res.status(500).json({error:'خطای داخلی سرور'});});
+app.use((err,req,res,next)=>{console.error('Error:',err.message);if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۵۰ مگابایت، صوت حداکثر ۱۰۰ مگابایت)'});
+    if(err.code==='ENOENT') return res.status(500).json({error:'خطا در ذخیره فایل - لطفاً با مدیر تماس بگیرید'});res.status(500).json({error:'خطای داخلی سرور'});});
 
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
