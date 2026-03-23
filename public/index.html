@@ -326,16 +326,75 @@
                     </div>
                 </div>
 
-                <!-- 2. صوت (WebView) -->
-                <div id="media-content-audio" class="hidden flex-col w-full h-[65vh] rounded-3xl overflow-hidden shadow-sm border border-gray-200 bg-white">
-                    <div class="flex items-center justify-between p-3 bg-brand-50 border-b border-brand-100 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-headphones text-brand-600 ml-1"></i>
-                            <h2 class="font-bold text-sm text-brand-800">آرشیو صوتی سایت</h2>
+                <!-- 2. صوت - گالری صوت محلی -->
+                <div id="media-content-audio" class="hidden w-full">
+                    <!-- نمای دسته‌بندی‌ها -->
+                    <div id="audio-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+
+                    <!-- نمای پلی‌لیست -->
+                    <div id="audio-playlist-view" class="hidden flex-col gap-3 w-full">
+                        <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 sticky top-0 z-10">
+                            <button onclick="backToAudioCategories()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                            <h2 id="audio-cat-title" class="font-bold text-sm text-gray-800 truncate flex-1">پلی‌لیست</h2>
+                            <span id="audio-track-count" class="text-[10px] text-gray-400 font-medium shrink-0"></span>
                         </div>
-                        <button onclick="document.getElementById('audio-webview').src = document.getElementById('audio-webview').src" class="w-8 h-8 bg-white rounded-full text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition"><i class="fas fa-sync-alt"></i></button>
+
+                        <!-- پلیر اصلی -->
+                        <div id="audio-player-card" class="hidden bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden">
+                            <!-- کاور + اطلاعات -->
+                            <div class="relative bg-gradient-to-br from-brand-600 to-brand-800 p-5 flex items-center gap-4">
+                                <div id="audio-player-cover" class="w-20 h-20 rounded-2xl bg-white/20 overflow-hidden shrink-0 shadow-lg flex items-center justify-center">
+                                    <i class="fas fa-music text-white/60 text-3xl"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 id="audio-player-title" class="font-black text-white text-sm line-clamp-2 mb-1">انتخاب کنید</h3>
+                                    <p id="audio-player-artist" class="text-white/70 text-xs"></p>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <button onclick="downloadCurrentAudio()" class="w-7 h-7 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition text-xs" title="دانلود"><i class="fas fa-download"></i></button>
+                                        <button onclick="shareCurrentAudio()" class="w-7 h-7 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center transition text-xs" title="اشتراک‌گذاری"><i class="fas fa-share-alt"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- نوار پیشرفت -->
+                            <div class="px-5 pt-4 pb-1">
+                                <input type="range" id="audio-progress" min="0" max="100" value="0" step="0.1"
+                                    class="w-full h-1.5 rounded-full bg-gray-200 appearance-none cursor-pointer accent-brand-600"
+                                    oninput="seekAudio(this.value)" style="-webkit-appearance:none;">
+                                <div class="flex justify-between mt-1">
+                                    <span id="audio-current-time" class="text-[10px] text-gray-400 font-mono">۰:۰۰</span>
+                                    <span id="audio-duration" class="text-[10px] text-gray-400 font-mono">۰:۰۰</span>
+                                </div>
+                            </div>
+
+                            <!-- کنترل‌ها -->
+                            <div class="px-5 pb-4 flex flex-col gap-3">
+                                <!-- دکمه‌های کنترل -->
+                                <div class="flex items-center justify-center gap-4">
+                                    <button onclick="prevAudioTrack()" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition" title="قبلی"><i class="fas fa-step-backward"></i></button>
+                                    <button onclick="skipAudio(-15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition text-xs font-black" title="۱۵ ثانیه عقب"><i class="fas fa-undo text-sm"></i><span class="text-[9px] absolute mt-3 mr-1">۱۵</span></button>
+                                    <button id="audio-play-btn" onclick="toggleAudioPlay()" class="w-16 h-16 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95">
+                                        <i id="audio-play-icon" class="fas fa-play text-xl mr-0.5"></i>
+                                    </button>
+                                    <button onclick="skipAudio(15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition text-xs font-black relative" title="۱۵ ثانیه جلو"><i class="fas fa-redo text-sm"></i><span class="text-[9px] absolute mt-3 ml-1">۱۵</span></button>
+                                    <button onclick="nextAudioTrack()" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition" title="بعدی"><i class="fas fa-step-forward"></i></button>
+                                </div>
+
+                                <!-- تنظیمات سرعت -->
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <span class="text-[10px] text-gray-400 font-bold ml-1">سرعت:</span>
+                                    <button onclick="setAudioSpeed(0.75)" data-speed="0.75" class="audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition">۰.۷۵×</button>
+                                    <button onclick="setAudioSpeed(1)" data-speed="1" class="audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand-100 text-brand-700 transition">۱×</button>
+                                    <button onclick="setAudioSpeed(1.25)" data-speed="1.25" class="audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition">۱.۲۵×</button>
+                                    <button onclick="setAudioSpeed(1.5)" data-speed="1.5" class="audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition">۱.۵×</button>
+                                    <button onclick="setAudioSpeed(2)" data-speed="2" class="audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition">۲×</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- لیست آهنگ‌ها -->
+                        <div id="audio-tracks-list" class="flex flex-col gap-2"></div>
                     </div>
-                    <iframe id="audio-webview" onload="injectCSSIntoWebView()" src="https://dastgheibqoba.info/category/%d8%a2%d8%b1%d8%b4%db%8c%d9%88-%d8%b5%d9%88%d8%aa/?webview=1" class="w-full flex-1 border-none bg-gray-50" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
                 </div>
 
                 <!-- 3. عکس - گالری محلی -->

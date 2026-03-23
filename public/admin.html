@@ -42,6 +42,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('slider')" id="tab-btn-slider" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-images w-5"></i>اسلایدر</button>
     <button onclick="switchTab('banners')" id="tab-btn-banners" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-ad w-5"></i>بنرها</button>
     <button onclick="switchTab('gallery')" id="tab-btn-gallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-camera w-5"></i>گالری عکس</button>
+    <button onclick="switchTab('audiogallery')" id="tab-btn-audiogallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-headphones w-5"></i>گالری صوت</button>
     <button onclick="switchTab('support')" id="tab-btn-support" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative"><i class="fas fa-headset w-5"></i>پشتیبانی<span id="support-badge" class="hidden absolute left-2 top-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span></button>
     <button onclick="switchTab('broadcast')" id="tab-btn-broadcast" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-bullhorn w-5"></i>پیام همگانی</button>
     <button onclick="switchTab('users')" id="tab-btn-users" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-users w-5"></i>کاربران</button>
@@ -202,6 +203,68 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
           </div>
           <button type="submit" id="btn-add-gphoto" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن تصویر</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIO GALLERY TAB -->
+  <div id="tab-audiogallery" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <!-- افزودن دسته‌بندی صوت -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی صوتی</h2>
+      <form id="audio-cat-form" onsubmit="addAudioCategory(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام دسته‌بندی *</label><input type="text" id="acat-name" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مثلاً: سخنرانی‌ها، دعاها"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><input type="text" id="acat-desc" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="توضیح مختصر"></div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور <span class="text-gray-400 font-normal">(فایل یا لینک URL - کپی نمی‌شود)</span></label>
+          <div class="flex flex-col gap-2">
+            <input type="file" id="acat-cover-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('acat-cover-url').value=''">
+            <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+            <input type="url" id="acat-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('acat-cover-file').value=''">
+          </div>
+        </div>
+        <div class="md:col-span-2"><button type="submit" id="btn-add-acat" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن دسته‌بندی</button></div>
+      </form>
+    </div>
+
+    <!-- لیست دسته‌بندی‌های صوت -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-black">دسته‌بندی‌های صوتی</h2>
+        <button onclick="loadAudioGalleryAdmin()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button>
+      </div>
+      <div id="audio-admin-list" class="flex flex-col gap-6"></div>
+    </div>
+
+    <!-- مودال افزودن صوت -->
+    <div id="audio-track-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-black text-base">افزودن صوت به <span id="atrack-modal-catname" class="text-teal-600"></span></h3>
+          <button onclick="closeAudioTrackModal()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 flex items-center justify-center"><i class="fas fa-times"></i></button>
+        </div>
+        <form id="audio-track-form" onsubmit="addAudioTrack(event)" class="flex flex-col gap-4">
+          <input type="hidden" id="atrack-cat-id">
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان صوت *</label><input type="text" id="atrack-title" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان فایل صوتی"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">گوینده / سخنران (اختیاری)</label><input type="text" id="atrack-artist" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نام گوینده"></div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 mb-2">فایل صوتی * <span class="text-gray-400 font-normal">(آپلود تا ۱۰۰MB یا لینک URL)</span></label>
+            <div class="flex flex-col gap-2">
+              <input type="file" id="atrack-file" accept="audio/*,.mp3,.m4a,.ogg,.wav,.aac,.opus" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('atrack-url').value=''">
+              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا لینک URL (کپی نمی‌شود)<span class="flex-1 border-t border-gray-200"></span></div>
+              <input type="url" id="atrack-url" placeholder="https://example.com/audio.mp3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('atrack-file').value=''">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور (اختیاری)</label>
+            <div class="flex flex-col gap-2">
+              <input type="file" id="atrack-cover-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('atrack-cover-url').value=''">
+              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+              <input type="url" id="atrack-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.files[0]||this.value)document.getElementById('atrack-cover-file').value=''">
+            </div>
+          </div>
+          <button type="submit" id="btn-add-atrack" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن صوت</button>
         </form>
       </div>
     </div>
@@ -598,7 +661,7 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabs=['books','slider','banners','gallery','support','broadcast','users','settings'];
+  const tabs=['books','slider','banners','gallery','audiogallery','support','broadcast','users','settings'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -612,6 +675,7 @@ function switchTab(tab) {
   if(tab==='slider') { loadSliders(); loadSliderSettings(); }
   if(tab==='banners') { loadBanners(); loadBannerSettings(); }
   if(tab==='gallery') loadGalleryAdmin();
+  if(tab==='audiogallery') loadAudioGalleryAdmin();
   if(tab==='support'){
     loadTickets();
     adminQaInterval=setInterval(()=>{loadTickets();loadQAUsers();},8000);
@@ -1456,6 +1520,150 @@ async function deleteGalleryPhoto(id,catId){
   try{
     const r=await adminFetch('/api/admin/gallery/photos/'+id,{method:'DELETE'});
     if(r.ok){showToast('تصویر حذف شد');loadCategoryPhotosAdmin(catId);}
+    else showToast('خطا',false);
+  }catch(e){showToast('خطا',false);}
+}
+
+// ====================================================
+// AUDIO GALLERY ADMIN
+// ====================================================
+async function loadAudioGalleryAdmin(){
+  try{
+    const r=await adminFetch('/api/admin/audio/categories');
+    const cats=await r.json();
+    const c=document.getElementById('audio-admin-list');
+    if(!cats||!cats.length){
+      c.innerHTML='<div class="text-center py-16 text-gray-400"><i class="fas fa-headphones text-4xl opacity-20 mb-3"></i><p class="text-sm font-bold opacity-50">هیچ دسته‌بندی صوتی وجود ندارد</p></div>';
+      return;
+    }
+    c.innerHTML=cats.map(cat=>`
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="acat-${cat.id}">
+        <div class="flex items-center gap-4 p-4 border-b border-gray-100">
+          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
+            ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-headphones text-white text-2xl"></i></div>`}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-black text-sm">${cat.name}</h3>
+            ${cat.description?`<p class="text-xs text-gray-400 mt-0.5">${cat.description}</p>`:''}
+            <span class="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full mt-1 inline-block">${cat.track_count} فایل صوتی</span>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button onclick="openAudioTrackModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"><i class="fas fa-plus"></i>افزودن صوت</button>
+            <button onclick="deleteAudioCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-9 h-9 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+          </div>
+        </div>
+        <div id="acat-tracks-${cat.id}" class="p-4">
+          ${cat.track_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز صوتی اضافه نشده</div>'}
+        </div>
+      </div>
+    `).join('');
+    cats.filter(c=>c.track_count>0).forEach(cat=>loadCategoryTracksAdmin(cat.id));
+  }catch(e){}
+}
+
+async function loadCategoryTracksAdmin(catId){
+  try{
+    const r=await adminFetch(`/api/audio/categories/${catId}/tracks`);
+    const tracks=await r.json();
+    const c=document.getElementById(`acat-tracks-${catId}`);
+    if(!c) return;
+    if(!tracks||!tracks.length){c.innerHTML='<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز صوتی اضافه نشده</div>';return;}
+    c.innerHTML=`<div class="flex flex-col gap-2">${tracks.map((tr,i)=>`
+      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+        <div class="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-white flex items-center justify-center shadow-sm">
+          ${tr.cover?`<img src="${tr.cover}" class="w-full h-full object-cover">`:`<i class="fas fa-music text-brand-400 text-sm"></i>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-xs truncate">${tr.title}</p>
+          ${tr.artist?`<p class="text-[10px] text-gray-400">${tr.artist}</p>`:''}
+          <p class="text-[10px] text-gray-300 truncate mt-0.5" title="${tr.audio_url}">${tr.audio_url.startsWith('/')?'فایل آپلود شده':tr.audio_url.substring(0,50)+'...'}</p>
+        </div>
+        <button onclick="deleteAudioTrack(${tr.id},${catId})" class="bg-rose-50 text-rose-500 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-rose-100 transition shrink-0"><i class="fas fa-trash text-xs"></i></button>
+      </div>`).join('')}</div>`;
+  }catch(e){}
+}
+
+async function addAudioCategory(e){
+  e.preventDefault();
+  const name=document.getElementById('acat-name').value.trim();
+  if(!name) return showToast('نام دسته‌بندی الزامی است',false);
+  const fd=new FormData();
+  fd.append('name',name);
+  fd.append('description',document.getElementById('acat-desc').value);
+  const coverFile=document.getElementById('acat-cover-file').files[0];
+  const coverUrl=document.getElementById('acat-cover-url').value.trim();
+  if(coverFile) fd.append('audio_cover',coverFile);
+  else if(coverUrl) fd.append('cover_url',coverUrl);
+  const btn=document.getElementById('btn-add-acat');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال افزودن...'; btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/audio/categories',{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('دسته‌بندی افزوده شد');document.getElementById('audio-cat-form').reset();loadAudioGalleryAdmin();}
+    else showToast(d.error||'خطا',false);
+  }catch(err){showToast('خطا در ارتباط',false);}
+  finally{btn.innerHTML='<i class="fas fa-plus ml-1"></i>افزودن دسته‌بندی'; btn.disabled=false;}
+}
+
+async function deleteAudioCategory(id){
+  if(!confirm('این دسته‌بندی و تمام فایل‌های صوتی آن حذف شود؟')) return;
+  try{
+    const r=await adminFetch('/api/admin/audio/categories/'+id,{method:'DELETE'});
+    if(r.ok){showToast('دسته‌بندی حذف شد');loadAudioGalleryAdmin();}
+    else showToast('خطا در حذف',false);
+  }catch(e){showToast('خطا',false);}
+}
+
+function openAudioTrackModal(catId,catName){
+  document.getElementById('atrack-cat-id').value=catId;
+  document.getElementById('atrack-modal-catname').textContent=catName;
+  document.getElementById('audio-track-form').reset();
+  const modal=document.getElementById('audio-track-modal');
+  modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeAudioTrackModal(){
+  const modal=document.getElementById('audio-track-modal');
+  modal.classList.add('hidden'); modal.classList.remove('flex');
+}
+document.addEventListener('click',function(e2){
+  const m=document.getElementById('audio-track-modal');
+  if(m&&e2.target===m) closeAudioTrackModal();
+});
+
+async function addAudioTrack(e){
+  e.preventDefault();
+  const catId=document.getElementById('atrack-cat-id').value;
+  const title=document.getElementById('atrack-title').value.trim();
+  if(!title) return showToast('عنوان الزامی است',false);
+  const audioFile=document.getElementById('atrack-file').files[0];
+  const audioUrl=document.getElementById('atrack-url').value.trim();
+  if(!audioFile&&!audioUrl) return showToast('فایل صوتی یا لینک الزامی است',false);
+  const fd=new FormData();
+  fd.append('category_id',catId);
+  fd.append('title',title);
+  fd.append('artist',document.getElementById('atrack-artist').value);
+  if(audioFile) fd.append('audio_file',audioFile);
+  else fd.append('audio_url',audioUrl);
+  const coverFile=document.getElementById('atrack-cover-file').files[0];
+  const coverUrl=document.getElementById('atrack-cover-url').value.trim();
+  if(coverFile) fd.append('audio_cover',coverFile);
+  else if(coverUrl) fd.append('cover_url',coverUrl);
+  const btn=document.getElementById('btn-add-atrack');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...'; btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/audio/tracks',{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.success){showToast('صوت افزوده شد');closeAudioTrackModal();loadAudioGalleryAdmin();}
+    else showToast(d.error||'خطا در آپلود',false);
+  }catch(err){showToast('خطا در ارتباط',false);}
+  finally{btn.innerHTML='<i class="fas fa-plus ml-1"></i>افزودن صوت'; btn.disabled=false;}
+}
+
+async function deleteAudioTrack(id,catId){
+  if(!confirm('این فایل صوتی حذف شود؟')) return;
+  try{
+    const r=await adminFetch('/api/admin/audio/tracks/'+id,{method:'DELETE'});
+    if(r.ok){showToast('صوت حذف شد');loadCategoryTracksAdmin(catId);}
     else showToast('خطا',false);
   }catch(e){showToast('خطا',false);}
 }

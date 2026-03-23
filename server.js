@@ -116,6 +116,8 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT DEFAULT '', image TEXT NOT NULL, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES gallery_categories(id))`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS audio_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS audio_tracks (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, artist TEXT DEFAULT '', audio_url TEXT NOT NULL, cover TEXT DEFAULT '', duration INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES audio_categories(id))`);
 
 
         const defaults = [
@@ -155,7 +157,7 @@ function initDb() {
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -163,12 +165,13 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery' };
+        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
 });
 const uploadImage = multer({ storage, limits:{fileSize:10*1024*1024} });
+const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024} });
 const upload = multer({ storage, limits:{fileSize:400*1024*1024} });
 
 // Auth middleware
@@ -840,6 +843,81 @@ app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
     mainDb.get('SELECT image FROM gallery_photos WHERE id=?',[id],(err,p)=>{
         if(p&&p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
         mainDb.run('DELETE FROM gallery_photos WHERE id=?',[id],()=>res.json({success:true}));
+    });
+});
+
+// === PUBLIC AUDIO API ===
+app.get('/api/audio/categories',(req,res)=>{
+    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+app.get('/api/audio/categories/:id/tracks',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT * FROM audio_tracks WHERE category_id=? ORDER BY sort_order ASC, created_at ASC',[id],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
+    });
+});
+
+// === ADMIN AUDIO API ===
+app.get('/api/admin/audio/categories',adminAuth,(req,res)=>{
+    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/audio/categories',adminAuth,uploadImage.single('audio_cover'),(req,res)=>{
+    const name=san(req.body.name||'').trim();
+    if(!name) return res.status(400).json({error:'نام دسته‌بندی الزامی است'});
+    const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    const cover=req.file?`/gallery/${req.file.filename}`:(coverUrl||'');
+    const desc=san(req.body.description||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM audio_categories',[],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO audio_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            res.json({success:true,id:this.lastID});
+        });
+    });
+});
+app.delete('/api/admin/audio/categories/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.all('SELECT audio_url FROM audio_tracks WHERE category_id=?',[id],(err,tracks)=>{
+        (tracks||[]).forEach(t=>{if(t.audio_url&&t.audio_url.startsWith('/audio/')){const fp=path.resolve(__dirname,'public',t.audio_url.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
+        mainDb.get('SELECT cover FROM audio_categories WHERE id=?',[id],(err2,cat)=>{
+            if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+            mainDb.run('DELETE FROM audio_tracks WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM audio_categories WHERE id=?',[id],()=>res.json({success:true})));
+        });
+    });
+});
+app.post('/api/admin/audio/tracks',adminAuth,uploadAudio.fields([{name:'audio_file',maxCount:1},{name:'audio_cover',maxCount:1}]),(req,res)=>{
+    const catId=+req.body.category_id;if(isNaN(catId)) return res.status(400).json({error:'دسته‌بندی الزامی است'});
+    const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان صوت الزامی است'});
+    // Audio: uploaded file or external URL (do NOT copy external URL to server)
+    const audioUrlInput=req.body.audio_url&&req.body.audio_url.trim().length>5?san(req.body.audio_url.trim()):null;
+    const audioFile=req.files&&req.files['audio_file']?req.files['audio_file'][0]:null;
+    if(!audioFile&&!audioUrlInput) return res.status(400).json({error:'فایل صوتی یا لینک الزامی است'});
+    const audioUrl=audioFile?`/audio/${audioFile.filename}`:audioUrlInput;
+    // Cover: uploaded file or external URL (do NOT copy external URL)
+    const coverUrlInput=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    const coverFile=req.files&&req.files['audio_cover']?req.files['audio_cover'][0]:null;
+    const cover=coverFile?`/gallery/${coverFile.filename}`:(coverUrlInput||'');
+    const artist=san(req.body.artist||'');
+    mainDb.get('SELECT MAX(sort_order) as mx FROM audio_tracks WHERE category_id=?',[catId],(err,r)=>{
+        const so=(r&&r.mx!=null)?r.mx+1:0;
+        mainDb.run('INSERT INTO audio_tracks (category_id,title,artist,audio_url,cover,sort_order) VALUES (?,?,?,?,?,?)',[catId,title,artist,audioUrl,cover,so],function(err2){
+            if(err2) return res.status(500).json({error:err2.message});
+            // Set category cover from first track if empty
+            mainDb.run('UPDATE audio_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[cover||audioUrl,catId]);
+            res.json({success:true,id:this.lastID,audio_url:audioUrl});
+        });
+    });
+});
+app.delete('/api/admin/audio/tracks/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    mainDb.get('SELECT audio_url,cover FROM audio_tracks WHERE id=?',[id],(err,t)=>{
+        if(t&&t.audio_url&&t.audio_url.startsWith('/audio/')){const fp=path.resolve(__dirname,'public',t.audio_url.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        if(t&&t.cover&&t.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',t.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        mainDb.run('DELETE FROM audio_tracks WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
 

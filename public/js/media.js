@@ -5,9 +5,15 @@ let wpMediaPlaylists = [];
 let wpMediaState = { view: 'playlists', currentPlaylistId: null, currentPlaylistTitle: '' };
 let cachedMediaPosts = [];
 
-// گالری محلی
+// گالری محلی عکس
 let galleryCurrentPhotos = [];
 let galleryCurrentIndex = 0;
+
+// گالری صوت
+let audioCurrentTracks = [];
+let audioCurrentIndex = -1;
+let audioEl = null;
+let _audioCatsLoaded = false;
 
 // ====================================================
 // تب‌های رسانه
@@ -22,7 +28,7 @@ function switchMediaTab(tab) {
             btn.classList.add('bg-white', 'shadow-sm', 'text-brand-600');
             btn.classList.remove('text-gray-500');
             content.classList.remove('hidden');
-            content.style.display = (t === 'audio') ? 'flex' : 'block';
+            content.style.display = 'block';
         } else {
             btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-600');
             btn.classList.add('text-gray-500');
@@ -36,6 +42,7 @@ function switchMediaTab(tab) {
 
     if (tab === 'video' && wpMediaPlaylists.length === 0) fetchWPMediaPlaylists();
     if (tab === 'photo') initGallery();
+    if (tab === 'audio') initAudioGallery();
 }
 
 function setMediaLoading(show) {
@@ -409,6 +416,295 @@ async function shareCurrentImage() {
         } else {
             await navigator.clipboard.writeText(ph.image);
             if(typeof showToast === 'function') showToast('لینک تصویر کپی شد');
+        }
+    } catch(e) {}
+}
+
+// ====================================================
+// گالری صوت محلی
+// ====================================================
+
+function getAudioEl() {
+    if (!audioEl) {
+        audioEl = new Audio();
+        audioEl.addEventListener('timeupdate', onAudioTimeUpdate);
+        audioEl.addEventListener('loadedmetadata', onAudioLoaded);
+        audioEl.addEventListener('ended', onAudioEnded);
+        audioEl.addEventListener('play', ()=>updatePlayBtn(true));
+        audioEl.addEventListener('pause', ()=>updatePlayBtn(false));
+    }
+    return audioEl;
+}
+
+async function initAudioGallery() {
+    if (_audioCatsLoaded) return;
+    await loadAudioCategories();
+}
+
+async function loadAudioCategories() {
+    setMediaLoading(true);
+    const view = document.getElementById('audio-categories-view');
+    const plView = document.getElementById('audio-playlist-view');
+    if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+    if(view) view.classList.remove('hidden');
+
+    try {
+        const res = await fetch('/api/audio/categories');
+        const cats = await res.json();
+        _audioCatsLoaded = true;
+
+        if(cats && cats.length > 0) {
+            const colors = [
+                'from-brand-500 to-brand-700',
+                'from-violet-500 to-violet-700',
+                'from-rose-500 to-rose-700',
+                'from-amber-500 to-amber-700',
+                'from-emerald-500 to-emerald-700',
+                'from-blue-500 to-blue-700',
+                'from-pink-500 to-pink-700',
+                'from-teal-500 to-teal-700',
+            ];
+            view.innerHTML = cats.map((cat, i) => {
+                const grad = colors[i % colors.length];
+                const coverHtml = cat.cover
+                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-headphones text-white text-3xl opacity-80"></i></div>`;
+                return `
+                <div onclick="loadAudioPlaylist(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.track_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                    <div class="w-full aspect-square overflow-hidden relative">
+                        ${coverHtml}
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                            <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
+                            <p class="text-[10px] text-white/70 mt-0.5">${cat.track_count} صوت</p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
+                <i class="fas fa-headphones text-5xl opacity-20"></i>
+                <p class="text-sm font-bold opacity-50">هنوز گالری صوتی ایجاد نشده</p>
+                <p class="text-xs opacity-40">از پنل مدیریت صوت اضافه کنید</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
+            <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
+            <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
+            <button onclick="_audioCatsLoaded=false;loadAudioCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+        </div>`;
+    } finally { setMediaLoading(false); }
+}
+
+async function loadAudioPlaylist(categoryId, title, count) {
+    setMediaLoading(true);
+    const catsView = document.getElementById('audio-categories-view');
+    const plView = document.getElementById('audio-playlist-view');
+    const list = document.getElementById('audio-tracks-list');
+
+    if(catsView) catsView.classList.add('hidden');
+    if(plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    document.getElementById('audio-cat-title').textContent = title;
+    document.getElementById('audio-track-count').textContent = count > 0 ? `${count} صوت` : '';
+    if(list) list.innerHTML = '';
+
+    try {
+        const res = await fetch(`/api/audio/categories/${categoryId}/tracks`);
+        const tracks = await res.json();
+        audioCurrentTracks = tracks;
+
+        if(tracks && tracks.length > 0) {
+            renderAudioTrackList();
+            // Auto-select first track
+            selectAudioTrack(0, false);
+        } else {
+            list.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
+                <i class="fas fa-music text-4xl opacity-20"></i>
+                <p class="text-xs font-bold opacity-50">هیچ فایل صوتی در این دسته وجود ندارد</p>
+            </div>`;
+        }
+    } catch(e) {
+        if(list) list.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs">خطا در بارگذاری</div>`;
+    } finally { setMediaLoading(false); }
+}
+
+function renderAudioTrackList() {
+    const list = document.getElementById('audio-tracks-list');
+    if(!list || !audioCurrentTracks.length) return;
+    list.innerHTML = audioCurrentTracks.map((tr, idx) => {
+        const isActive = idx === audioCurrentIndex;
+        return `
+        <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)"
+            class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50'} shadow-sm">
+            <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">
+                ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
+                ${isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : ''}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h4 class="font-bold text-xs ${isActive ? 'text-brand-700' : 'text-gray-800'} line-clamp-1">${tr.title}</h4>
+                ${tr.artist ? `<p class="text-[10px] ${isActive ? 'text-brand-500' : 'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
+            </div>
+            <div class="shrink-0">
+                <span class="text-[10px] font-bold ${isActive ? 'text-brand-500' : 'text-gray-300'}">${idx+1}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectAudioTrack(idx, autoPlay) {
+    if(idx < 0 || idx >= audioCurrentTracks.length) return;
+    audioCurrentIndex = idx;
+    const tr = audioCurrentTracks[idx];
+    const el = getAudioEl();
+
+    // Update player UI
+    const playerCard = document.getElementById('audio-player-card');
+    if(playerCard) playerCard.classList.remove('hidden');
+
+    document.getElementById('audio-player-title').textContent = tr.title;
+    document.getElementById('audio-player-artist').textContent = tr.artist || '';
+
+    const coverEl = document.getElementById('audio-player-cover');
+    if(coverEl) {
+        coverEl.innerHTML = tr.cover
+            ? `<img src="${tr.cover}" class="w-full h-full object-cover">`
+            : `<div class="w-full h-full bg-white/20 flex items-center justify-center"><i class="fas fa-music text-white/60 text-3xl"></i></div>`;
+    }
+
+    // Reset progress
+    const prog = document.getElementById('audio-progress');
+    if(prog) prog.value = 0;
+    document.getElementById('audio-current-time').textContent = '۰:۰۰';
+    document.getElementById('audio-duration').textContent = '۰:۰۰';
+
+    // Load audio
+    el.src = tr.audio_url;
+    el.load();
+    if(autoPlay) el.play().catch(()=>{});
+
+    renderAudioTrackList();
+
+    // Scroll track into view
+    setTimeout(()=>{
+        const item = document.getElementById(`audio-track-item-${idx}`);
+        if(item) item.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }, 100);
+}
+
+function onAudioTimeUpdate() {
+    if(!audioEl || !audioEl.duration) return;
+    const pct = (audioEl.currentTime / audioEl.duration) * 100;
+    const prog = document.getElementById('audio-progress');
+    if(prog) prog.value = pct;
+    document.getElementById('audio-current-time').textContent = formatAudioTime(audioEl.currentTime);
+}
+
+function onAudioLoaded() {
+    if(!audioEl) return;
+    document.getElementById('audio-duration').textContent = formatAudioTime(audioEl.duration);
+}
+
+function onAudioEnded() {
+    // Auto-play next
+    if(audioCurrentIndex < audioCurrentTracks.length - 1) {
+        selectAudioTrack(audioCurrentIndex + 1, true);
+    } else {
+        updatePlayBtn(false);
+    }
+}
+
+function updatePlayBtn(playing) {
+    const icon = document.getElementById('audio-play-icon');
+    if(!icon) return;
+    icon.className = playing ? 'fas fa-pause text-xl' : 'fas fa-play text-xl mr-0.5';
+}
+
+function toggleAudioPlay() {
+    const el = getAudioEl();
+    if(!el.src || el.src === window.location.href) return;
+    if(el.paused) el.play().catch(()=>{});
+    else el.pause();
+}
+
+function seekAudio(val) {
+    const el = getAudioEl();
+    if(!el.duration) return;
+    el.currentTime = (val / 100) * el.duration;
+}
+
+function skipAudio(seconds) {
+    const el = getAudioEl();
+    if(!el.src) return;
+    el.currentTime = Math.max(0, Math.min(el.duration || 0, el.currentTime + seconds));
+}
+
+function prevAudioTrack() { if(audioCurrentIndex > 0) selectAudioTrack(audioCurrentIndex - 1, !audioEl?.paused); }
+function nextAudioTrack() { if(audioCurrentIndex < audioCurrentTracks.length - 1) selectAudioTrack(audioCurrentIndex + 1, !audioEl?.paused); }
+
+function setAudioSpeed(speed) {
+    const el = getAudioEl();
+    el.playbackRate = speed;
+    document.querySelectorAll('.audio-speed-btn').forEach(btn => {
+        const s = parseFloat(btn.dataset.speed);
+        btn.className = btn.className.replace(/bg-\w+-\d+ text-\w+-\d+/g, '').trim();
+        if(s === speed) {
+            btn.className = 'audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand-100 text-brand-700 transition';
+        } else {
+            btn.className = 'audio-speed-btn px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-500 hover:bg-brand-50 hover:text-brand-600 transition';
+        }
+    });
+}
+
+function backToAudioCategories() {
+    _audioCatsLoaded = false;
+    if(audioEl) { audioEl.pause(); }
+    const catsView = document.getElementById('audio-categories-view');
+    const plView = document.getElementById('audio-playlist-view');
+    if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+    if(catsView) catsView.classList.remove('hidden');
+    loadAudioCategories();
+}
+
+function formatAudioTime(sec) {
+    if(isNaN(sec) || !isFinite(sec)) return '۰:۰۰';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    const toFarsiNum = n => n.toString().replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    return toFarsiNum(m) + ':' + toFarsiNum(s.toString().padStart(2,'0'));
+}
+
+async function downloadCurrentAudio() {
+    if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
+    const tr = audioCurrentTracks[audioCurrentIndex];
+    try {
+        if(tr.audio_url.startsWith('/')) {
+            const a = document.createElement('a');
+            a.href = tr.audio_url;
+            a.download = tr.title + '.mp3';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        } else {
+            const response = await fetch(tr.audio_url);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = tr.title + '.mp3';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } catch(e) {
+        window.open(tr.audio_url, '_blank');
+    }
+}
+
+async function shareCurrentAudio() {
+    if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
+    const tr = audioCurrentTracks[audioCurrentIndex];
+    try {
+        if(navigator.share) {
+            await navigator.share({ title: tr.title, url: tr.audio_url });
+        } else {
+            await navigator.clipboard.writeText(tr.audio_url);
+            if(typeof showToast === 'function') showToast('لینک صوت کپی شد');
         }
     } catch(e) {}
 }
