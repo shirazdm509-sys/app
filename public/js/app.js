@@ -207,8 +207,8 @@ let _homeLatestImages = [], _homeLatestVideos = [], _homeLatestAudios = [];
 
 function openHomeImage(idx) {
     if (!_homeLatestImages.length) return;
-    window.galleryCurrentPhotos = _homeLatestImages;
-    window.galleryCurrentIndex = idx;
+    galleryCurrentPhotos = _homeLatestImages;
+    galleryCurrentIndex = idx;
     openGalleryImage(idx);
 }
 
@@ -217,7 +217,7 @@ function openHomeVideo(idx) {
     if (!v) return;
     navToScreen('media');
     switchMediaTab('video');
-    window.videoCachedItems = _homeLatestVideos;
+    videoCachedItems = _homeLatestVideos;
     setTimeout(() => {
         const catsView = document.getElementById('video-categories-view');
         const listView = document.getElementById('video-list-view');
@@ -238,15 +238,15 @@ function openHomeAudio(idx) {
     if (!tr) return;
     navToScreen('media');
     switchMediaTab('audio');
-    window.audioCurrentTracks = _homeLatestAudios;
-    window.audioCurrentIndex = -1;
+    audioCurrentTracks = _homeLatestAudios;
+    audioCurrentIndex = -1;
     setTimeout(() => {
         const catsView = document.getElementById('audio-categories-view');
         const plView = document.getElementById('audio-playlist-view');
         if (catsView) catsView.classList.add('hidden');
         if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
-        document.getElementById('audio-cat-title').textContent = tr.title;
-        document.getElementById('audio-track-count').textContent = _homeLatestAudios.length + ' صوت';
+        document.getElementById('audio-cat-title').textContent = 'آخرین صوت‌ها';
+        document.getElementById('audio-track-count').textContent = toFa(_homeLatestAudios.length) + ' صوت';
         renderAudioTrackList();
         selectAudioTrack(idx, true);
     }, 80);
