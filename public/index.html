@@ -167,7 +167,7 @@
                 <div id="home-banner-after_slider" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LIVE BANNER -->
-                <div class="px-6 mt-4 mb-4" onclick="navToScreen('live')">
+                <div id="home-live-banner" class="px-6 mt-4 mb-4" onclick="navToScreen('live')" style="display:none;">
                     <div class="bg-gradient-to-r from-red-600 to-rose-500 rounded-3xl p-4 flex items-center justify-between shadow-lg shadow-red-500/30 text-white cursor-pointer active:scale-95 transition-transform">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative">
@@ -225,7 +225,7 @@
                 <!-- LATEST BOOKS -->
                 <div class="mb-4">
                     <div class="flex items-center justify-between px-6 mb-3">
-                        <h3 class="text-sm font-black text-gray-800">آخرین کتاب‌ها</h3>
+                        <h3 id="home-books-title" class="text-sm font-black text-gray-800">آخرین کتاب‌ها</h3>
                         <button onclick="navToScreen('library')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">ورود به کتابخانه</button>
                     </div>
                     <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
@@ -247,6 +247,33 @@
 
                 <!-- BANNERS position: after_lectures -->
                 <div id="home-banner-after_lectures" class="px-4 mb-4 flex flex-col gap-3"></div>
+
+                <!-- LATEST IMAGES -->
+                <div id="home-media-images-section" class="mb-4 hidden">
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 class="text-sm font-black text-gray-800">آخرین تصاویر</h3>
+                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                    </div>
+                    <div id="home-latest-images" class="grid grid-cols-4 gap-2 px-4"></div>
+                </div>
+
+                <!-- LATEST VIDEOS -->
+                <div id="home-media-videos-section" class="mb-4 hidden">
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 class="text-sm font-black text-gray-800">آخرین ویدیوها</h3>
+                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                    </div>
+                    <div id="home-latest-videos" class="flex flex-col gap-2 px-4"></div>
+                </div>
+
+                <!-- LATEST AUDIO -->
+                <div id="home-media-audio-section" class="mb-6 hidden">
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 class="text-sm font-black text-gray-800">آخرین صوت‌ها</h3>
+                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                    </div>
+                    <div id="home-latest-audio" class="flex flex-col gap-2 px-4"></div>
+                </div>
             </div>
         </div>
 
@@ -267,7 +294,7 @@
                 <a href="/admin" class="w-9 h-9 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-cog"></i></a>
             </header>
             <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6">
-                <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-x-2 gap-y-3"></div>
+                <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-x-2 gap-y-2"></div>
                 <div id="lib-empty" class="hidden flex-col items-center justify-center py-32 opacity-60">
                     <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
                     <p class="text-gray-500 text-sm font-bold">کتابخانه خالی است</p>

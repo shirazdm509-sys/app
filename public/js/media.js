@@ -139,18 +139,18 @@ async function loadVideoCategories() {
                     ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
                     : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
                 return `
-                <div onclick="loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                <div onclick="loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
                     <div class="w-full aspect-video overflow-hidden relative">
                         ${coverHtml}
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
-                            <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
-                            <p class="text-[10px] text-white/70 mt-0.5">${cat.video_count} ویدیو</p>
-                        </div>
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg">
                                 <i class="fas fa-play text-white text-lg mr-[-2px]"></i>
                             </div>
                         </div>
+                    </div>
+                    <div class="px-3 py-2">
+                        <h3 class="font-black text-xs text-gray-800 line-clamp-1">${cat.name}</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">${cat.video_count} ویدیو</p>
                     </div>
                 </div>`;
             }).join('');

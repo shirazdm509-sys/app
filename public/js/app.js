@@ -76,6 +76,7 @@ async function init() {
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
+        try { loadHomeLatestMedia(); } catch(e) {}
         if (qaUser) { try { startNotifPolling(); } catch(e) {} }
     } catch(e) {
         console.error("Critical Init Error:", e);
@@ -109,6 +110,7 @@ async function loadSliders() {
         image: n.post_image || '',
         link: n.post_url || '',
         title: n.post_title || '',
+        postId: n.post_id || 0,
         isNews: true
     })).filter(n => n.image) : [];
 
@@ -134,7 +136,9 @@ async function loadSliders() {
     const s = window._siteSettings || {};
     const padding = parseInt(s.slider_padding || '0');
     const radius = parseInt(s.slider_radius || '0');
-    const height = parseInt(s.slider_height || '180');
+    const baseH = parseInt(s.slider_height || '180');
+    const vw = window.innerWidth;
+    const height = vw >= 1024 ? Math.round(baseH * 1.8) : vw >= 640 ? Math.round(baseH * 1.35) : baseH;
     wrapper.style.display = 'block';
     wrapper.style.height = height + 'px';
     wrapper.style.padding = padding + 'px';
@@ -149,8 +153,13 @@ async function loadSliders() {
     track.style.width = (sliderData.length * slideW) + 'px';
     track.style.direction = 'ltr'; // جلوگیری از RTL-flip روی اسلایدر
     track.innerHTML = sliderData.map(sl => {
-        const onclick = sl.link ? `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"` : '';
-        const titleOverlay = (sl.isNews && sl.title) ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,0.7));color:#fff;font-size:12px;font-weight:700;line-height:1.4;direction:rtl;text-align:right;">${sl.title}</div>` : '';
+        let onclick = '';
+        if (sl.isNews && sl.postId) {
+            onclick = `onclick="openNewsPostInApp(${sl.postId},'${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
+        } else if (sl.link) {
+            onclick = `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
+        }
+        const titleOverlay = (sl.isNews && sl.title) ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.75));color:#fff;font-size:16px;font-weight:800;line-height:1.4;direction:rtl;text-align:right;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${sl.title}</div>` : '';
         return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;position:relative;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}">${titleOverlay}</div>`;
     }).join('');
     dots.innerHTML = sliderData.map((_,i) =>
@@ -158,6 +167,18 @@ async function loadSliders() {
     ).join('');
     sliderIndex = 0;
     startSliderAuto();
+
+    // Touch swipe برای موبایل
+    let _sliderTouchX = 0;
+    wrapper.addEventListener('touchstart', e => {
+        _sliderTouchX = e.touches[0].clientX;
+        if (sliderTimer) clearInterval(sliderTimer);
+    }, { passive: true });
+    wrapper.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - _sliderTouchX;
+        if (Math.abs(dx) > 40) { if (dx < 0) sliderNext(); else sliderPrev(); }
+        startSliderAuto();
+    }, { passive: true });
 }
 
 function goToSlide(i) {
@@ -174,6 +195,58 @@ function sliderPrev() { goToSlide(sliderIndex - 1); }
 function startSliderAuto() {
     if (sliderTimer) clearInterval(sliderTimer);
     sliderTimer = setInterval(() => sliderNext(), 4000);
+}
+
+// ====================================================
+// آخرین رسانه‌های صفحه اصلی
+// ====================================================
+async function loadHomeLatestMedia() {
+    try {
+        const [imgRes, vidRes, audRes] = await Promise.all([
+            fetch('/api/gallery/latest?limit=8').catch(()=>null),
+            fetch('/api/videos/latest?limit=5').catch(()=>null),
+            fetch('/api/audio/latest?limit=5').catch(()=>null)
+        ]);
+        const imgs = imgRes ? await imgRes.json().catch(()=>[]) : [];
+        const vids = vidRes ? await vidRes.json().catch(()=>[]) : [];
+        const auds = audRes ? await audRes.json().catch(()=>[]) : [];
+
+        // تصاویر
+        const imgSec = document.getElementById('home-media-images-section');
+        const imgEl = document.getElementById('home-latest-images');
+        if (imgEl && imgs.length > 0) {
+            imgEl.innerHTML = imgs.map(ph => `<div onclick="navToScreen('media')" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover"></div>`).join('');
+            if (imgSec) imgSec.classList.remove('hidden');
+        }
+
+        // ویدیوها
+        const vidSec = document.getElementById('home-media-videos-section');
+        const vidEl = document.getElementById('home-latest-videos');
+        if (vidEl && vids.length > 0) {
+            vidEl.innerHTML = vids.map(v => `<div onclick="navToScreen('media')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
+                <div class="w-24 h-14 bg-gray-900 rounded-xl overflow-hidden relative shrink-0 shadow-sm">
+                    ${v.thumbnail ? `<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`}
+                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div>
+                </div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4></div>
+            </div>`).join('');
+            if (vidSec) vidSec.classList.remove('hidden');
+        }
+
+        // صوت‌ها
+        const audSec = document.getElementById('home-media-audio-section');
+        const audEl = document.getElementById('home-latest-audio');
+        if (audEl && auds.length > 0) {
+            audEl.innerHTML = auds.map(tr => `<div onclick="navToScreen('media')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
+                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-brand-50 flex items-center justify-center">
+                    ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
+                </div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>` : ''}</div>
+                <i class="fas fa-play text-brand-400 text-xs shrink-0"></i>
+            </div>`).join('');
+            if (audSec) audSec.classList.remove('hidden');
+        }
+    } catch(e) {}
 }
 
 // ====================================================

@@ -3,6 +3,26 @@
 // ====================================================
 let newsState = { view: 'main', currentCat: { id: null, name: '' } };
 let cachedNewsPosts = [];
+
+// باز کردن پست خبری درون اپ (از اسلایدر)
+async function openNewsPostInApp(postId, fallbackUrl) {
+    navToScreen('news');
+    // اگر قبلاً لود شده
+    const cached = cachedNewsPosts.find(p => p.id === postId);
+    if (cached) { showNewsSingle(postId); return; }
+    setNewsLoading(true);
+    try {
+        const res = await fetch(`${WP_API_URL}/posts/${postId}?_embed=1`);
+        if (res.ok) {
+            const post = await res.json();
+            cachedNewsPosts = [post, ...cachedNewsPosts.filter(p => p.id !== post.id)];
+            showNewsSingle(post.id);
+            return;
+        }
+    } catch(e) {}
+    setNewsLoading(false);
+    if (fallbackUrl) openWebView(fallbackUrl);
+}
 const NEWS_CAT_NAMES = ['اخبار', 'خبر', 'news'];
 
 function setNewsLoading(show) {

@@ -843,7 +843,7 @@ async function loadBooks(){
     if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
     c.innerHTML=bs.map(b=>`
       <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group">
-        <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10">
+        <div class="absolute top-2 right-2 flex gap-1 z-10">
           <button onclick="openEditBook(${b.id},'${b.title.replace(/'/g,"\\'")}','${(b.author||'').replace(/'/g,"\\'")}','${(b.description||'').replace(/'/g,"\\'")}','${b.cover||''}')" class="bg-white text-teal-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-teal-100 text-xs"><i class="fas fa-edit"></i></button>
           <button onclick="deleteBook(${b.id})" class="bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-rose-100 text-xs"><i class="fas fa-trash"></i></button>
         </div>

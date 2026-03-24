@@ -1082,6 +1082,20 @@ app.delete('/api/admin/video/items/:id',adminAuth,(req,res)=>{
     });
 });
 
+// === PUBLIC LATEST MEDIA APIs ===
+app.get('/api/gallery/latest',(req,res)=>{
+    const limit=Math.min(parseInt(req.query.limit||'8'),20);
+    mainDb.all('SELECT * FROM gallery_photos ORDER BY created_at DESC LIMIT ?',[limit],(err,rows)=>res.json(rows||[]));
+});
+app.get('/api/videos/latest',(req,res)=>{
+    const limit=Math.min(parseInt(req.query.limit||'5'),20);
+    mainDb.all('SELECT * FROM video_items ORDER BY created_at DESC LIMIT ?',[limit],(err,rows)=>res.json(rows||[]));
+});
+app.get('/api/audio/latest',(req,res)=>{
+    const limit=Math.min(parseInt(req.query.limit||'5'),20);
+    mainDb.all('SELECT * FROM audio_tracks ORDER BY created_at DESC LIMIT ?',[limit],(err,rows)=>res.json(rows||[]));
+});
+
 // Routes
 app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.html')));
 app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));

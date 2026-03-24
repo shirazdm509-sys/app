@@ -28,6 +28,7 @@ function renderLibrary() {
     const colors=['from-brand-600 to-brand-400','from-blue-600 to-sky-400','from-rose-600 to-pink-400','from-amber-500 to-orange-400','from-blue-900 to-blue-700'];
 
     const renderCard = (book, i, isHome=false) => {
+        if (i < 0) i = 0;
         const saved=parseInt(localStorage.getItem('book_'+book.id+'_page')||'0');
         const progress=saved&&book.page_count?Math.round((saved/book.page_count)*100):0;
         const widthClass = isHome ? 'w-32 shrink-0 snap-center' : 'w-full';
@@ -35,7 +36,7 @@ function renderLibrary() {
 
         // دکمه دانلود خارج از overflow-hidden قرار میگیره
         return `<div onclick="openBook(${book.id})" class="${widthClass} relative cursor-pointer book-card active:scale-95">
-            <div class="rounded-xl overflow-hidden shadow-md border border-gray-100 mb-2 aspect-[3/4] max-h-28 book-cover-wrap">
+            <div class="rounded-xl overflow-hidden shadow-md border border-gray-100 mb-1 aspect-[3/4] max-h-28 book-cover-wrap">
                 ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
                 <div class="w-full h-full bg-gradient-to-br ${colors[i%colors.length]} flex items-center justify-center p-2" style="${book.cover?'display:none':''}"><span class="text-white text-center font-black text-[10px] leading-tight drop-shadow-md">${book.title}</span></div>
                 ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-sm px-1.5 py-1"><div class="w-full bg-white/20 rounded-full h-0.5 overflow-hidden"><div class="bg-brand-400 h-full rounded-full" style="width:${progress}%"></div></div><span class="text-[8px] text-white/90 mt-0.5 block">${progress}٪</span></div>`:''}
@@ -51,11 +52,20 @@ function renderLibrary() {
     };
 
     grid.innerHTML = allBooks.map((b,i)=>renderCard(b,i,false)).join('');
-    homeContainer.innerHTML = allBooks.slice(0, 5).map((b,i)=>renderCard(b,i,true)).join('') +
+
+    // در خانه: کتاب‌های آخر مطالعه‌شده، اگر نبود آخرین کتاب‌های اضافه‌شده
+    const booksWithRead = allBooks.map(b => ({...b, _lastRead: parseInt(localStorage.getItem('book_'+b.id+'_last_read')||'0')}));
+    const readBooks = booksWithRead.filter(b => b._lastRead > 0).sort((a,b2) => b2._lastRead - a._lastRead);
+    const homeBooks = readBooks.length > 0 ? readBooks : allBooks;
+    const titleEl = document.getElementById('home-books-title');
+    if (titleEl) titleEl.textContent = readBooks.length > 0 ? 'آخرین مطالعه‌شده‌ها' : 'آخرین کتاب‌ها';
+    homeContainer.innerHTML = homeBooks.slice(0, 5).map((b) => renderCard(b, allBooks.findIndex(ab => ab.id === b.id), true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
 }
 
 async function openBook(bookId) {
+    // ذخیره زمان آخرین مطالعه
+    localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     const ls=document.getElementById('loading-screen');
     ls.style.display='flex';
     ls.classList.remove('hidden');
@@ -340,6 +350,10 @@ async function applySiteSettings() {
         localStorage.setItem('_splashSettings', JSON.stringify(splashObj));
 
         window._siteSettings = s;
+
+        // نمایش/مخفی کردن بنر پخش زنده در صفحه اصلی
+        const liveBanner = document.getElementById('home-live-banner');
+        if (liveBanner) liveBanner.style.display = s.live_active === '1' ? '' : 'none';
     } catch(e) {}
 }
 
