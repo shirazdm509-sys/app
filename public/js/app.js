@@ -703,7 +703,7 @@ function _hasClass(id, cls) {
 
 function handleBackButton() {
     // لایه‌ها به ترتیب z-index از بالا به پایین
-    if (_isVisible('pwa-install-modal'))    { closePwaModal();      return; }
+    if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return; }
     if (_isVisible('image-modal'))          { closeImageModal();    return; }
     if (_isVisible('webview-modal'))        { closeWebView();       return; }
     if (_isVisible('notif-panel'))          { closeNotifications(); return; }
@@ -823,27 +823,57 @@ const _isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const _isSamsungBrowser = /SamsungBrowser/i.test(navigator.userAgent);
 const _isAndroid = /android/i.test(navigator.userAgent);
 
-let _pwaAutoCloseTimer = null;
+const PWA_DISMISS_KEY = 'pwa_dismissed_at';
+const PWA_DISMISS_DAYS = 3; // بعد از ۳ روز دوباره نشان بده
+
+function _pwaDismissedRecently() {
+    const t = localStorage.getItem(PWA_DISMISS_KEY);
+    if (!t) return false;
+    return (Date.now() - +t) < PWA_DISMISS_DAYS * 86400000;
+}
 
 function _showPwaPopup() {
     if (_isStandalone) return;
+    if (_pwaDismissedRecently()) {
+        // فقط FAB رو نشون بده
+        _showFab();
+        return;
+    }
     showPwaInstallPrompt();
+}
+
+function _showFab() {
+    if (_isStandalone) return;
+    const fab = document.getElementById('pwa-fab');
+    if (fab) fab.classList.remove('hidden');
+}
+
+function _hideFab() {
+    const fab = document.getElementById('pwa-fab');
+    if (fab) fab.classList.add('hidden');
 }
 
 // iOS - نمایش popup پس از لود صفحه
 if (!_isStandalone && _isIos) {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(_showPwaPopup, 1500));
+    document.addEventListener('DOMContentLoaded', () => setTimeout(_showPwaPopup, 2000));
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     _pwaInstallPrompt = e;
-    setTimeout(_showPwaPopup, 1500);
+    // همیشه FAB رو نشون بده
+    _showFab();
+    // popup فقط اگه dismiss نشده نشون بده
+    if (!_pwaDismissedRecently()) {
+        setTimeout(_showPwaPopup, 2000);
+    }
 });
 
 window.addEventListener('appinstalled', () => {
     _pwaInstallPrompt = null;
     closePwaModal();
+    _hideFab();
+    localStorage.removeItem(PWA_DISMISS_KEY);
 });
 
 function showPwaInstallPrompt() {
@@ -851,7 +881,12 @@ function showPwaInstallPrompt() {
     const modal = document.getElementById('pwa-install-modal');
     if (!modal) return;
 
-    // پنهان کردن راهنماها
+    // بارگذاری نام اپ از سرور
+    fetch('/api/settings').then(r=>r.json()).then(s=>{
+        const el = document.getElementById('pwa-modal-appname');
+        if(el && s.pwa_short_name) el.textContent = s.pwa_short_name;
+    }).catch(()=>{});
+
     document.getElementById('pwa-ios-guide')?.classList.add('hidden');
     document.getElementById('pwa-generic-guide')?.classList.add('hidden');
     const confirmBtn = document.getElementById('pwa-install-confirm');
@@ -862,7 +897,11 @@ function showPwaInstallPrompt() {
             confirmBtn.classList.remove('hidden');
             confirmBtn.onclick = () => {
                 _pwaInstallPrompt.prompt();
-                _pwaInstallPrompt.userChoice.then(() => { _pwaInstallPrompt = null; closePwaModal(); });
+                _pwaInstallPrompt.userChoice.then(() => {
+                    _pwaInstallPrompt = null;
+                    closePwaModal();
+                    _hideFab();
+                });
             };
         }
     } else if (_isIos) {
@@ -873,29 +912,33 @@ function showPwaInstallPrompt() {
         const genericGuide = document.getElementById('pwa-generic-guide');
         if (genericGuide) {
             let msg = '';
-            if (_isSamsungBrowser) msg = 'در مرورگر سامسونگ: منوی ⋮ بالای صفحه → <b>«Add page to»</b> → <b>«Home screen»</b>';
+            if (_isSamsungBrowser) msg = 'در مرورگر سامسونگ: منوی ⋮ بالای صفحه ← <b>«Add page to»</b> ← <b>«Home screen»</b>';
             else if (_isAndroid) msg = 'در منوی مرورگر (⋮ یا ☰) گزینه <b>«Add to Home Screen»</b> یا <b>«نصب اپلیکیشن»</b> را انتخاب کنید.';
             else msg = 'از منوی مرورگر گزینه <b>«Add to Home Screen»</b> یا <b>«Install App»</b> را انتخاب کنید.';
-            genericGuide.innerHTML = `<p class="text-sm text-gray-600">${msg}</p>`;
+            genericGuide.innerHTML = msg;
             genericGuide.classList.remove('hidden');
         }
     }
 
     modal.classList.remove('hidden');
-
-    // بستن خودکار پس از ۱۰ ثانیه
-    clearTimeout(_pwaAutoCloseTimer);
-    _pwaAutoCloseTimer = setTimeout(closePwaModal, 10000);
+    _hideFab();
 }
 
-function closePwaModal() {
-    clearTimeout(_pwaAutoCloseTimer);
+// dismissed: اگه true بدی یعنی کاربر «بعداً» زد → ذخیره کن
+function closePwaModal(dismissed = false) {
     const modal = document.getElementById('pwa-install-modal');
     if (modal) {
         modal.classList.add('hidden');
         document.getElementById('pwa-ios-guide')?.classList.add('hidden');
         document.getElementById('pwa-generic-guide')?.classList.add('hidden');
         document.getElementById('pwa-install-confirm')?.classList.add('hidden');
+    }
+    if (dismissed) {
+        localStorage.setItem(PWA_DISMISS_KEY, Date.now().toString());
+    }
+    // بعد از بستن مودال، FAB رو نشون بده (اگه قابل نصب است)
+    if (_pwaInstallPrompt || _isIos) {
+        setTimeout(_showFab, 300);
     }
 }
 
