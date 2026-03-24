@@ -303,6 +303,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
   <!-- AUDIO GALLERY TAB -->
   <div id="tab-audiogallery" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <!-- استخراج خودکار کاور -->
+    <div class="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+      <div><p class="font-bold text-sm text-teal-800">استخراج خودکار کاور از فایل‌های صوتی</p><p class="text-xs text-teal-600 mt-0.5">برای فایل‌های mp3 که کاور ندارند، تصویر جلد را از تگ ID3 استخراج می‌کند</p></div>
+      <button onclick="extractAllCovers()" id="btn-extract-covers" class="shrink-0 bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 transition"><i class="fas fa-magic ml-2"></i>استخراج</button>
+    </div>
     <!-- افزودن دسته‌بندی صوت -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی صوتی</h2>
@@ -1830,6 +1835,18 @@ document.addEventListener('click',function(e2){
   if(m&&e2.target===m) closeAudioTrackModal();
 });
 
+async function extractAllCovers(){
+  const btn=document.getElementById('btn-extract-covers');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال استخراج...';btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/audio/extract-covers',{method:'POST'});
+    const d=await r.json();
+    if(r.ok&&d.success) showToast(`${d.updated} کاور از ${d.total} فایل استخراج شد`);
+    else showToast(d.error||'خطا',false);
+    loadAudioCategories();
+  }catch(e){showToast('خطا',false);}
+  finally{btn.innerHTML='<i class="fas fa-magic ml-2"></i>استخراج';btn.disabled=false;}
+}
 async function addAudioTrack(e){
   e.preventDefault();
   const catId=document.getElementById('atrack-cat-id').value;

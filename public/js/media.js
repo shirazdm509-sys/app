@@ -365,6 +365,25 @@ function backToGalleryCategories() {
     loadGalleryCategories();
 }
 
+// wrapper برای باز کردن از صفحه اصلی
+function setGalleryAndOpen(photos, idx) {
+    galleryCurrentPhotos = photos;
+    openGalleryImage(idx);
+}
+
+function setAudioTracksAndPlay(tracks, idx) {
+    audioCurrentTracks = tracks;
+    audioCurrentIndex = -1;
+    const catsView = document.getElementById('audio-categories-view');
+    const plView = document.getElementById('audio-playlist-view');
+    if (catsView) catsView.classList.add('hidden');
+    if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    document.getElementById('audio-cat-title').textContent = 'آخرین صوت‌ها';
+    document.getElementById('audio-track-count').textContent = toFa(tracks.length) + ' صوت';
+    renderAudioTrackList();
+    selectAudioTrack(idx, true);
+}
+
 function openGalleryImage(index) {
     if(!galleryCurrentPhotos || galleryCurrentPhotos.length === 0) return;
     galleryCurrentIndex = index;

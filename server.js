@@ -1095,6 +1095,30 @@ app.delete('/api/admin/video/items/:id',adminAuth,(req,res)=>{
     });
 });
 
+// === استخراج کاور از فایل‌های صوتی موجود ===
+app.post('/api/admin/audio/extract-covers',adminAuth,async(req,res)=>{
+    if(!mm) return res.status(500).json({error:'music-metadata در دسترس نیست'});
+    mainDb.all('SELECT id,audio_url FROM audio_tracks WHERE (cover IS NULL OR cover="") AND audio_url LIKE "/audio/%"',[],async(err,tracks)=>{
+        if(err) return res.status(500).json({error:err.message});
+        let updated=0;
+        for(const tr of (tracks||[])){
+            try{
+                const fp=path.resolve(__dirname,'public',tr.audio_url.replace(/^\//,''));
+                if(!fs.existsSync(fp)) continue;
+                const meta=await mm.parseFile(fp,{skipCovers:false});
+                const pic=mm.selectCover?mm.selectCover(meta.common.picture):(meta.common.picture&&meta.common.picture[0]);
+                if(!pic||!pic.data) continue;
+                const ext=(pic.format||'image/jpeg').replace('image/','').replace('jpg','jpeg')||'jpeg';
+                const coverName=path.basename(fp).replace(/\.[^.]+$/,'')+'-cover.'+ext;
+                fs.writeFileSync(path.resolve(__dirname,'public','gallery',coverName),Buffer.from(pic.data));
+                await new Promise(r=>mainDb.run('UPDATE audio_tracks SET cover=? WHERE id=?',['/gallery/'+coverName,tr.id],r));
+                updated++;
+            }catch(e){}
+        }
+        res.json({success:true,updated,total:(tracks||[]).length});
+    });
+});
+
 // === PUBLIC LATEST MEDIA APIs ===
 app.get('/api/gallery/latest',(req,res)=>{
     const limit=Math.min(parseInt(req.query.limit||'8'),20);

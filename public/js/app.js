@@ -200,16 +200,11 @@ function startSliderAuto() {
 // ====================================================
 // آخرین رسانه‌های صفحه اصلی
 // ====================================================
-// ====================================================
-// آخرین رسانه‌های صفحه اصلی
-// ====================================================
 let _homeLatestImages = [], _homeLatestVideos = [], _homeLatestAudios = [];
 
 function openHomeImage(idx) {
     if (!_homeLatestImages.length) return;
-    galleryCurrentPhotos = _homeLatestImages;
-    galleryCurrentIndex = idx;
-    openGalleryImage(idx);
+    setGalleryAndOpen(_homeLatestImages, idx);
 }
 
 function openHomeVideo(idx) {
@@ -234,22 +229,10 @@ function openHomeVideo(idx) {
 }
 
 function openHomeAudio(idx) {
-    const tr = _homeLatestAudios[idx];
-    if (!tr) return;
+    if (!_homeLatestAudios.length) return;
     navToScreen('media');
     switchMediaTab('audio');
-    audioCurrentTracks = _homeLatestAudios;
-    audioCurrentIndex = -1;
-    setTimeout(() => {
-        const catsView = document.getElementById('audio-categories-view');
-        const plView = document.getElementById('audio-playlist-view');
-        if (catsView) catsView.classList.add('hidden');
-        if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
-        document.getElementById('audio-cat-title').textContent = 'آخرین صوت‌ها';
-        document.getElementById('audio-track-count').textContent = toFa(_homeLatestAudios.length) + ' صوت';
-        renderAudioTrackList();
-        selectAudioTrack(idx, true);
-    }, 80);
+    setTimeout(() => setAudioTracksAndPlay(_homeLatestAudios, idx), 80);
 }
 
 async function loadHomeLatestMedia() {

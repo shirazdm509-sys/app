@@ -252,7 +252,7 @@
                 <div id="home-media-images-section" class="mb-4 hidden">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین تصاویر</h3>
-                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('gallery'),80)" class="text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-images" class="grid grid-cols-4 gap-2 px-4"></div>
                 </div>
@@ -261,7 +261,7 @@
                 <div id="home-media-videos-section" class="mb-4 hidden">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین ویدیوها</h3>
-                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('video'),80)" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-videos" class="flex flex-col gap-2 px-4"></div>
                 </div>
@@ -270,7 +270,7 @@
                 <div id="home-media-audio-section" class="mb-6 hidden">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین صوت‌ها</h3>
-                        <button onclick="navToScreen('media')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('audio'),80)" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-audio" class="flex flex-col gap-2 px-4"></div>
                 </div>
@@ -407,13 +407,13 @@
                             <!-- کنترل‌ها -->
                             <div class="px-5 pb-4 flex flex-col gap-3">
                                 <!-- دکمه‌های کنترل -->
-                                <div class="flex items-center justify-center gap-4">
+                                <div class="flex items-center justify-center gap-4" style="direction:ltr;">
                                     <button onclick="prevAudioTrack()" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition" title="قبلی"><i class="fas fa-step-backward"></i></button>
-                                    <button onclick="skipAudio(-15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition text-xs font-black" title="۱۵ ثانیه عقب"><i class="fas fa-undo text-sm"></i><span class="text-[9px] absolute mt-3 mr-1">۱۵</span></button>
+                                    <button onclick="skipAudio(-15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition relative" title="۱۵ ثانیه عقب"><i class="fas fa-undo text-sm"></i><span class="text-[9px] absolute" style="bottom:6px;right:6px;">۱۵</span></button>
                                     <button id="audio-play-btn" onclick="toggleAudioPlay()" class="w-16 h-16 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95">
-                                        <i id="audio-play-icon" class="fas fa-play text-xl mr-0.5"></i>
+                                        <i id="audio-play-icon" class="fas fa-play text-xl ml-0.5"></i>
                                     </button>
-                                    <button onclick="skipAudio(15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition text-xs font-black relative" title="۱۵ ثانیه جلو"><i class="fas fa-redo text-sm"></i><span class="text-[9px] absolute mt-3 ml-1">۱۵</span></button>
+                                    <button onclick="skipAudio(15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition relative" title="۱۵ ثانیه جلو"><i class="fas fa-redo text-sm"></i><span class="text-[9px] absolute" style="bottom:6px;left:6px;">۱۵</span></button>
                                     <button onclick="nextAudioTrack()" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center transition" title="بعدی"><i class="fas fa-step-forward"></i></button>
                                 </div>
 
