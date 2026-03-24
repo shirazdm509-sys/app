@@ -56,6 +56,7 @@ function closeImageModal() {
 // ====================================================
 function openWebView(url) {
     if (!url) return;
+    _webviewCurrentUrl = url;
     const modal = document.getElementById('webview-modal');
     const iframe = document.getElementById('webview-iframe');
     const urlBar = document.getElementById('webview-url-bar');
@@ -67,22 +68,87 @@ function openWebView(url) {
         loading.classList.add('hidden');
         try {
             const doc = iframe.contentDocument || iframe.contentWindow.document;
+            // حذف target از لینک‌ها تا در iframe بمونن
             doc.querySelectorAll('a[target="_blank"], a[target="_top"], a[target="_parent"]').forEach(a => {
                 a.removeAttribute('target');
             });
-        } catch(e) {}
+            // رهگیری لینک‌های داخل iframe → باز کردن در webview
+            doc.addEventListener('click', function(e) {
+                const a = e.target.closest('a[href]');
+                if (!a) return;
+                const href = a.getAttribute('href') || '';
+                if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                if (a.hasAttribute('download')) return;
+                if (/\.(mp3|mp4|m4a|wav|ogg|mkv|webm|pdf|zip|rar|apk)(\?|$)/i.test(href)) return;
+                // لینک نسبی یا مطلق → بذار iframe خودش بره
+                // فقط URL bar رو آپدیت کن
+                try {
+                    const fullUrl = new URL(href, url).href;
+                    _webviewCurrentUrl = fullUrl;
+                    urlBar.textContent = new URL(fullUrl).hostname;
+                } catch(ex) {}
+            });
+            // مخفی کردن هدر و فوتر سایت
+            const style = doc.createElement('style');
+            style.innerHTML = 'header,footer,#masthead,#colophon,.site-header,.site-footer,.elementor-location-header,.elementor-location-footer,.main-header,.main-footer,nav.main-navigation{display:none!important;}body{padding-top:0!important;margin-top:0!important;}';
+            doc.head.appendChild(style);
+        } catch(e) {} // CORS: نمی‌تونیم محتوای iframe رو تغییر بدیم
     };
     iframe.src = url;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }
+let _webviewCurrentUrl = '';
+
 function closeWebView() {
     const modal = document.getElementById('webview-modal');
     const iframe = document.getElementById('webview-iframe');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     iframe.src = '';
+    _webviewCurrentUrl = '';
 }
+
+function webviewOpenExternal() {
+    if (_webviewCurrentUrl) window.open(_webviewCurrentUrl, '_blank');
+}
+
+function webviewCopyUrl() {
+    if (!_webviewCurrentUrl) return;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(_webviewCurrentUrl);
+        showToast('لینک کپی شد');
+    }
+}
+
+// ====================================================
+// رهگیری سراسری لینک‌ها → باز کردن در مرورگر داخلی
+// ====================================================
+document.addEventListener('click', function(e) {
+    const anchor = e.target.closest('a[href]');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href') || '';
+    // لینک‌های خالی، هش، جاوااسکریپت → بذار عادی عمل کنه
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+    // لینک‌های دانلود مستقیم فایل → بذار دانلود بشه
+    if (anchor.hasAttribute('download')) return;
+    if (/\.(mp3|mp4|m4a|wav|ogg|mkv|webm|pdf|zip|rar|apk)(\?|$)/i.test(href)) return;
+    // لینک‌های داخلی اپ (بدون http) → بذار عادی عمل کنه
+    if (!href.startsWith('http://') && !href.startsWith('https://')) return;
+    // لینک‌های به خود اپ → بذار عادی عمل کنه
+    try {
+        const linkHost = new URL(href).hostname;
+        if (linkHost === window.location.hostname) return;
+    } catch(ex) { return; }
+    // اگه داخل iframe هست رهگیری نکن
+    if (anchor.closest('iframe')) return;
+    // اگه داخل پنل ادمین هست رهگیری نکن
+    if (document.getElementById('admin-panel')) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    openWebView(href);
+}, true);
 
 // ====================================================
 // تزریق استایل به iframe

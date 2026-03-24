@@ -939,19 +939,20 @@
 <!-- GLOBAL SEARCH PANEL -->
 <!-- ====== WEBVIEW MODAL ====== -->
 <div id="webview-modal" class="fixed inset-0 z-[300] hidden flex-col bg-white">
-  <div class="shrink-0 h-14 bg-white border-b border-gray-100 shadow-sm flex items-center px-3 gap-2">
-    <button onclick="closeWebView()" class="w-10 h-10 flex items-center justify-center text-gray-500 rounded-full hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
-    <div class="flex-1 min-w-0 bg-gray-100 rounded-full px-3 py-1.5 flex items-center gap-2 overflow-hidden">
+  <div class="shrink-0 h-12 bg-white border-b border-gray-100 shadow-sm flex items-center px-2 gap-1">
+    <button onclick="closeWebView()" class="w-9 h-9 flex items-center justify-center text-gray-500 rounded-full hover:bg-gray-100 transition" title="بستن"><i class="fas fa-times text-sm"></i></button>
+    <div class="flex-1 min-w-0 bg-gray-100 rounded-full px-3 py-1.5 flex items-center gap-2 overflow-hidden cursor-pointer" onclick="webviewCopyUrl()">
       <i class="fas fa-lock text-emerald-500 text-xs shrink-0"></i>
-      <span id="webview-url-bar" class="text-xs text-gray-500 truncate font-medium flex-1 text-right"></span>
+      <span id="webview-url-bar" class="text-xs text-gray-500 truncate font-medium flex-1 text-right" dir="ltr"></span>
     </div>
-    <button onclick="document.getElementById('webview-iframe').src=document.getElementById('webview-iframe').src" class="w-10 h-10 flex items-center justify-center text-gray-400 rounded-full hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-sm"></i></button>
+    <button onclick="document.getElementById('webview-iframe').src=document.getElementById('webview-iframe').src" class="w-9 h-9 flex items-center justify-center text-gray-400 rounded-full hover:bg-gray-100 transition" title="بارگذاری مجدد"><i class="fas fa-sync-alt text-xs"></i></button>
+    <button onclick="webviewOpenExternal()" class="w-9 h-9 flex items-center justify-center text-gray-400 rounded-full hover:bg-gray-100 transition" title="باز کردن در مرورگر"><i class="fas fa-external-link-alt text-xs"></i></button>
   </div>
-  <div id="webview-loading" class="absolute inset-0 top-14 flex items-center justify-center bg-white z-10 hidden">
+  <div id="webview-loading" class="absolute inset-0 top-12 flex items-center justify-center bg-white z-10 hidden">
     <div class="w-10 h-10 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div>
   </div>
   <iframe id="webview-iframe" src="" class="flex-1 w-full border-none bg-gray-50"
-    sandbox="allow-scripts allow-same-origin allow-forms"
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
     onload=""></iframe>
 </div>
 
