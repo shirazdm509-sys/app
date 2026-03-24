@@ -656,7 +656,7 @@ let _shareImageSubtitle = '';
 let _shareHue = 220; // مقدار پیش‌فرض: آبی تیره
 
 function getShareTitle() {
-    const ids = ['reader-book-title','lectures-header-title','news-header-title','statements-header-title'];
+    const ids = ['book-main-title','toc-book-title','reader-book-title','lectures-header-title','news-header-title','statements-header-title'];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el && el.textContent.trim()) return el.textContent.trim();
