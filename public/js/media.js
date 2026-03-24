@@ -424,6 +424,30 @@ function closeImageModal() {
     modal.classList.remove('flex');
 }
 
+// ====================================================
+// Swipe gesture برای موبایل
+// ====================================================
+(function() {
+    let _touchStartX = 0, _touchStartY = 0, _touchStartTime = 0;
+    document.addEventListener('touchstart', function(e) {
+        const modal = document.getElementById('image-modal');
+        if(!modal || modal.classList.contains('hidden')) return;
+        _touchStartX = e.touches[0].clientX;
+        _touchStartY = e.touches[0].clientY;
+        _touchStartTime = Date.now();
+    }, { passive: true });
+    document.addEventListener('touchend', function(e) {
+        const modal = document.getElementById('image-modal');
+        if(!modal || modal.classList.contains('hidden')) return;
+        const dx = e.changedTouches[0].clientX - _touchStartX;
+        const dy = e.changedTouches[0].clientY - _touchStartY;
+        const dt = Date.now() - _touchStartTime;
+        if(dt > 500 || Math.abs(dy) > Math.abs(dx) || Math.abs(dx) < 40) return;
+        if(dx < 0) navigateGallery(1);   // swipe left → next
+        else        navigateGallery(-1);  // swipe right → prev
+    }, { passive: true });
+})();
+
 async function downloadCurrentImage() {
     const ph = galleryCurrentPhotos[galleryCurrentIndex];
     if(!ph) return;
