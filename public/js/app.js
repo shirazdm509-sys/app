@@ -200,6 +200,58 @@ function startSliderAuto() {
 // ====================================================
 // آخرین رسانه‌های صفحه اصلی
 // ====================================================
+// ====================================================
+// آخرین رسانه‌های صفحه اصلی
+// ====================================================
+let _homeLatestImages = [], _homeLatestVideos = [], _homeLatestAudios = [];
+
+function openHomeImage(idx) {
+    if (!_homeLatestImages.length) return;
+    window.galleryCurrentPhotos = _homeLatestImages;
+    window.galleryCurrentIndex = idx;
+    openGalleryImage(idx);
+}
+
+function openHomeVideo(idx) {
+    const v = _homeLatestVideos[idx];
+    if (!v) return;
+    navToScreen('media');
+    switchMediaTab('video');
+    window.videoCachedItems = _homeLatestVideos;
+    setTimeout(() => {
+        const catsView = document.getElementById('video-categories-view');
+        const listView = document.getElementById('video-list-view');
+        const playerView = document.getElementById('video-player-view');
+        if (catsView) catsView.classList.add('hidden');
+        if (listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
+        if (playerView) { playerView.classList.remove('hidden'); playerView.classList.add('flex'); }
+        document.getElementById('video-player-title').textContent = v.title;
+        document.getElementById('video-aparat-iframe').src = v.embed_url;
+        const descEl = document.getElementById('video-player-desc');
+        if (v.description && v.description.trim()) { descEl.textContent = v.description; descEl.classList.remove('hidden'); }
+        else descEl.classList.add('hidden');
+    }, 80);
+}
+
+function openHomeAudio(idx) {
+    const tr = _homeLatestAudios[idx];
+    if (!tr) return;
+    navToScreen('media');
+    switchMediaTab('audio');
+    window.audioCurrentTracks = _homeLatestAudios;
+    window.audioCurrentIndex = -1;
+    setTimeout(() => {
+        const catsView = document.getElementById('audio-categories-view');
+        const plView = document.getElementById('audio-playlist-view');
+        if (catsView) catsView.classList.add('hidden');
+        if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+        document.getElementById('audio-cat-title').textContent = tr.title;
+        document.getElementById('audio-track-count').textContent = _homeLatestAudios.length + ' صوت';
+        renderAudioTrackList();
+        selectAudioTrack(idx, true);
+    }, 80);
+}
+
 async function loadHomeLatestMedia() {
     try {
         const [imgRes, vidRes, audRes] = await Promise.all([
@@ -207,23 +259,23 @@ async function loadHomeLatestMedia() {
             fetch('/api/videos/latest?limit=5').catch(()=>null),
             fetch('/api/audio/latest?limit=5').catch(()=>null)
         ]);
-        const imgs = imgRes ? await imgRes.json().catch(()=>[]) : [];
-        const vids = vidRes ? await vidRes.json().catch(()=>[]) : [];
-        const auds = audRes ? await audRes.json().catch(()=>[]) : [];
+        _homeLatestImages = imgRes ? await imgRes.json().catch(()=>[]) : [];
+        _homeLatestVideos = vidRes ? await vidRes.json().catch(()=>[]) : [];
+        _homeLatestAudios = audRes ? await audRes.json().catch(()=>[]) : [];
 
         // تصاویر
         const imgSec = document.getElementById('home-media-images-section');
         const imgEl = document.getElementById('home-latest-images');
-        if (imgEl && imgs.length > 0) {
-            imgEl.innerHTML = imgs.map(ph => `<div onclick="navToScreen('media')" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover"></div>`).join('');
+        if (imgEl && _homeLatestImages.length > 0) {
+            imgEl.innerHTML = _homeLatestImages.map((ph, i) => `<div onclick="openHomeImage(${i})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm active:scale-95 transition-transform"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover"></div>`).join('');
             if (imgSec) imgSec.classList.remove('hidden');
         }
 
         // ویدیوها
         const vidSec = document.getElementById('home-media-videos-section');
         const vidEl = document.getElementById('home-latest-videos');
-        if (vidEl && vids.length > 0) {
-            vidEl.innerHTML = vids.map(v => `<div onclick="navToScreen('media')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
+        if (vidEl && _homeLatestVideos.length > 0) {
+            vidEl.innerHTML = _homeLatestVideos.map((v, i) => `<div onclick="openHomeVideo(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
                 <div class="w-24 h-14 bg-gray-900 rounded-xl overflow-hidden relative shrink-0 shadow-sm">
                     ${v.thumbnail ? `<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`}
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div>
@@ -236,9 +288,9 @@ async function loadHomeLatestMedia() {
         // صوت‌ها
         const audSec = document.getElementById('home-media-audio-section');
         const audEl = document.getElementById('home-latest-audio');
-        if (audEl && auds.length > 0) {
-            audEl.innerHTML = auds.map(tr => `<div onclick="navToScreen('media')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
-                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-brand-50 flex items-center justify-center">
+        if (audEl && _homeLatestAudios.length > 0) {
+            audEl.innerHTML = _homeLatestAudios.map((tr, i) => `<div onclick="openHomeAudio(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
+                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
                     ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
                 </div>
                 <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>` : ''}</div>

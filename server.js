@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+let mm; try { mm = require('music-metadata'); } catch(e) { mm = null; }
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
 
 // VAPID keys (stored in env or defaults generated once)
@@ -947,26 +948,38 @@ app.delete('/api/admin/audio/categories/:id',adminAuth,(req,res)=>{
         });
     });
 });
-app.post('/api/admin/audio/tracks',adminAuth,uploadAudio.fields([{name:'audio_file',maxCount:1},{name:'audio_cover',maxCount:1}]),(req,res)=>{
+app.post('/api/admin/audio/tracks',adminAuth,uploadAudio.fields([{name:'audio_file',maxCount:1},{name:'audio_cover',maxCount:1}]),async(req,res)=>{
     const catId=+req.body.category_id;if(isNaN(catId)) return res.status(400).json({error:'دسته‌بندی الزامی است'});
     const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان صوت الزامی است'});
-    // Audio: uploaded file or external URL (do NOT copy external URL to server)
     const audioUrlInput=req.body.audio_url&&req.body.audio_url.trim().length>5?san(req.body.audio_url.trim()):null;
     const audioFile=req.files&&req.files['audio_file']?req.files['audio_file'][0]:null;
     if(!audioFile&&!audioUrlInput) return res.status(400).json({error:'فایل صوتی یا لینک الزامی است'});
     const audioUrl=audioFile?`/audio/${audioFile.filename}`:audioUrlInput;
-    // Cover: uploaded file or external URL (do NOT copy external URL)
     const coverUrlInput=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
     const coverFile=req.files&&req.files['audio_cover']?req.files['audio_cover'][0]:null;
-    const cover=coverFile?`/gallery/${coverFile.filename}`:(coverUrlInput||'');
+    let cover=coverFile?`/gallery/${coverFile.filename}`:(coverUrlInput||'');
+    // اگه کاور آپلود نشده، از تگ‌های ID3 فایل صوتی استخراج کن
+    if(!cover&&audioFile&&mm){
+        try{
+            const fp=path.resolve(__dirname,'public','audio',audioFile.filename);
+            const meta=await mm.parseFile(fp,{skipCovers:false});
+            const pic=mm.selectCover?mm.selectCover(meta.common.picture):(meta.common.picture&&meta.common.picture[0]);
+            if(pic&&pic.data){
+                const ext=(pic.format||'image/jpeg').replace('image/','').replace('jpg','jpeg')||'jpeg';
+                const coverName=audioFile.filename.replace(/\.[^.]+$/,'')+'-cover.'+ext;
+                const coverPath=path.resolve(__dirname,'public','gallery',coverName);
+                fs.writeFileSync(coverPath,Buffer.from(pic.data));
+                cover='/gallery/'+coverName;
+            }
+        }catch(e){console.warn('ID3 cover extract:',e.message);}
+    }
     const artist=san(req.body.artist||'');
     mainDb.get('SELECT MAX(sort_order) as mx FROM audio_tracks WHERE category_id=?',[catId],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
         mainDb.run('INSERT INTO audio_tracks (category_id,title,artist,audio_url,cover,sort_order) VALUES (?,?,?,?,?,?)',[catId,title,artist,audioUrl,cover,so],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
-            // Set category cover from first track if empty
             mainDb.run('UPDATE audio_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[cover||audioUrl,catId]);
-            res.json({success:true,id:this.lastID,audio_url:audioUrl});
+            res.json({success:true,id:this.lastID,audio_url:audioUrl,cover});
         });
     });
 });
