@@ -96,11 +96,26 @@ async function init() {
 let sliderData = [], sliderIndex = 0, sliderTimer = null, sliderSlideW = 0;
 
 async function loadSliders() {
-    const res = await fetch('/api/sliders');
-    const raw = await res.json();
-    if (!Array.isArray(raw) || raw.length === 0) return;
+    // بارگذاری موازی اسلایدهای معمولی و خبری
+    const [res, newsRes] = await Promise.all([
+        fetch('/api/sliders').catch(() => null),
+        fetch('/api/news-sliders').catch(() => null)
+    ]);
+    const raw = res ? (await res.json().catch(() => [])) : [];
+    const newsRaw = newsRes ? (await newsRes.json().catch(() => [])) : [];
 
-    const valid = await Promise.all(raw.map(sl => new Promise(resolve => {
+    // تبدیل news sliders به فرمت یکسان
+    const newsAsSl = Array.isArray(newsRaw) ? newsRaw.map(n => ({
+        image: n.post_image || '',
+        link: n.post_url || '',
+        title: n.post_title || '',
+        isNews: true
+    })).filter(n => n.image) : [];
+
+    const combined = [...(Array.isArray(raw) ? raw : []), ...newsAsSl];
+    if (combined.length === 0) return;
+
+    const valid = await Promise.all(combined.map(sl => new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
             if (img.naturalWidth < 10 || img.naturalHeight < 10) return resolve(null);
@@ -135,7 +150,8 @@ async function loadSliders() {
     track.style.direction = 'ltr'; // جلوگیری از RTL-flip روی اسلایدر
     track.innerHTML = sliderData.map(sl => {
         const onclick = sl.link ? `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"` : '';
-        return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}"></div>`;
+        const titleOverlay = (sl.isNews && sl.title) ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(0,0,0,0.7));color:#fff;font-size:12px;font-weight:700;line-height:1.4;direction:rtl;text-align:right;">${sl.title}</div>` : '';
+        return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;position:relative;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}">${titleOverlay}</div>`;
     }).join('');
     dots.innerHTML = sliderData.map((_,i) =>
         `<button onclick="goToSlide(${i})" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`

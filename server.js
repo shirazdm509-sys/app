@@ -120,6 +120,7 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS audio_tracks (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, artist TEXT DEFAULT '', audio_url TEXT NOT NULL, cover TEXT DEFAULT '', duration INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES audio_categories(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS video_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS video_items (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, embed_url TEXT NOT NULL, thumbnail TEXT DEFAULT '', description TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES video_categories(id))`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS news_sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL UNIQUE, post_title TEXT NOT NULL, post_url TEXT NOT NULL, post_image TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 
 
         const defaults = [
@@ -359,6 +360,12 @@ app.get('/api/banners',(req,res)=>{
 app.get('/api/sliders',(req,res)=>{
     res.set('Cache-Control','no-store');
     mainDb.all('SELECT * FROM sliders WHERE active=1 ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
+});
+
+// === API NEWS SLIDERS (PUBLIC) ===
+app.get('/api/news-sliders',(req,res)=>{
+    res.set('Cache-Control','no-store');
+    mainDb.all('SELECT * FROM news_sliders WHERE active=1 ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
 
 // === API AUTH ===
@@ -629,6 +636,55 @@ app.delete('/api/admin/sliders/:id',adminAuth,(req,res)=>{
         if(sl&&sl.image&&sl.image.length>2){const p=path.resolve(__dirname,'public',sl.image.replace(/^\//,''));if(fs.existsSync(p)) fs.unlinkSync(p);}
         mainDb.run('DELETE FROM sliders WHERE id=?',[id],()=>res.json({success:true}));
     });
+});
+
+// Admin News Sliders
+app.get('/api/admin/wp-posts-preview', adminAuth, (req, res) => {
+    const https = require('https');
+    const WP_API = 'https://dastgheibqoba.info/wp-json/wp/v2/posts?per_page=10&_embed=1&orderby=date&order=desc';
+    https.get(WP_API, (wpRes) => {
+        let data = '';
+        wpRes.on('data', chunk => { data += chunk; });
+        wpRes.on('end', () => {
+            try {
+                const posts = JSON.parse(data);
+                const simplified = posts.map(p => ({
+                    id: p.id,
+                    title: p.title?.rendered || '',
+                    url: p.link || '',
+                    image: p._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
+                           p._embedded?.['wp:featuredmedia']?.[0]?.media_details?.sizes?.medium?.source_url || ''
+                }));
+                res.json(simplified);
+            } catch(e) { res.status(500).json({error:'خطا در پردازش پاسخ وردپرس'}); }
+        });
+    }).on('error', (e) => res.status(500).json({error: e.message}));
+});
+
+app.get('/api/admin/news-sliders', adminAuth, (req, res) => {
+    mainDb.all('SELECT * FROM news_sliders ORDER BY sort_order ASC', [], (err, rows) => res.json(rows || []));
+});
+
+app.post('/api/admin/news-sliders', adminAuth, (req, res) => {
+    const { post_id, post_title, post_url, post_image } = req.body;
+    if (!post_id || !post_title || !post_url) return res.status(400).json({error: 'اطلاعات ناقص است'});
+    mainDb.get('SELECT COUNT(*) as c FROM news_sliders', [], (err, r) => {
+        const order = r ? r.c : 0;
+        mainDb.run(
+            'INSERT OR REPLACE INTO news_sliders (post_id, post_title, post_url, post_image, sort_order) VALUES (?,?,?,?,?)',
+            [+post_id, san(post_title), san(post_url), san(post_image || ''), order],
+            function(err) {
+                if (err) return res.status(500).json({error: err.message});
+                res.json({success: true, id: this.lastID});
+            }
+        );
+    });
+});
+
+app.delete('/api/admin/news-sliders/:id', adminAuth, (req, res) => {
+    const id = +req.params.id;
+    if (isNaN(id)) return res.status(400).json({error: 'شناسه نامعتبر'});
+    mainDb.run('DELETE FROM news_sliders WHERE id=?', [id], () => res.json({success: true}));
 });
 
 // Admin Users

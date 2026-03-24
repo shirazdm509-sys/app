@@ -120,6 +120,34 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="flex items-center justify-between mb-4"><h2 class="text-base font-black">اسلایدهای فعلی</h2><button onclick="loadSliders()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button></div>
       <div id="sliders-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
     </div>
+
+    <!-- انتخاب از آخرین مطالب سایت -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-2 border-b pb-4"><i class="fas fa-newspaper text-teal-600 ml-2"></i>نمایش آخرین مطالب سایت در اسلایدر</h2>
+      <p class="text-xs text-gray-500 mb-4">۱۰ مطلب آخر سایت را بارگذاری کنید و مواردی که می‌خواهید به صورت اسلاید در صفحه اصلی نمایش داده شوند را تیک بزنید.</p>
+      <button onclick="loadWPPostsForSlider()" id="btn-load-wp-posts" class="mb-5 bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2">
+        <i class="fas fa-download text-sm"></i>بارگذاری آخرین مطالب سایت
+      </button>
+
+      <!-- لیست مطالب WP -->
+      <div id="wp-posts-list" class="hidden flex flex-col gap-3 mb-5"></div>
+
+      <!-- دکمه ذخیره -->
+      <div id="wp-posts-save-row" class="hidden">
+        <button onclick="saveNewsSliders()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2">
+          <i class="fas fa-save"></i>ذخیره موارد انتخاب‌شده
+        </button>
+      </div>
+    </div>
+
+    <!-- اسلایدهای خبری انتخاب‌شده -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-black">اسلایدهای خبری انتخاب‌شده</h2>
+        <button onclick="loadNewsSliders()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button>
+      </div>
+      <div id="news-sliders-list" class="flex flex-col gap-3"></div>
+    </div>
   </div>
 
   <!-- BANNERS TAB -->
@@ -737,7 +765,7 @@ function switchTab(tab) {
   document.getElementById('tab-btn-'+tab).className='tab-active w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative';
   if(adminQaInterval){clearInterval(adminQaInterval);adminQaInterval=null;}
   if(tab==='books') loadBooks();
-  if(tab==='slider') { loadSliders(); loadSliderSettings(); }
+  if(tab==='slider') { loadSliders(); loadSliderSettings(); loadNewsSliders(); }
   if(tab==='banners') { loadBanners(); loadBannerSettings(); }
   if(tab==='videogallery') loadVideoGalleryAdmin();
   if(tab==='gallery') loadGalleryAdmin();
@@ -959,6 +987,112 @@ async function saveSliderSettings(){
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     if(r.ok)showToast('تنظیمات اسلایدر ذخیره شد');else showToast('خطا',false);
   }catch(e){}
+}
+
+// NEWS SLIDERS
+let _wpPostsCache = [];
+
+async function loadWPPostsForSlider() {
+  const btn = document.getElementById('btn-load-wp-posts');
+  const list = document.getElementById('wp-posts-list');
+  const saveRow = document.getElementById('wp-posts-save-row');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...';
+  btn.disabled = true;
+  try {
+    const r = await adminFetch('/api/admin/wp-posts-preview');
+    if (!r.ok) throw new Error('خطا');
+    _wpPostsCache = await r.json();
+    // دریافت لیست انتخاب‌شده‌های فعلی
+    const r2 = await adminFetch('/api/admin/news-sliders');
+    const saved = await r2.json();
+    const savedIds = new Set((saved || []).map(s => s.post_id));
+
+    list.innerHTML = _wpPostsCache.map(p => `
+      <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-teal-50 cursor-pointer transition group">
+        <input type="checkbox" value="${p.id}" data-title="${(p.title||'').replace(/"/g,'&quot;')}" data-url="${(p.url||'').replace(/"/g,'&quot;')}" data-image="${(p.image||'').replace(/"/g,'&quot;')}"
+          ${savedIds.has(p.id) ? 'checked' : ''} class="w-4 h-4 accent-teal-600 shrink-0">
+        ${p.image ? `<img src="${p.image}" class="w-14 h-10 rounded-lg object-cover shrink-0 border border-gray-200">` : '<div class="w-14 h-10 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center"><i class="fas fa-image text-gray-300 text-sm"></i></div>'}
+        <span class="text-sm font-medium text-gray-800 flex-1 leading-snug line-clamp-2">${p.title || 'بدون عنوان'}</span>
+      </label>
+    `).join('');
+
+    list.classList.remove('hidden');
+    saveRow.classList.remove('hidden');
+  } catch(e) {
+    list.innerHTML = '<p class="text-sm text-rose-500 font-bold">خطا در بارگذاری مطالب سایت. لطفاً دوباره تلاش کنید.</p>';
+    list.classList.remove('hidden');
+  }
+  btn.innerHTML = '<i class="fas fa-sync-alt ml-2"></i>بارگذاری مجدد';
+  btn.disabled = false;
+}
+
+async function saveNewsSliders() {
+  const checkboxes = document.querySelectorAll('#wp-posts-list input[type=checkbox]');
+  const checked = [...checkboxes].filter(c => c.checked);
+  if (checked.length === 0) { showToast('هیچ موردی انتخاب نشده است', false); return; }
+
+  // ابتدا همه‌ی اسلایدهای خبری قبلی رو پاک کن
+  try {
+    const r = await adminFetch('/api/admin/news-sliders');
+    const existing = await r.json();
+    for (const item of (existing || [])) {
+      await adminFetch('/api/admin/news-sliders/' + item.id, { method: 'DELETE' });
+    }
+  } catch(e) {}
+
+  // حالا موارد انتخاب‌شده رو ذخیره کن
+  let ok = 0;
+  for (const cb of checked) {
+    try {
+      const r = await adminFetch('/api/admin/news-sliders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_id: +cb.value,
+          post_title: cb.dataset.title,
+          post_url: cb.dataset.url,
+          post_image: cb.dataset.image
+        })
+      });
+      if (r.ok) ok++;
+    } catch(e) {}
+  }
+  showToast(`${ok} اسلاید خبری ذخیره شد`);
+  loadNewsSliders();
+}
+
+async function loadNewsSliders() {
+  const c = document.getElementById('news-sliders-list');
+  if (!c) return;
+  try {
+    const r = await adminFetch('/api/admin/news-sliders');
+    const items = await r.json();
+    if (!Array.isArray(items) || !items.length) {
+      c.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm">هیچ اسلاید خبری انتخاب نشده است</div>';
+      return;
+    }
+    c.innerHTML = items.map(item => `
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3 p-3 group">
+        ${item.post_image ? `<img src="${item.post_image}" class="w-16 h-11 rounded-lg object-cover shrink-0 border border-gray-200">` : '<div class="w-16 h-11 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center"><i class="fas fa-image text-gray-300"></i></div>'}
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-gray-800 truncate">${item.post_title}</p>
+          <p class="text-xs text-teal-600 truncate">${item.post_url}</p>
+        </div>
+        <button onclick="deleteNewsSlider(${item.id})" class="w-8 h-8 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-lg flex items-center justify-center transition shrink-0 text-xs"><i class="fas fa-trash"></i></button>
+      </div>
+    `).join('');
+  } catch(e) {
+    c.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm">خطا در بارگذاری</div>';
+  }
+}
+
+async function deleteNewsSlider(id) {
+  if (!confirm('این اسلاید خبری حذف شود؟')) return;
+  try {
+    const r = await adminFetch('/api/admin/news-sliders/' + id, { method: 'DELETE' });
+    if (r.ok) { showToast('حذف شد'); loadNewsSliders(); }
+    else showToast('خطا', false);
+  } catch(e) {}
 }
 
 // BANNERS
