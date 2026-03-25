@@ -302,6 +302,8 @@ function loadSettings() {
     currentFont = localStorage.getItem('reader_font') || 'vazir';
     const sc = localStorage.getItem('reader_titleColor');
     if (sc) document.documentElement.style.setProperty('--title-color', sc);
+    const tc = localStorage.getItem('reader_textColor');
+    if (tc) document.documentElement.style.setProperty('--text-color', tc);
     document.documentElement.style.setProperty('--line-height', lineHeight);
     applyTheme();
     applyFont();
@@ -432,6 +434,11 @@ function changeLineHeight(d) {
 function setTitleColor(c) {
     document.documentElement.style.setProperty('--title-color', c);
     localStorage.setItem('reader_titleColor', c);
+}
+
+function setTextColor(c) {
+    document.documentElement.style.setProperty('--text-color', c);
+    localStorage.setItem('reader_textColor', c);
 }
 
 function togglePageMenu(){document.getElementById('page-action-menu').classList.toggle('hidden');}
@@ -654,6 +661,9 @@ async function shareSelectedText() {
 let _shareImageText = '';
 let _shareImageSubtitle = '';
 let _shareHue = 220; // مقدار پیش‌فرض: آبی تیره
+let _shareStoryMode = false; // false = 1:1 square, true = 9:16 story
+let _shareBgImage = null; // HTMLImageElement or null
+let _shareCustomText = ''; // custom text at bottom
 
 function getShareTitle() {
     const ids = ['book-main-title','toc-book-title','reader-book-title','lectures-header-title','news-header-title','statements-header-title'];
@@ -686,91 +696,196 @@ function shareSelectedTextAsImage() {
     if (sel) sel.removeAllRanges();
 
     _shareHue = 220;
+    _shareStoryMode = false;
+    _shareBgImage = null;
+    _shareCustomText = '';
+
     const slider = document.getElementById('share-hue-slider');
     if (slider) slider.value = 220;
+    const customInput = document.getElementById('share-custom-text');
+    if (customInput) customInput.value = '';
+    const bgInput = document.getElementById('share-bg-input');
+    if (bgInput) bgInput.value = '';
+    const clearBtn = document.getElementById('share-bg-clear-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    setShareSize('square');
     onShareHueChange(220);
     document.getElementById('share-image-modal').classList.remove('hidden');
+}
+
+function setShareSize(mode) {
+    _shareStoryMode = (mode === 'story');
+    const sqBtn = document.getElementById('share-size-square');
+    const stBtn = document.getElementById('share-size-story');
+    if (sqBtn && stBtn) {
+        if (_shareStoryMode) {
+            sqBtn.classList.remove('bg-white', 'shadow-sm', 'text-gray-800');
+            sqBtn.classList.add('text-gray-500');
+            stBtn.classList.add('bg-white', 'shadow-sm', 'text-gray-800');
+            stBtn.classList.remove('text-gray-500');
+        } else {
+            stBtn.classList.remove('bg-white', 'shadow-sm', 'text-gray-800');
+            stBtn.classList.add('text-gray-500');
+            sqBtn.classList.add('bg-white', 'shadow-sm', 'text-gray-800');
+            sqBtn.classList.remove('text-gray-500');
+        }
+    }
+    _renderShareCanvas();
+}
+
+function onShareBgImagePick(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            _shareBgImage = img;
+            const clearBtn = document.getElementById('share-bg-clear-btn');
+            if (clearBtn) clearBtn.classList.remove('hidden');
+            const bgColorSection = document.getElementById('share-bg-color-section');
+            if (bgColorSection) bgColorSection.style.opacity = '0.4';
+            _renderShareCanvas();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearShareBgImage() {
+    _shareBgImage = null;
+    const bgInput = document.getElementById('share-bg-input');
+    if (bgInput) bgInput.value = '';
+    const clearBtn = document.getElementById('share-bg-clear-btn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    const bgColorSection = document.getElementById('share-bg-color-section');
+    if (bgColorSection) bgColorSection.style.opacity = '1';
+    _renderShareCanvas();
+}
+
+function onShareCustomTextChange(val) {
+    _shareCustomText = val.trim();
+    _renderShareCanvas();
 }
 
 function _renderShareCanvas() {
     const canvas = document.getElementById('share-canvas');
     if (!canvas) return;
     const h = _shareHue;
-    const S = 1080;
-    canvas.width = S; canvas.height = S;
+    const W = 1080;
+    const H = _shareStoryMode ? 1920 : 1080;
+    canvas.width = W; canvas.height = H;
+
+    // update canvas CSS aspect ratio
+    canvas.style.aspectRatio = _shareStoryMode ? '9/16' : '1/1';
+
     const ctx = canvas.getContext('2d');
 
-    // پس‌زمینه گرادیان بر اساس hue انتخابی
-    const g = ctx.createLinearGradient(0, 0, S, S);
-    g.addColorStop(0,    `hsl(${h},65%,10%)`);
-    g.addColorStop(0.5,  `hsl(${(h+20)%360},60%,17%)`);
-    g.addColorStop(1,    `hsl(${(h+40)%360},55%,22%)`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+    if (_shareBgImage) {
+        // پس‌زمینه تصویری با crop مرکزی
+        const imgRatio = _shareBgImage.width / _shareBgImage.height;
+        const canvasRatio = W / H;
+        let sx, sy, sw, sh;
+        if (imgRatio > canvasRatio) {
+            sh = _shareBgImage.height;
+            sw = sh * canvasRatio;
+            sx = (_shareBgImage.width - sw) / 2;
+            sy = 0;
+        } else {
+            sw = _shareBgImage.width;
+            sh = sw / canvasRatio;
+            sx = 0;
+            sy = (_shareBgImage.height - sh) / 2;
+        }
+        ctx.drawImage(_shareBgImage, sx, sy, sw, sh, 0, 0, W, H);
+        // لایه تاری روی عکس برای خوانایی متن
+        ctx.fillStyle = 'rgba(0,0,0,0.52)';
+        ctx.fillRect(0, 0, W, H);
+    } else {
+        // پس‌زمینه گرادیان بر اساس hue انتخابی
+        const g = ctx.createLinearGradient(0, 0, W, H);
+        g.addColorStop(0,    `hsl(${h},65%,10%)`);
+        g.addColorStop(0.5,  `hsl(${(h+20)%360},60%,17%)`);
+        g.addColorStop(1,    `hsl(${(h+40)%360},55%,22%)`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
 
     // دایره‌های تزئینی
-    ctx.beginPath(); ctx.arc(S * 0.88, S * 0.12, S * 0.26, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(W * 0.88, H * 0.12, W * 0.26, 0, Math.PI * 2);
     ctx.fillStyle = `hsla(${h},70%,55%,0.15)`; ctx.fill();
-    ctx.beginPath(); ctx.arc(S * 0.12, S * 0.88, S * 0.2, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(W * 0.12, H * 0.88, W * 0.2, 0, Math.PI * 2);
     ctx.fillStyle = `hsla(${(h+40)%360},70%,55%,0.10)`; ctx.fill();
 
     // گیومه تزئینی
     ctx.save();
-    ctx.font = `bold ${S * 0.18}px 'Vazir', 'Tahoma', serif`;
+    ctx.font = `bold ${W * 0.18}px 'Vazir', 'Tahoma', serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.textAlign = 'right'; ctx.direction = 'rtl';
-    ctx.fillText('»', S - 55, S * 0.22);
+    ctx.fillText('»', W - 55, H * 0.18);
     ctx.restore();
 
-    // متن اصلی
-    const fontSize = _calcFontSize(ctx, _shareImageText, S);
+    // متن اصلی - در استوری جای بیشتری داریم
+    const fontSize = _calcFontSize(ctx, _shareImageText, W);
     ctx.save();
     ctx.font = `bold ${fontSize}px 'Vazir', 'Tahoma', sans-serif`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center'; ctx.direction = 'rtl';
-    const maxW = S * 0.80;
+    const maxW = W * 0.80;
     const lineH = fontSize * 1.7;
     const lines = _wrapText(ctx, _shareImageText, maxW);
     const totalH = lines.length * lineH;
-    let startY = (S - totalH) / 2 + fontSize * 0.8;
-    if (startY < S * 0.18) startY = S * 0.18;
-    lines.forEach((ln, i) => ctx.fillText(ln, S / 2, startY + i * lineH));
+    // در استوری متن در وسط، در مربع هم وسط
+    const centerY = _shareStoryMode ? H * 0.45 : H * 0.5;
+    let startY = centerY - totalH / 2 + fontSize * 0.8;
+    if (startY < H * 0.18) startY = H * 0.18;
+    lines.forEach((ln, i) => ctx.fillText(ln, W / 2, startY + i * lineH));
     ctx.restore();
 
     // خط جداکننده
-    const afterY = startY + lines.length * lineH + S * 0.045;
+    const afterY = startY + lines.length * lineH + W * 0.045;
     ctx.beginPath();
-    ctx.moveTo(S * 0.38, afterY); ctx.lineTo(S * 0.62, afterY);
+    ctx.moveTo(W * 0.38, afterY); ctx.lineTo(W * 0.62, afterY);
     ctx.strokeStyle = `hsla(${h},60%,75%,0.35)`; ctx.lineWidth = 1.5; ctx.stroke();
 
     // عنوان کتاب
     if (_shareImageSubtitle) {
         ctx.save();
-        ctx.font = `${S * 0.03}px 'Vazir', 'Tahoma', sans-serif`;
+        ctx.font = `${W * 0.03}px 'Vazir', 'Tahoma', sans-serif`;
         ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.textAlign = 'center'; ctx.direction = 'rtl';
-        ctx.fillText(_shareImageSubtitle, S / 2, afterY + S * 0.055);
+        ctx.fillText(_shareImageSubtitle, W / 2, afterY + W * 0.055);
+        ctx.restore();
+    }
+
+    // متن دلخواه کاربر (پایین تصویر)
+    if (_shareCustomText) {
+        ctx.save();
+        ctx.font = `bold ${W * 0.032}px 'Vazir', 'Tahoma', sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.textAlign = 'center'; ctx.direction = 'rtl';
+        ctx.fillText(_shareCustomText, W / 2, H - W * 0.10);
         ctx.restore();
     }
 
     // برند پایین
     ctx.save();
-    ctx.font = `bold ${S * 0.026}px 'Vazir', 'Tahoma', sans-serif`;
+    ctx.font = `bold ${W * 0.026}px 'Vazir', 'Tahoma', sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.textAlign = 'center'; ctx.direction = 'rtl';
-    ctx.fillText('dastgheibqoba.info', S / 2, S - S * 0.045);
+    ctx.fillText('dastgheibqoba.info', W / 2, H - W * 0.045);
     ctx.restore();
 }
 
-function _calcFontSize(ctx, text, S) {
+function _calcFontSize(ctx, text, W) {
     // شروع از فونت بزرگ، کوچک‌تر کن تا بشه جا داد
-    const maxW = S * 0.80;
+    const maxW = W * 0.80;
     const maxLines = 8;
-    for (let fs = S * 0.058; fs >= S * 0.028; fs -= 2) {
+    for (let fs = W * 0.058; fs >= W * 0.028; fs -= 2) {
         ctx.font = `bold ${fs}px 'Vazir', 'Tahoma', sans-serif`;
         const lines = _wrapText(ctx, text, maxW);
         if (lines.length <= maxLines) return fs;
     }
-    return S * 0.028;
+    return W * 0.028;
 }
 
 function _wrapText(ctx, text, maxWidth) {

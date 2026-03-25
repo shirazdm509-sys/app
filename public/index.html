@@ -889,6 +889,16 @@
                 <button onclick="setTitleColor('#1e3a8a')" class="w-10 h-10 rounded-full bg-blue-900 shadow-sm border-2 border-white"></button>
             </div>
         </div>
+        <div class="mb-6">
+            <span class="text-sm font-bold text-gray-800 block mb-3">رنگ متن</span>
+            <div class="flex space-x-reverse space-x-3">
+                <button onclick="setTextColor('inherit')" class="w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white ring-2 ring-transparent focus:ring-gray-800"></button>
+                <button onclick="setTextColor('#334155')" class="w-10 h-10 rounded-full bg-slate-700 shadow-sm border-2 border-white"></button>
+                <button onclick="setTextColor('#0d9488')" class="w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white"></button>
+                <button onclick="setTextColor('#1d4ed8')" class="w-10 h-10 rounded-full bg-blue-700 shadow-sm border-2 border-white"></button>
+                <button onclick="setTextColor('#92400e')" class="w-10 h-10 rounded-full bg-amber-800 shadow-sm border-2 border-white"></button>
+            </div>
+        </div>
         <div class="mb-4">
             <span class="text-sm font-bold text-gray-800 block mb-3">تم</span>
             <div class="grid grid-cols-3 gap-3">
@@ -914,17 +924,29 @@
 
 <!-- SHARE AS IMAGE MODAL -->
 <div id="share-image-modal" class="fixed inset-0 z-[350] bg-black/80 flex items-end justify-center hidden" style="backdrop-filter:blur(4px)">
-    <div class="bg-white rounded-t-3xl w-full max-w-md" style="padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="bg-white rounded-t-3xl w-full max-w-md overflow-y-auto" style="max-height:92vh;padding-bottom:max(env(safe-area-inset-bottom),16px)">
         <div class="flex items-center justify-between px-5 pt-5 pb-3">
             <h3 class="font-bold text-gray-800 text-base">انتشار به صورت عکس</h3>
             <button onclick="closeShareImageModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"><i class="fas fa-times text-sm"></i></button>
         </div>
+        <!-- Size toggle -->
+        <div class="px-5 pb-3">
+            <span class="text-xs text-gray-400 font-bold block mb-2">اندازه:</span>
+            <div class="flex bg-gray-100 p-1 rounded-xl gap-1">
+                <button id="share-size-square" onclick="setShareSize('square')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-gray-800 flex items-center justify-center gap-1">
+                    <i class="fas fa-square text-gray-500"></i> مربع (۱:۱)
+                </button>
+                <button id="share-size-story" onclick="setShareSize('story')" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 flex items-center justify-center gap-1">
+                    <i class="fas fa-mobile-alt text-gray-400"></i> استوری (۹:۱۶)
+                </button>
+            </div>
+        </div>
         <!-- Preview canvas -->
         <div class="px-5">
-            <canvas id="share-canvas" class="w-full rounded-2xl shadow-lg" style="aspect-ratio:1/1;display:block"></canvas>
+            <canvas id="share-canvas" class="w-full rounded-2xl shadow-lg" style="display:block"></canvas>
         </div>
         <!-- Color spectrum picker -->
-        <div class="px-5 pt-4 pb-1">
+        <div class="px-5 pt-4 pb-1" id="share-bg-color-section">
             <span class="text-xs text-gray-400 font-bold block mb-2">رنگ پس‌زمینه:</span>
             <!-- طیف رنگی -->
             <div class="relative h-9 rounded-full overflow-hidden shadow-inner" style="background:linear-gradient(to right,hsl(0,70%,18%),hsl(40,70%,18%),hsl(80,70%,18%),hsl(120,70%,18%),hsl(160,70%,18%),hsl(200,70%,18%),hsl(240,70%,18%),hsl(280,70%,18%),hsl(320,70%,18%),hsl(360,70%,18%))">
@@ -935,8 +957,28 @@
                 <div id="share-hue-indicator" class="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white shadow-lg pointer-events-none" style="left:calc(220/359*100%);background:hsl(220,60%,30%)"></div>
             </div>
         </div>
+        <!-- Background image picker -->
+        <div class="px-5 pt-3 pb-1">
+            <span class="text-xs text-gray-400 font-bold block mb-2">پس‌زمینه تصویری:</span>
+            <div class="flex items-center gap-3">
+                <button onclick="document.getElementById('share-bg-input').click()" class="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-xl text-sm font-bold text-gray-700 active:scale-95 transition-transform">
+                    <i class="fas fa-image text-purple-500"></i> انتخاب از گالری
+                </button>
+                <button id="share-bg-clear-btn" onclick="clearShareBgImage()" class="hidden px-4 py-2 bg-red-50 rounded-xl text-sm font-bold text-red-500 active:scale-95 transition-transform">
+                    <i class="fas fa-times"></i> حذف تصویر
+                </button>
+            </div>
+            <input type="file" id="share-bg-input" accept="image/*" class="hidden" onchange="onShareBgImagePick(this)">
+        </div>
+        <!-- Custom text at bottom -->
+        <div class="px-5 pt-3 pb-1">
+            <span class="text-xs text-gray-400 font-bold block mb-2">متن دلخواه (پایین تصویر):</span>
+            <input type="text" id="share-custom-text" placeholder="مثلاً: @username یا نام صفحه..." dir="rtl"
+                class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-teal-400"
+                oninput="onShareCustomTextChange(this.value)">
+        </div>
         <!-- Action buttons -->
-        <div class="flex gap-3 px-5 pt-3 pb-4">
+        <div class="flex gap-3 px-5 pt-4 pb-4">
             <button onclick="downloadShareImage()" class="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-600 text-white rounded-2xl font-bold text-sm shadow active:scale-95 transition-transform">
                 <i class="fas fa-download"></i> دانلود
             </button>
