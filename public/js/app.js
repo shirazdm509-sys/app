@@ -7,6 +7,8 @@ function navToScreen(name) {
     const prevActive = document.querySelector('.screen.active');
     const prevName = prevActive ? prevActive.id.replace('screen-', '') : null;
 
+    if (typeof closeImageModal === 'function') closeImageModal();
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const targetScreen = document.getElementById('screen-' + name);
     if (targetScreen) targetScreen.classList.add('active');
