@@ -881,22 +881,28 @@
         </div>
         <div class="mb-6">
             <span class="text-sm font-bold text-gray-800 block mb-3">رنگ تیترها</span>
-            <div class="flex space-x-reverse space-x-3">
-                <button onclick="setTitleColor('inherit')" class="w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white ring-2 ring-transparent focus:ring-gray-800"></button>
-                <button onclick="setTitleColor('#0d9488')" class="w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white"></button>
-                <button onclick="setTitleColor('#2563eb')" class="w-10 h-10 rounded-full bg-blue-600 shadow-sm border-2 border-white"></button>
-                <button onclick="setTitleColor('#e11d48')" class="w-10 h-10 rounded-full bg-rose-600 shadow-sm border-2 border-white"></button>
-                <button onclick="setTitleColor('#1e3a8a')" class="w-10 h-10 rounded-full bg-blue-900 shadow-sm border-2 border-white"></button>
+            <div class="flex flex-wrap gap-3">
+                <button data-title-color="inherit" onclick="setTitleColor('inherit')" class="color-swatch w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#0d9488" onclick="setTitleColor('#0d9488')" class="color-swatch w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#2563eb" onclick="setTitleColor('#2563eb')" class="color-swatch w-10 h-10 rounded-full bg-blue-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#e11d48" onclick="setTitleColor('#e11d48')" class="color-swatch w-10 h-10 rounded-full bg-rose-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#1e3a8a" onclick="setTitleColor('#1e3a8a')" class="color-swatch w-10 h-10 rounded-full bg-blue-900 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#f97316" onclick="setTitleColor('#f97316')" class="color-swatch w-10 h-10 rounded-full bg-orange-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#a855f7" onclick="setTitleColor('#a855f7')" class="color-swatch w-10 h-10 rounded-full bg-purple-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#0ea5e9" onclick="setTitleColor('#0ea5e9')" class="color-swatch w-10 h-10 rounded-full bg-sky-500 shadow-sm border-2 border-white transition-transform"></button>
             </div>
         </div>
         <div class="mb-6">
             <span class="text-sm font-bold text-gray-800 block mb-3">رنگ متن</span>
-            <div class="flex space-x-reverse space-x-3">
-                <button onclick="setTextColor('inherit')" class="w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white ring-2 ring-transparent focus:ring-gray-800"></button>
-                <button onclick="setTextColor('#334155')" class="w-10 h-10 rounded-full bg-slate-700 shadow-sm border-2 border-white"></button>
-                <button onclick="setTextColor('#0d9488')" class="w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white"></button>
-                <button onclick="setTextColor('#1d4ed8')" class="w-10 h-10 rounded-full bg-blue-700 shadow-sm border-2 border-white"></button>
-                <button onclick="setTextColor('#92400e')" class="w-10 h-10 rounded-full bg-amber-800 shadow-sm border-2 border-white"></button>
+            <div class="flex flex-wrap gap-3">
+                <button data-text-color="inherit" onclick="setTextColor('inherit')" class="color-swatch w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#334155" onclick="setTextColor('#334155')" class="color-swatch w-10 h-10 rounded-full bg-slate-700 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#0d9488" onclick="setTextColor('#0d9488')" class="color-swatch w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#1d4ed8" onclick="setTextColor('#1d4ed8')" class="color-swatch w-10 h-10 rounded-full bg-blue-700 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#92400e" onclick="setTextColor('#92400e')" class="color-swatch w-10 h-10 rounded-full bg-amber-800 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#f97316" onclick="setTextColor('#f97316')" class="color-swatch w-10 h-10 rounded-full bg-orange-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#a855f7" onclick="setTextColor('#a855f7')" class="color-swatch w-10 h-10 rounded-full bg-purple-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#0ea5e9" onclick="setTextColor('#0ea5e9')" class="color-swatch w-10 h-10 rounded-full bg-sky-500 shadow-sm border-2 border-white transition-transform"></button>
             </div>
         </div>
         <div class="mb-4">

@@ -304,6 +304,10 @@ function loadSettings() {
     if (sc) document.documentElement.style.setProperty('--title-color', sc);
     const tc = localStorage.getItem('reader_textColor');
     if (tc) document.documentElement.style.setProperty('--text-color', tc);
+    setTimeout(() => {
+        updateTitleColorUI(sc || 'inherit');
+        updateTextColorUI(tc || 'inherit');
+    }, 0);
     document.documentElement.style.setProperty('--line-height', lineHeight);
     applyTheme();
     applyFont();
@@ -431,14 +435,40 @@ function changeLineHeight(d) {
     document.getElementById('line-height-display').textContent = lineHeight.toFixed(1);
 }
 
+function updateTitleColorUI(c) {
+    document.querySelectorAll('[data-title-color]').forEach(btn => {
+        if (btn.dataset.titleColor === c) {
+            btn.style.boxShadow = '0 0 0 3px white, 0 0 0 5px #64748b';
+            btn.style.transform = 'scale(1.18)';
+        } else {
+            btn.style.boxShadow = '';
+            btn.style.transform = '';
+        }
+    });
+}
+
 function setTitleColor(c) {
     document.documentElement.style.setProperty('--title-color', c);
     localStorage.setItem('reader_titleColor', c);
+    updateTitleColorUI(c);
+}
+
+function updateTextColorUI(c) {
+    document.querySelectorAll('[data-text-color]').forEach(btn => {
+        if (btn.dataset.textColor === c) {
+            btn.style.boxShadow = '0 0 0 3px white, 0 0 0 5px #64748b';
+            btn.style.transform = 'scale(1.18)';
+        } else {
+            btn.style.boxShadow = '';
+            btn.style.transform = '';
+        }
+    });
 }
 
 function setTextColor(c) {
     document.documentElement.style.setProperty('--text-color', c);
     localStorage.setItem('reader_textColor', c);
+    updateTextColorUI(c);
 }
 
 function togglePageMenu(){document.getElementById('page-action-menu').classList.toggle('hidden');}
