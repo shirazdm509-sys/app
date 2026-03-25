@@ -84,12 +84,10 @@ async function init() {
         console.error("Critical Init Error:", e);
     } finally {
         clearTimeout(safetyTimeout);
-        if (typeof tailwind !== 'undefined') {
-            hideLoading();
-            const appWr = document.getElementById('app-wrapper');
-            if(appWr) appWr.classList.remove('hidden');
-            setTimeout(() => { try { loadSliders(); } catch(e) {} }, 50);
-        }
+        hideLoading();
+        const appWr = document.getElementById('app-wrapper');
+        if(appWr) appWr.classList.remove('hidden');
+        setTimeout(() => { try { loadSliders(); } catch(e) {} }, 50);
     }
 }
 
