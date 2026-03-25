@@ -308,8 +308,8 @@ function loadSettings() {
     applyTheme();
     applyFont();
 
-    const tc = document.getElementById('text-content');
-    if (tc) tc.style.fontSize = fontSize + 'px';
+    const tcEl = document.getElementById('text-content');
+    if (tcEl) tcEl.style.fontSize = fontSize + 'px';
     ['single-post-content', 'news-single-content', 'statements-single-content'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.fontSize = fontSize + 'px';
