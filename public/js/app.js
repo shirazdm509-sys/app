@@ -827,6 +827,7 @@ function _hasClass(id, cls) {
 
 function handleBackButton() {
     // لایه‌ها به ترتیب z-index از بالا به پایین
+    if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return; }
     if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return; }
     if (_isVisible('image-modal'))          { closeImageModal();    return; }
     if (_isVisible('webview-modal'))        { closeWebView();       return; }
@@ -859,19 +860,41 @@ function handleBackButton() {
         return;
     }
 
-    // روی home هستیم → مطمئن بشیم home اکتیوه
+    // روی home هستیم → دیالوگ تأیید خروج نشان بده
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const h = document.getElementById('screen-home');
     if (h) h.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const nb = document.querySelector('[data-nav="home"]');
     if (nb) nb.classList.add('active');
+    showExitDialog();
+}
+
+function showExitDialog() {
+    const modal = document.getElementById('exit-confirm-modal');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeExitDialog() {
+    const modal = document.getElementById('exit-confirm-modal');
+    if (modal) modal.classList.add('hidden');
+    // یک state دوباره push کن تا back بعدی هم کار کنه
+    history.pushState({ pwaApp: true }, document.title, location.href);
+}
+
+function confirmExit() {
+    // بستن مودال و خروج واقعی
+    const modal = document.getElementById('exit-confirm-modal');
+    if (modal) modal.classList.add('hidden');
+    // در PWA standalone خروج واقعی داریم
+    // در مرورگر history را خالی می‌کنیم
+    history.go(-(history.length));
+    setTimeout(() => { window.close(); }, 200);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // چند state اضافه تا back button در مرورگر/اندروید مطمئناً intercept بشه
-    // حتی اگه race condition باشه، با ۳ state شانس خروج تصادفی صفره
-    for (let i = 0; i < 3; i++) {
+    // state‌های بیشتر تا back button در مرورگر/اندروید مطمئناً intercept بشه
+    for (let i = 0; i < 10; i++) {
         history.pushState({ pwaApp: true, depth: i }, document.title, location.href);
     }
 });

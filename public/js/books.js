@@ -57,7 +57,7 @@ function renderLibrary() {
     const readBooks = booksWithRead.filter(b => b._lastRead > 0).sort((a,b2) => b2._lastRead - a._lastRead);
     const homeBooks = readBooks.length > 0 ? readBooks : allBooks;
     const titleEl = document.getElementById('home-books-title');
-    if (titleEl) titleEl.textContent = readBooks.length > 0 ? 'آخرین مطالعه‌شده‌ها' : 'آخرین کتاب‌ها';
+    if (titleEl) titleEl.textContent = 'آخرین کتاب‌ها';
     homeContainer.innerHTML = homeBooks.slice(0, 5).map((b) => renderCard(b, allBooks.findIndex(ab => ab.id === b.id), true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
 }
@@ -167,13 +167,37 @@ function buildTOC() {
     let seasons={};
     bookData.forEach((p,i)=>{ const s=p.season||'بدون فصل'; if(!seasons[s]) seasons[s]=[]; seasons[s].push({...p,originalIndex:i}); });
     let html='';
+    let seasonIndex=0;
     Object.keys(seasons).forEach(season=>{
         const pages=seasons[season];
-        html+=`<div class="mb-2"><div class="flex items-center gap-2 mb-2 px-1"><i class="fas fa-folder text-brand-500 text-xs"></i><span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${season}</span><span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">${toFa(pages.length)}</span></div>`;
+        const sid='toc-season-'+seasonIndex;
+        // اولین بخش باز است، بقیه بسته
+        const isOpen = seasonIndex === 0;
+        html+=`<div class="mb-2">
+            <button onclick="toggleTocSeason('${sid}')" class="w-full flex items-center gap-2 mb-1 px-2 py-2 rounded-xl hover:bg-gray-100 transition text-right">
+                <i class="fas fa-chevron-${isOpen?'up':'down'} text-brand-500 text-xs toc-chevron" id="${sid}-chevron"></i>
+                <i class="fas fa-folder text-brand-500 text-xs"></i>
+                <span class="text-xs font-bold text-gray-600 flex-1">${season}</span>
+                <span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">${toFa(pages.length)}</span>
+            </button>
+            <div id="${sid}" class="${isOpen?'':'hidden'}">`;
         pages.forEach(p=>{ html+=`<button onclick="goToPage(${p.originalIndex})" class="w-full text-right px-4 py-3 bg-white hover:bg-brand-50 rounded-xl text-sm text-gray-700 transition mb-1 border border-gray-100 truncate shadow-sm"><span class="text-gray-300 text-xs ml-2">${toFa(p.originalIndex+1)}.</span> ${p.name}</button>`; });
-        html+='</div>';
+        html+=`</div></div>`;
+        seasonIndex++;
     });
     container.innerHTML=html;
+}
+
+function toggleTocSeason(sid) {
+    const el = document.getElementById(sid);
+    const chevron = document.getElementById(sid+'-chevron');
+    if (!el) return;
+    const isHidden = el.classList.contains('hidden');
+    el.classList.toggle('hidden', !isHidden);
+    if (chevron) {
+        chevron.classList.toggle('fa-chevron-down', !isHidden);
+        chevron.classList.toggle('fa-chevron-up', isHidden);
+    }
 }
 
 function updateTocProgressUI() {

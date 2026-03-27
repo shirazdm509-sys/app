@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>مرکز نشر آثار</title>
+    <title>نرم افزار آیت الله دستغیب</title>
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0d9488">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="مرکز نشر آثار">
+    <meta name="apple-mobile-web-app-title" content="نرم افزار آیت الله دستغیب">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
     <link rel="apple-touch-icon" sizes="384x384" href="/icons/icon-384.png">
@@ -890,6 +890,8 @@
                 <button data-title-color="#f97316" onclick="setTitleColor('#f97316')" class="color-swatch w-10 h-10 rounded-full bg-orange-500 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-title-color="#a855f7" onclick="setTitleColor('#a855f7')" class="color-swatch w-10 h-10 rounded-full bg-purple-500 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-title-color="#0ea5e9" onclick="setTitleColor('#0ea5e9')" class="color-swatch w-10 h-10 rounded-full bg-sky-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#ffffff" onclick="setTitleColor('#ffffff')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-gray-300 transition-transform" style="background:#ffffff"></button>
+                <button data-title-color="#fef3c7" onclick="setTitleColor('#fef3c7')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-gray-300 transition-transform" style="background:#fef3c7"></button>
             </div>
         </div>
         <div class="mb-6">
@@ -903,6 +905,8 @@
                 <button data-text-color="#f97316" onclick="setTextColor('#f97316')" class="color-swatch w-10 h-10 rounded-full bg-orange-500 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-text-color="#a855f7" onclick="setTextColor('#a855f7')" class="color-swatch w-10 h-10 rounded-full bg-purple-500 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-text-color="#0ea5e9" onclick="setTextColor('#0ea5e9')" class="color-swatch w-10 h-10 rounded-full bg-sky-500 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#ffffff" onclick="setTextColor('#ffffff')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-gray-300 transition-transform" style="background:#ffffff"></button>
+                <button data-text-color="#fef3c7" onclick="setTextColor('#fef3c7')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-gray-300 transition-transform" style="background:#fef3c7"></button>
             </div>
         </div>
         <div class="mb-4">
@@ -1096,6 +1100,21 @@
         </button>
         <button onclick="closePwaModal(true)" class="flex-1 bg-gray-100 text-gray-600 rounded-2xl py-3 text-sm font-medium hover:bg-gray-200 transition">بعداً</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- دیالوگ تأیید خروج از برنامه -->
+<div id="exit-confirm-modal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center px-6" style="background:rgba(0,0,0,0.5)">
+  <div class="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl text-center">
+    <div class="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+      <i class="fas fa-sign-out-alt text-red-500 text-xl"></i>
+    </div>
+    <h3 class="font-black text-gray-800 text-lg mb-2">خروج از برنامه</h3>
+    <p class="text-gray-500 text-sm mb-6">آیا می‌خواهید از برنامه خارج شوید؟</p>
+    <div class="flex gap-3">
+      <button onclick="closeExitDialog()" class="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition">خیر</button>
+      <button onclick="confirmExit()" class="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition">بله، خارج شو</button>
     </div>
   </div>
 </div>
