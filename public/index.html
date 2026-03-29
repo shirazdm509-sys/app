@@ -252,7 +252,7 @@
                 <div id="home-media-images-section" class="mb-4 hidden">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین تصاویر</h3>
-                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('gallery'),80)" class="text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('photo'),80)" class="text-[10px] font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-images" class="grid grid-cols-4 gap-2 px-4"></div>
                 </div>
@@ -394,10 +394,10 @@
                             </div>
 
                             <!-- نوار پیشرفت -->
-                            <div class="px-5 pt-4 pb-1">
+                            <div class="px-5 pt-4 pb-1" style="direction:ltr;">
                                 <input type="range" id="audio-progress" min="0" max="100" value="0" step="0.1"
                                     class="w-full h-1.5 rounded-full bg-gray-200 appearance-none cursor-pointer accent-brand-600"
-                                    oninput="seekAudio(this.value)" style="-webkit-appearance:none;">
+                                    oninput="seekAudio(this.value)" style="-webkit-appearance:none;direction:ltr;">
                                 <div class="flex justify-between mt-1">
                                     <span id="audio-current-time" class="text-[10px] text-gray-400 font-mono">۰:۰۰</span>
                                     <span id="audio-duration" class="text-[10px] text-gray-400 font-mono">۰:۰۰</span>
@@ -644,7 +644,7 @@
                 <button onclick="document.getElementById('payment-iframe').src=document.getElementById('payment-iframe').src" class="w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt"></i></button>
             </header>
             <div class="flex-1 overflow-hidden flex flex-col">
-                <iframe id="payment-iframe" src="" class="w-full flex-1 border-none" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                <iframe id="payment-iframe" src="" class="w-full flex-1 border-none" allow="payment *"></iframe>
             </div>
         </div>
 

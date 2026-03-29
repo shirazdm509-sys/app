@@ -38,9 +38,8 @@ function navToScreen(name) {
     const payIframe = document.getElementById('payment-iframe');
     if (payIframe) {
         if (name === 'payment') {
-            if (!payIframe.src || payIframe.src === window.location.href) {
-                payIframe.onload = () => { try { injectCSSIntoPaymentWebView(); } catch(e) {} };
-                payIframe.src = 'https://dastgheibqoba.info/pay/?webview=1';
+            if (!payIframe.src || payIframe.src === window.location.href || payIframe.src === 'about:blank') {
+                payIframe.src = 'https://dastgheibqoba.info/pay/';
             }
         } else {
             payIframe.src = '';

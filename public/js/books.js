@@ -260,8 +260,17 @@ function toggleReaderUI(){
 
 function setupSwipe(){
     const el=document.getElementById('content-container'); if(!el) return;
-    el.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX;},{passive:true});
-    el.addEventListener('touchend',e=>{touchEndX=e.changedTouches[0].screenX;const d=touchStartX-touchEndX;if(Math.abs(d)>60){const s=window.getSelection();if(s&&!s.isCollapsed)return;if(d>0)nextPage();else prevPage();}},{passive:true});
+    let touchStartY=0;
+    el.addEventListener('touchstart',e=>{touchStartX=e.changedTouches[0].screenX;touchStartY=e.changedTouches[0].screenY;},{passive:true});
+    el.addEventListener('touchend',e=>{
+        touchEndX=e.changedTouches[0].screenX;
+        const dx=touchStartX-touchEndX;
+        const dy=Math.abs(e.changedTouches[0].screenY-touchStartY);
+        if(Math.abs(dx)>70&&Math.abs(dx)>dy*1.5){
+            const s=window.getSelection();if(s&&!s.isCollapsed)return;
+            if(dx>0)nextPage();else prevPage();
+        }
+    },{passive:true});
     el.addEventListener('click',()=>{if(window.getSelection().toString().length>0)return;toggleReaderUI();document.getElementById('page-action-menu').classList.add('hidden');});
 }
 
@@ -745,7 +754,7 @@ function shareSelectedTextAsImage() {
     const text = sel ? sel.toString().trim() : '';
     if (!text) { hideHighlightToolbar(); return; }
     _shareImageText = text;
-    _shareImageSubtitle = getShareTitle();
+    _shareImageSubtitle = '';
     hideHighlightToolbar();
     if (sel) sel.removeAllRanges();
 
@@ -933,13 +942,13 @@ function _renderShareCanvas() {
 function _calcFontSize(ctx, text, W) {
     // شروع از فونت بزرگ، کوچک‌تر کن تا بشه جا داد
     const maxW = W * 0.80;
-    const maxLines = 8;
-    for (let fs = W * 0.058; fs >= W * 0.028; fs -= 2) {
+    const maxLines = 12;
+    for (let fs = W * 0.058; fs >= W * 0.022; fs -= 2) {
         ctx.font = `bold ${fs}px 'Vazir', 'Tahoma', sans-serif`;
         const lines = _wrapText(ctx, text, maxW);
         if (lines.length <= maxLines) return fs;
     }
-    return W * 0.028;
+    return W * 0.022;
 }
 
 function _wrapText(ctx, text, maxWidth) {
@@ -953,7 +962,7 @@ function _wrapText(ctx, text, maxWidth) {
         } else { cur = test; }
     }
     if (cur) lines.push(cur);
-    return lines.slice(0, 8);
+    return lines.slice(0, 12);
 }
 
 function closeShareImageModal() {
