@@ -232,7 +232,5 @@ function openLatestPost(postId) {
     if (navBtn) navBtn.classList.add('active');
     const liveEl = document.getElementById('live-embed-container');
     if (liveEl) liveEl.innerHTML = '';
-    const payIframe = document.getElementById('payment-iframe');
-    if (payIframe) payIframe.src = '';
     showWPSingleView(postId);
 }

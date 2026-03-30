@@ -35,15 +35,9 @@ function navToScreen(name) {
         if (wpPlayer) wpPlayer.innerHTML = "";
     }
 
-    const payIframe = document.getElementById('payment-iframe');
-    if (payIframe) {
-        if (name === 'payment') {
-            if (!payIframe.src || payIframe.src === window.location.href || payIframe.src === 'about:blank') {
-                payIframe.src = 'https://dastgheibqoba.info/pay/';
-            }
-        } else {
-            payIframe.src = '';
-        }
+    if (name === 'payment') {
+        window.open('https://dastgheibqoba.info/pay/', '_blank');
+        navToScreen('home');
     }
 
     // --- به‌روزرسانی stack ناوبری ---
