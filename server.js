@@ -123,6 +123,10 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS video_items (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, embed_url TEXT NOT NULL, thumbnail TEXT DEFAULT '', description TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES video_categories(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS news_sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL UNIQUE, post_title TEXT NOT NULL, post_url TEXT NOT NULL, post_image TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 
+        // Migration: add parent_id to category tables for nested categories
+        mainDb.run(`ALTER TABLE gallery_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE audio_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE video_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
 
         const defaults = [
             ['site_name','مرکز نشر آثار آیت الله دستغیب'],
@@ -137,6 +141,9 @@ function initDb() {
             ['slider_padding','0'],
             ['slider_radius','0'],
             ['slider_height','180'],
+            ['slider_height_mobile','200'],
+            ['slider_height_tablet','350'],
+            ['slider_height_desktop','500'],
             ['banner_padding','4'],
             ['banner_radius','16'],
             ['banner_height','120'],
@@ -690,7 +697,10 @@ app.delete('/api/admin/news-sliders/:id', adminAuth, (req, res) => {
 
 // Admin Users
 app.get('/api/admin/users',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT u.id,u.username,u.created_at,(SELECT COUNT(*) FROM messages WHERE user_id=u.id) as msg_count,(SELECT created_at FROM messages WHERE user_id=u.id ORDER BY created_at DESC LIMIT 1) as last_active FROM users u ORDER BY u.created_at DESC`,[],(err,rows)=>{
+    mainDb.all(`SELECT u.id,u.username,u.created_at,
+        ((SELECT COUNT(*) FROM messages WHERE user_id=u.id)+(SELECT COUNT(*) FROM ticket_messages tm JOIN tickets t ON t.id=tm.ticket_id WHERE t.user_id=u.id)) as msg_count,
+        (SELECT MAX(a) FROM (SELECT created_at as a FROM messages WHERE user_id=u.id UNION SELECT tm.created_at as a FROM ticket_messages tm JOIN tickets t ON t.id=tm.ticket_id WHERE t.user_id=u.id)) as last_active
+        FROM users u ORDER BY u.created_at DESC`,[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
@@ -824,7 +834,9 @@ function sendPushToAll(payload) {
 
 // === PUBLIC GALLERY API ===
 app.get('/api/gallery/categories',(req,res)=>{
-    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count FROM gallery_categories gc ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>{
+    const parentId = req.query.parent_id !== undefined ? (+req.query.parent_id || null) : null;
+    const whereClause = req.query.parent_id !== undefined ? `WHERE gc.parent_id=${parentId===null?'IS NULL':`=${parentId}`}` : 'WHERE gc.parent_id IS NULL';
+    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count, (SELECT COUNT(*) FROM gallery_categories WHERE parent_id=gc.id) as sub_count FROM gallery_categories gc ${whereClause} ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
@@ -839,7 +851,7 @@ app.get('/api/gallery/categories/:id/photos',(req,res)=>{
 
 // === ADMIN GALLERY API ===
 app.get('/api/admin/gallery/categories',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count FROM gallery_categories gc ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count, (SELECT COUNT(*) FROM gallery_categories WHERE parent_id=gc.id) as sub_count FROM gallery_categories gc ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
 });
 app.post('/api/admin/gallery/categories',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
     const name=san(req.body.name||'').trim();
@@ -847,9 +859,10 @@ app.post('/api/admin/gallery/categories',adminAuth,uploadImage.single('gallery_i
     const imgUrl=req.body.image_url&&req.body.image_url.trim().length>5?san(req.body.image_url.trim()):null;
     const cover=req.file?`/gallery/${req.file.filename}`:(imgUrl||'');
     const desc=san(req.body.description||'');
+    const parentId=req.body.parent_id&&+req.body.parent_id>0?+req.body.parent_id:null;
     mainDb.get('SELECT MAX(sort_order) as mx FROM gallery_categories',[],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
-        mainDb.run('INSERT INTO gallery_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+        mainDb.run('INSERT INTO gallery_categories (name,description,cover,sort_order,parent_id) VALUES (?,?,?,?,?)',[name,desc,cover,so,parentId],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
             res.json({success:true,id:this.lastID});
         });
@@ -873,12 +886,21 @@ app.put('/api/admin/gallery/categories/:id',adminAuth,uploadImage.single('galler
 });
 app.delete('/api/admin/gallery/categories/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.all('SELECT image FROM gallery_photos WHERE category_id=?',[id],(err,photos)=>{
-        (photos||[]).forEach(p=>{if(p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
-        mainDb.get('SELECT cover FROM gallery_categories WHERE id=?',[id],(err2,cat)=>{
-            if(cat&&cat.cover&&!cat.cover.startsWith('http')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
-            mainDb.run('DELETE FROM gallery_photos WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM gallery_categories WHERE id=?',[id],()=>res.json({success:true})));
+    // Delete subcategories recursively
+    mainDb.all('SELECT id FROM gallery_categories WHERE parent_id=?',[id],(err,subs)=>{
+        const subIds=(subs||[]).map(s=>s.id);
+        const allIds=[id,...subIds];
+        allIds.forEach(catId=>{
+            mainDb.all('SELECT image FROM gallery_photos WHERE category_id=?',[catId],(e2,photos)=>{
+                (photos||[]).forEach(p=>{if(p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
+                mainDb.run('DELETE FROM gallery_photos WHERE category_id=?',[catId]);
+            });
+            mainDb.get('SELECT cover FROM gallery_categories WHERE id=?',[catId],(e3,cat)=>{
+                if(cat&&cat.cover&&!cat.cover.startsWith('http')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+            });
         });
+        const placeholders=allIds.map(()=>'?').join(',');
+        mainDb.run(`DELETE FROM gallery_categories WHERE id IN (${placeholders})`,allIds,()=>res.json({success:true}));
     });
 });
 app.post('/api/admin/gallery/photos',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
@@ -907,7 +929,8 @@ app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
 
 // === PUBLIC AUDIO API ===
 app.get('/api/audio/categories',(req,res)=>{
-    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>{
+    const whereClause = req.query.parent_id !== undefined ? (req.query.parent_id==='null'||req.query.parent_id===''?'WHERE ac.parent_id IS NULL':`WHERE ac.parent_id=${+req.query.parent_id}`) : 'WHERE ac.parent_id IS NULL';
+    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count, (SELECT COUNT(*) FROM audio_categories WHERE parent_id=ac.id) as sub_count FROM audio_categories ac ${whereClause} ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
@@ -922,7 +945,7 @@ app.get('/api/audio/categories/:id/tracks',(req,res)=>{
 
 // === ADMIN AUDIO API ===
 app.get('/api/admin/audio/categories',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count, (SELECT COUNT(*) FROM audio_categories WHERE parent_id=ac.id) as sub_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
 });
 app.post('/api/admin/audio/categories',adminAuth,uploadImage.single('audio_cover'),(req,res)=>{
     const name=san(req.body.name||'').trim();
@@ -930,9 +953,10 @@ app.post('/api/admin/audio/categories',adminAuth,uploadImage.single('audio_cover
     const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
     const cover=req.file?`/gallery/${req.file.filename}`:(coverUrl||'');
     const desc=san(req.body.description||'');
+    const parentId=req.body.parent_id&&+req.body.parent_id>0?+req.body.parent_id:null;
     mainDb.get('SELECT MAX(sort_order) as mx FROM audio_categories',[],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
-        mainDb.run('INSERT INTO audio_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+        mainDb.run('INSERT INTO audio_categories (name,description,cover,sort_order,parent_id) VALUES (?,?,?,?,?)',[name,desc,cover,so,parentId],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
             res.json({success:true,id:this.lastID});
         });
@@ -1028,7 +1052,8 @@ function extractAparatThumb(embedUrl) {
 
 // === PUBLIC VIDEO API ===
 app.get('/api/videos/categories',(req,res)=>{
-    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>{
+    const whereClause = req.query.parent_id !== undefined ? (req.query.parent_id==='null'||req.query.parent_id===''?'WHERE vc.parent_id IS NULL':`WHERE vc.parent_id=${+req.query.parent_id}`) : 'WHERE vc.parent_id IS NULL';
+    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count, (SELECT COUNT(*) FROM video_categories WHERE parent_id=vc.id) as sub_count FROM video_categories vc ${whereClause} ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
@@ -1043,7 +1068,7 @@ app.get('/api/videos/categories/:id/items',(req,res)=>{
 
 // === ADMIN VIDEO API ===
 app.get('/api/admin/video/categories',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count, (SELECT COUNT(*) FROM video_categories WHERE parent_id=vc.id) as sub_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
 });
 app.post('/api/admin/video/categories',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
     const name=san(req.body.name||'').trim();
@@ -1051,9 +1076,10 @@ app.post('/api/admin/video/categories',adminAuth,uploadImage.single('gallery_ima
     const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
     const cover=req.file?`/gallery/${req.file.filename}`:(coverUrl||'');
     const desc=san(req.body.description||'');
+    const parentId=req.body.parent_id&&+req.body.parent_id>0?+req.body.parent_id:null;
     mainDb.get('SELECT MAX(sort_order) as mx FROM video_categories',[],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
-        mainDb.run('INSERT INTO video_categories (name,description,cover,sort_order) VALUES (?,?,?,?)',[name,desc,cover,so],function(err2){
+        mainDb.run('INSERT INTO video_categories (name,description,cover,sort_order,parent_id) VALUES (?,?,?,?,?)',[name,desc,cover,so,parentId],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
             res.json({success:true,id:this.lastID});
         });

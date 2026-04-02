@@ -123,12 +123,33 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <label class="block text-xs font-bold text-gray-500 mb-2">گردی گوشه‌ها (border-radius) - <span id="slider-radius-val">0</span>px</label>
           <input type="range" id="s-slider_radius" min="0" max="32" value="0" class="w-full" oninput="document.getElementById('slider-radius-val').textContent=this.value">
         </div>
-        <div>
-          <label class="block text-xs font-bold text-gray-500 mb-2">ارتفاع اسلایدر (px)</label>
-          <div class="flex items-center gap-3">
-            <input type="range" id="s-slider_height" min="100" max="600" value="180" step="10" class="flex-1" oninput="document.getElementById('slider-height-num').value=this.value;document.getElementById('slider-height-val').textContent=this.value">
-            <input type="number" id="slider-height-num" value="180" min="100" max="600" class="w-20 bg-gray-50 border border-gray-200 p-2 rounded-xl text-center text-sm outline-none focus:border-teal-500" oninput="document.getElementById('s-slider_height').value=this.value;document.getElementById('slider-height-val').textContent=this.value">
-            <span class="text-xs text-gray-400 hidden" id="slider-height-val">180</span>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-3"><i class="fas fa-mobile-alt ml-1 text-teal-500"></i>ارتفاع اسلایدر بر اساس دستگاه (px)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div>
+              <label class="flex items-center gap-1 text-[11px] font-bold text-gray-500 mb-2"><i class="fas fa-mobile-alt text-rose-400"></i>موبایل (تا ۶۴۰px)</label>
+              <div class="flex items-center gap-2">
+                <input type="range" id="s-slider_height_mobile" min="100" max="600" value="200" step="10" class="flex-1" oninput="document.getElementById('slider-h-mob-num').value=this.value">
+                <input type="number" id="slider-h-mob-num" value="200" min="100" max="600" class="w-16 bg-white border border-gray-200 p-1.5 rounded-lg text-center text-xs outline-none focus:border-teal-500" oninput="document.getElementById('s-slider_height_mobile').value=this.value">
+                <span class="text-[10px] text-gray-400">px</span>
+              </div>
+            </div>
+            <div>
+              <label class="flex items-center gap-1 text-[11px] font-bold text-gray-500 mb-2"><i class="fas fa-tablet-alt text-amber-400"></i>تبلت (۶۴۰-۱۰۲۴px)</label>
+              <div class="flex items-center gap-2">
+                <input type="range" id="s-slider_height_tablet" min="100" max="700" value="350" step="10" class="flex-1" oninput="document.getElementById('slider-h-tab-num').value=this.value">
+                <input type="number" id="slider-h-tab-num" value="350" min="100" max="700" class="w-16 bg-white border border-gray-200 p-1.5 rounded-lg text-center text-xs outline-none focus:border-teal-500" oninput="document.getElementById('s-slider_height_tablet').value=this.value">
+                <span class="text-[10px] text-gray-400">px</span>
+              </div>
+            </div>
+            <div>
+              <label class="flex items-center gap-1 text-[11px] font-bold text-gray-500 mb-2"><i class="fas fa-laptop text-blue-400"></i>لپ‌تاپ/دسکتاپ (بالای ۱۰۲۴px)</label>
+              <div class="flex items-center gap-2">
+                <input type="range" id="s-slider_height_desktop" min="100" max="800" value="500" step="10" class="flex-1" oninput="document.getElementById('slider-h-desk-num').value=this.value">
+                <input type="number" id="slider-h-desk-num" value="500" min="100" max="800" class="w-16 bg-white border border-gray-200 p-1.5 rounded-lg text-center text-xs outline-none focus:border-teal-500" oninput="document.getElementById('s-slider_height_desktop').value=this.value">
+                <span class="text-[10px] text-gray-400">px</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -210,6 +231,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی جدید</h2>
       <form id="gallery-cat-form" onsubmit="addGalleryCategory(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام دسته‌بندی *</label><input type="text" id="gcat-name" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مثلاً: مراسمات، برنامه‌ها"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرمجموعه چه دسته‌ای؟ <span class="text-gray-400 font-normal">(اختیاری)</span></label><select id="gcat-parent" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"><option value="">--- دسته اصلی (سطح اول) ---</option></select></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><input type="text" id="gcat-desc" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="توضیح مختصر"></div>
         <div class="md:col-span-2">
           <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور <span class="text-gray-400 font-normal">(فایل یا لینک URL)</span></label>
@@ -263,6 +285,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی ویدیو</h2>
       <form id="vcat-form" onsubmit="addVideoCategory(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام دسته‌بندی *</label><input type="text" id="vcat-name" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مثلاً: سخنرانی‌ها، مناجات"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرمجموعه چه دسته‌ای؟ <span class="text-gray-400 font-normal">(اختیاری)</span></label><select id="vcat-parent" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"><option value="">--- دسته اصلی (سطح اول) ---</option></select></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><input type="text" id="vcat-desc" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="توضیح مختصر"></div>
         <div class="md:col-span-2">
           <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور <span class="text-gray-400 font-normal">(فایل یا لینک URL)</span></label>
@@ -332,6 +355,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-folder-plus text-teal-600 ml-2"></i>افزودن دسته‌بندی صوتی</h2>
       <form id="audio-cat-form" onsubmit="addAudioCategory(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام دسته‌بندی *</label><input type="text" id="acat-name" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مثلاً: سخنرانی‌ها، دعاها"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرمجموعه چه دسته‌ای؟ <span class="text-gray-400 font-normal">(اختیاری)</span></label><select id="acat-parent" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"><option value="">--- دسته اصلی (سطح اول) ---</option></select></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><input type="text" id="acat-desc" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="توضیح مختصر"></div>
         <div class="md:col-span-2">
           <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور <span class="text-gray-400 font-normal">(فایل یا لینک URL - کپی نمی‌شود)</span></label>
@@ -1009,17 +1033,23 @@ async function loadSliderSettings(){
     const s=await r.json();
     const sp=document.getElementById('s-slider_padding');
     const sr=document.getElementById('s-slider_radius');
-    const sh=document.getElementById('s-slider_height');
     if(sp){sp.value=s.slider_padding||'0';document.getElementById('slider-padding-val').textContent=s.slider_padding||'0';}
     if(sr){sr.value=s.slider_radius||'0';document.getElementById('slider-radius-val').textContent=s.slider_radius||'0';}
-    if(sh){const hv=s.slider_height||'180';sh.value=hv;document.getElementById('slider-height-val').textContent=hv;const shn=document.getElementById('slider-height-num');if(shn)shn.value=hv;}
+    const mobEl=document.getElementById('s-slider_height_mobile');
+    const tabEl=document.getElementById('s-slider_height_tablet');
+    const dskEl=document.getElementById('s-slider_height_desktop');
+    if(mobEl){const v=s.slider_height_mobile||'200';mobEl.value=v;document.getElementById('slider-h-mob-num').value=v;}
+    if(tabEl){const v=s.slider_height_tablet||'350';tabEl.value=v;document.getElementById('slider-h-tab-num').value=v;}
+    if(dskEl){const v=s.slider_height_desktop||'500';dskEl.value=v;document.getElementById('slider-h-desk-num').value=v;}
   }catch(e){}
 }
 async function saveSliderSettings(){
   const data={
     slider_padding:document.getElementById('s-slider_padding').value,
     slider_radius:document.getElementById('s-slider_radius').value,
-    slider_height:document.getElementById('s-slider_height').value,
+    slider_height_mobile:document.getElementById('s-slider_height_mobile').value,
+    slider_height_tablet:document.getElementById('s-slider_height_tablet').value,
+    slider_height_desktop:document.getElementById('s-slider_height_desktop').value,
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
@@ -1628,38 +1658,73 @@ function previewFavicon(input){
 // ====================================================
 // GALLERY ADMIN
 // ====================================================
+function renderGalleryAdminCat(cat, isChild=false){
+  return `
+    <div class="bg-white rounded-2xl shadow-sm border ${isChild?'border-teal-100 mr-4':'border-gray-100'} overflow-hidden" id="gcat-${cat.id}">
+      <div class="flex items-center gap-3 p-3 border-b ${isChild?'border-teal-50 bg-teal-50/30':'border-gray-100'}">
+        ${isChild?'<i class="fas fa-level-down-alt text-teal-400 text-xs mr-1 rotate-90 transform scale-x-[-1]" style="transform:scaleX(-1) rotate(180deg)"></i>':''}
+        <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+          ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-gray-300"><i class="fas fa-images text-xl"></i></div>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-sm flex items-center gap-1">
+            ${isChild?'<i class="fas fa-folder text-teal-400 text-xs"></i>':'<i class="fas fa-folder-open text-teal-600 text-xs"></i>'}
+            ${cat.name}
+          </h3>
+          ${cat.description?`<p class="text-xs text-gray-400">${cat.description}</p>`:''}
+          <div class="flex gap-2 mt-1">
+            <span class="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full">${cat.photo_count} تصویر</span>
+            ${!isChild&&cat.sub_count>0?`<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${cat.sub_count} زیردسته</span>`:''}
+          </div>
+        </div>
+        <div class="flex gap-1.5 shrink-0">
+          <button onclick="openPhotoModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}','${cat.id}')" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن عکس</span></button>
+          <button onclick="deleteGalleryCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+        </div>
+      </div>
+      <div id="gcat-photos-${cat.id}" class="p-3">
+        ${cat.photo_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>در حال بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز تصویری اضافه نشده</div>'}
+      </div>
+    </div>`;
+}
 async function loadGalleryAdmin(){
   try{
     const r=await adminFetch('/api/admin/gallery/categories');
-    const cats=await r.json();
+    const allCats=await r.json();
     const c=document.getElementById('gallery-admin-list');
-    if(!cats||!cats.length){
+    if(!allCats||!allCats.length){
       c.innerHTML='<div class="text-center py-16 text-gray-400"><i class="fas fa-images text-4xl opacity-20 mb-3"></i><p class="text-sm font-bold opacity-50">هیچ دسته‌بندی‌ای وجود ندارد</p></div>';
+      // Update parent dropdowns
+      const sel=document.getElementById('gcat-parent');if(sel){sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>';}
       return;
     }
-    c.innerHTML=cats.map(cat=>`
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="gcat-${cat.id}">
-        <div class="flex items-center gap-4 p-4 border-b border-gray-100">
-          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100">
-            ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-gray-300"><i class="fas fa-images text-2xl"></i></div>`}
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-black text-sm">${cat.name}</h3>
-            ${cat.description?`<p class="text-xs text-gray-400 mt-0.5">${cat.description}</p>`:''}
-            <span class="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full mt-1 inline-block">${cat.photo_count} تصویر</span>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button onclick="openPhotoModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}','${cat.id}')" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"><i class="fas fa-plus"></i>افزودن عکس</button>
-            <button onclick="deleteGalleryCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-9 h-9 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
-          </div>
-        </div>
-        <div id="gcat-photos-${cat.id}" class="p-4">
-          ${cat.photo_count>0?`<div class="text-center py-4 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>در حال بارگذاری...</div>`:'<div class="text-center py-4 text-gray-400 text-xs opacity-50">هنوز تصویری اضافه نشده</div>'}
-        </div>
-      </div>
-    `).join('');
+    // Populate parent dropdown
+    const sel=document.getElementById('gcat-parent');
+    if(sel){
+      sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>'+
+        allCats.filter(x=>!x.parent_id).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    }
+    // Build hierarchical HTML
+    const parents=allCats.filter(x=>!x.parent_id);
+    const childMap={};
+    allCats.filter(x=>x.parent_id).forEach(x=>{if(!childMap[x.parent_id])childMap[x.parent_id]=[];childMap[x.parent_id].push(x);});
+    let html='';
+    parents.forEach(cat=>{
+      html+=`<div class="flex flex-col gap-2">`;
+      html+=renderGalleryAdminCat(cat,false);
+      if(childMap[cat.id]){
+        html+=`<div class="flex flex-col gap-2 pr-4">`;
+        childMap[cat.id].forEach(child=>html+=renderGalleryAdminCat(child,true));
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    });
+    // Orphan children (parent deleted)
+    const orphans=allCats.filter(x=>x.parent_id&&!parents.find(p=>p.id===x.parent_id));
+    orphans.forEach(cat=>html+=renderGalleryAdminCat(cat,false));
+    c.innerHTML=html;
     // Load photos for each category
-    cats.filter(c=>c.photo_count>0).forEach(cat=>loadCategoryPhotosAdmin(cat.id));
+    allCats.filter(c=>c.photo_count>0).forEach(cat=>loadCategoryPhotosAdmin(cat.id));
   }catch(e){}
 }
 async function loadCategoryPhotosAdmin(catId){
@@ -1686,6 +1751,8 @@ async function addGalleryCategory(e){
   const fd=new FormData();
   fd.append('name',name);
   fd.append('description',document.getElementById('gcat-desc').value);
+  const parentId=document.getElementById('gcat-parent').value;
+  if(parentId) fd.append('parent_id',parentId);
   const imgFile=document.getElementById('gcat-image').files[0];
   const imgUrl=document.getElementById('gcat-image-url').value.trim();
   if(imgFile) fd.append('gallery_image',imgFile);
@@ -1765,37 +1832,68 @@ async function deleteGalleryPhoto(id,catId){
 // ====================================================
 // AUDIO GALLERY ADMIN
 // ====================================================
+function renderAudioAdminCat(cat, isChild=false){
+  return `
+    <div class="bg-white rounded-2xl shadow-sm border ${isChild?'border-teal-100':'border-gray-100'} overflow-hidden" id="acat-${cat.id}">
+      <div class="flex items-center gap-3 p-3 border-b ${isChild?'border-teal-50 bg-teal-50/30':'border-gray-100'}">
+        <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
+          ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><i class="fas fa-headphones text-white text-xl"></i></div>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-sm flex items-center gap-1">
+            ${isChild?'<i class="fas fa-folder text-teal-400 text-xs"></i>':'<i class="fas fa-folder-open text-teal-600 text-xs"></i>'}
+            ${cat.name}
+          </h3>
+          ${cat.description?`<p class="text-xs text-gray-400">${cat.description}</p>`:''}
+          <div class="flex gap-2 mt-1">
+            <span class="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full">${cat.track_count} فایل صوتی</span>
+            ${!isChild&&cat.sub_count>0?`<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${cat.sub_count} زیردسته</span>`:''}
+          </div>
+        </div>
+        <div class="flex gap-1.5 shrink-0">
+          <button onclick="openAudioTrackModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن صوت</span></button>
+          <button onclick="deleteAudioCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+        </div>
+      </div>
+      <div id="acat-tracks-${cat.id}" class="p-3">
+        ${cat.track_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز صوتی اضافه نشده</div>'}
+      </div>
+    </div>`;
+}
 async function loadAudioGalleryAdmin(){
   try{
     const r=await adminFetch('/api/admin/audio/categories');
-    const cats=await r.json();
+    const allCats=await r.json();
     const c=document.getElementById('audio-admin-list');
-    if(!cats||!cats.length){
+    if(!allCats||!allCats.length){
       c.innerHTML='<div class="text-center py-16 text-gray-400"><i class="fas fa-headphones text-4xl opacity-20 mb-3"></i><p class="text-sm font-bold opacity-50">هیچ دسته‌بندی صوتی وجود ندارد</p></div>';
+      const sel=document.getElementById('acat-parent');if(sel)sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>';
       return;
     }
-    c.innerHTML=cats.map(cat=>`
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="acat-${cat.id}">
-        <div class="flex items-center gap-4 p-4 border-b border-gray-100">
-          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
-            ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-headphones text-white text-2xl"></i></div>`}
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-black text-sm">${cat.name}</h3>
-            ${cat.description?`<p class="text-xs text-gray-400 mt-0.5">${cat.description}</p>`:''}
-            <span class="text-[10px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full mt-1 inline-block">${cat.track_count} فایل صوتی</span>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button onclick="openAudioTrackModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"><i class="fas fa-plus"></i>افزودن صوت</button>
-            <button onclick="deleteAudioCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-9 h-9 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
-          </div>
-        </div>
-        <div id="acat-tracks-${cat.id}" class="p-4">
-          ${cat.track_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز صوتی اضافه نشده</div>'}
-        </div>
-      </div>
-    `).join('');
-    cats.filter(c=>c.track_count>0).forEach(cat=>loadCategoryTracksAdmin(cat.id));
+    // Populate parent dropdown
+    const sel=document.getElementById('acat-parent');
+    if(sel){
+      sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>'+
+        allCats.filter(x=>!x.parent_id).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    }
+    const parents=allCats.filter(x=>!x.parent_id);
+    const childMap={};
+    allCats.filter(x=>x.parent_id).forEach(x=>{if(!childMap[x.parent_id])childMap[x.parent_id]=[];childMap[x.parent_id].push(x);});
+    let html='';
+    parents.forEach(cat=>{
+      html+=`<div class="flex flex-col gap-2">`;
+      html+=renderAudioAdminCat(cat,false);
+      if(childMap[cat.id]){
+        html+=`<div class="flex flex-col gap-2 pr-4">`;
+        childMap[cat.id].forEach(child=>html+=renderAudioAdminCat(child,true));
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    });
+    const orphans=allCats.filter(x=>x.parent_id&&!parents.find(p=>p.id===x.parent_id));
+    orphans.forEach(cat=>html+=renderAudioAdminCat(cat,false));
+    c.innerHTML=html;
+    allCats.filter(c=>c.track_count>0).forEach(cat=>loadCategoryTracksAdmin(cat.id));
   }catch(e){}
 }
 
@@ -1828,6 +1926,8 @@ async function addAudioCategory(e){
   const fd=new FormData();
   fd.append('name',name);
   fd.append('description',document.getElementById('acat-desc').value);
+  const parentId=document.getElementById('acat-parent').value;
+  if(parentId) fd.append('parent_id',parentId);
   const coverFile=document.getElementById('acat-cover-file').files[0];
   const coverUrl=document.getElementById('acat-cover-url').value.trim();
   if(coverFile) fd.append('audio_cover',coverFile);
@@ -1921,37 +2021,68 @@ async function deleteAudioTrack(id,catId){
 // ====================================================
 // VIDEO GALLERY ADMIN
 // ====================================================
+function renderVideoAdminCat(cat, isChild=false){
+  return `
+    <div class="bg-white rounded-2xl shadow-sm border ${isChild?'border-rose-100':'border-gray-100'} overflow-hidden" id="vcat-${cat.id}">
+      <div class="flex items-center gap-3 p-3 border-b ${isChild?'border-rose-50 bg-rose-50/20':'border-gray-100'}">
+        <div class="w-20 h-[45px] rounded-xl overflow-hidden shrink-0 bg-gray-900 flex items-center justify-center">
+          ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<i class="fas fa-film text-gray-600 text-xl"></i>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-sm flex items-center gap-1">
+            ${isChild?'<i class="fas fa-folder text-rose-400 text-xs"></i>':'<i class="fas fa-folder-open text-rose-500 text-xs"></i>'}
+            ${cat.name}
+          </h3>
+          ${cat.description?`<p class="text-xs text-gray-400">${cat.description}</p>`:''}
+          <div class="flex gap-2 mt-1">
+            <span class="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full">${cat.video_count} ویدیو</span>
+            ${!isChild&&cat.sub_count>0?`<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${cat.sub_count} زیردسته</span>`:''}
+          </div>
+        </div>
+        <div class="flex gap-1.5 shrink-0">
+          <button onclick="openVideoItemModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن ویدیو</span></button>
+          <button onclick="deleteVideoCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
+        </div>
+      </div>
+      <div id="vcat-items-${cat.id}" class="p-3">
+        ${cat.video_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز ویدیویی اضافه نشده</div>'}
+      </div>
+    </div>`;
+}
 async function loadVideoGalleryAdmin(){
   try{
     const r=await adminFetch('/api/admin/video/categories');
-    const cats=await r.json();
+    const allCats=await r.json();
     const c=document.getElementById('video-admin-list');
-    if(!cats||!cats.length){
+    if(!allCats||!allCats.length){
       c.innerHTML='<div class="text-center py-16 text-gray-400"><i class="fas fa-film text-4xl opacity-20 mb-3"></i><p class="text-sm font-bold opacity-50">هیچ دسته‌بندی ویدیویی وجود ندارد</p></div>';
+      const sel=document.getElementById('vcat-parent');if(sel)sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>';
       return;
     }
-    c.innerHTML=cats.map(cat=>`
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="vcat-${cat.id}">
-        <div class="flex items-center gap-4 p-4 border-b border-gray-100">
-          <div class="w-20 h-[45px] rounded-xl overflow-hidden shrink-0 bg-gray-900 flex items-center justify-center">
-            ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<i class="fas fa-film text-gray-600 text-xl"></i>`}
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-black text-sm">${cat.name}</h3>
-            ${cat.description?`<p class="text-xs text-gray-400 mt-0.5">${cat.description}</p>`:''}
-            <span class="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full mt-1 inline-block">${cat.video_count} ویدیو</span>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button onclick="openVideoItemModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"><i class="fas fa-plus"></i>افزودن ویدیو</button>
-            <button onclick="deleteVideoCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-9 h-9 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
-          </div>
-        </div>
-        <div id="vcat-items-${cat.id}" class="p-4">
-          ${cat.video_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز ویدیویی اضافه نشده</div>'}
-        </div>
-      </div>
-    `).join('');
-    cats.filter(c=>c.video_count>0).forEach(cat=>loadCategoryItemsAdmin(cat.id));
+    // Populate parent dropdown
+    const sel=document.getElementById('vcat-parent');
+    if(sel){
+      sel.innerHTML='<option value="">--- دسته اصلی (سطح اول) ---</option>'+
+        allCats.filter(x=>!x.parent_id).map(x=>`<option value="${x.id}">${x.name}</option>`).join('');
+    }
+    const parents=allCats.filter(x=>!x.parent_id);
+    const childMap={};
+    allCats.filter(x=>x.parent_id).forEach(x=>{if(!childMap[x.parent_id])childMap[x.parent_id]=[];childMap[x.parent_id].push(x);});
+    let html='';
+    parents.forEach(cat=>{
+      html+=`<div class="flex flex-col gap-2">`;
+      html+=renderVideoAdminCat(cat,false);
+      if(childMap[cat.id]){
+        html+=`<div class="flex flex-col gap-2 pr-4">`;
+        childMap[cat.id].forEach(child=>html+=renderVideoAdminCat(child,true));
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    });
+    const orphans=allCats.filter(x=>x.parent_id&&!parents.find(p=>p.id===x.parent_id));
+    orphans.forEach(cat=>html+=renderVideoAdminCat(cat,false));
+    c.innerHTML=html;
+    allCats.filter(c=>c.video_count>0).forEach(cat=>loadCategoryItemsAdmin(cat.id));
   }catch(e){}
 }
 
@@ -1985,6 +2116,8 @@ async function addVideoCategory(e){
   const fd=new FormData();
   fd.append('name',name);
   fd.append('description',document.getElementById('vcat-desc').value);
+  const parentId=document.getElementById('vcat-parent').value;
+  if(parentId) fd.append('parent_id',parentId);
   const coverFile=document.getElementById('vcat-cover-file').files[0];
   const coverUrl=document.getElementById('vcat-cover-url').value.trim();
   if(coverFile) fd.append('gallery_image',coverFile);

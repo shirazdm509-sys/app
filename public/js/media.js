@@ -103,12 +103,15 @@ async function initLiveScreen() {
 // گالری ویدیو آپارات محلی
 // ====================================================
 
+let _videoNavStack = [];
+
 async function initVideoGallery() {
     if (_videoCatsLoaded) return;
-    await loadVideoCategories();
+    _videoNavStack = [];
+    await loadVideoCategories(null, '');
 }
 
-async function loadVideoCategories() {
+async function loadVideoCategories(parentId, parentName) {
     setMediaLoading(true);
     const view = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
@@ -117,57 +120,67 @@ async function loadVideoCategories() {
     if(playerView) playerView.classList.add('hidden');
     if(view) view.classList.remove('hidden');
 
+    // Update breadcrumb/back
+    const backBtn = document.getElementById('video-cats-back-btn');
+    const titleEl = document.getElementById('video-cats-title');
+    const hdr = document.getElementById('video-cats-header');
+    if(backBtn) backBtn.style.display = _videoNavStack.length > 0 ? '' : 'none';
+    if(titleEl) titleEl.textContent = parentName || 'گالری ویدیو';
+    if(hdr) { if(_videoNavStack.length > 0 || parentName) { hdr.classList.remove('hidden'); hdr.classList.add('flex'); } else { hdr.classList.add('hidden'); hdr.classList.remove('flex'); } }
+
     try {
-        const res = await fetch('/api/videos/categories');
+        const url = parentId != null ? `/api/videos/categories?parent_id=${parentId}` : '/api/videos/categories';
+        const res = await fetch(url);
         const cats = await res.json();
         _videoCatsLoaded = true;
 
         if(cats && cats.length > 0) {
-            const colors = [
-                'from-rose-500 to-rose-700',
-                'from-blue-500 to-blue-700',
-                'from-violet-500 to-violet-700',
-                'from-amber-500 to-amber-700',
-                'from-teal-500 to-teal-700',
-                'from-emerald-500 to-emerald-700',
-                'from-pink-500 to-pink-700',
-                'from-indigo-500 to-indigo-700',
-            ];
+            const colors = ['from-rose-500 to-rose-700','from-blue-500 to-blue-700','from-violet-500 to-violet-700','from-amber-500 to-amber-700','from-teal-500 to-teal-700','from-emerald-500 to-emerald-700','from-pink-500 to-pink-700','from-indigo-500 to-indigo-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
                 const coverHtml = cat.cover
                     ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
                     : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
+                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+                const clickFn = cat.sub_count > 0 ? `videoNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})`;
+                const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.video_count} ویدیو`;
                 return `
-                <div onclick="loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                <div onclick="${clickFn}" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
                     <div class="w-full aspect-video overflow-hidden relative">
                         ${coverHtml}
+                        ${hasFolder}
                         <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg">
-                                <i class="fas fa-play text-white text-lg mr-[-2px]"></i>
-                            </div>
+                            ${cat.sub_count > 0
+                                ? `<div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg"><i class="fas fa-folder-open text-white text-xl"></i></div>`
+                                : `<div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg"><i class="fas fa-play text-white text-lg mr-[-2px]"></i></div>`
+                            }
                         </div>
                     </div>
                     <div class="px-3 py-2">
                         <h3 class="font-black text-xs text-gray-800 line-clamp-1">${cat.name}</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">${cat.video_count} ویدیو</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">${badge}</p>
                     </div>
                 </div>`;
             }).join('');
         } else {
             view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
                 <i class="fas fa-film text-5xl opacity-20"></i>
-                <p class="text-sm font-bold opacity-50">هنوز ویدیویی اضافه نشده</p>
-                <p class="text-xs opacity-40">از پنل مدیریت ویدیو اضافه کنید</p>
+                <p class="text-sm font-bold opacity-50">دسته‌بندی‌ای وجود ندارد</p>
             </div>`;
         }
     } catch(e) {
         if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
             <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
             <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
-            <button onclick="_videoCatsLoaded=false;loadVideoCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+            <button onclick="_videoCatsLoaded=false;initVideoGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
         </div>`;
     } finally { setMediaLoading(false); }
+}
+
+function videoNavToSub(catId, catName) {
+    _videoNavStack.push({id: catId, name: catName});
+    _videoCatsLoaded = false;
+    loadVideoCategories(catId, catName);
 }
 
 async function loadVideoList(categoryId, title, count) {
@@ -247,7 +260,14 @@ function backToVideoCategories() {
     if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
     if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
     if(catsView) catsView.classList.remove('hidden');
-    loadVideoCategories();
+    if(_videoNavStack.length > 0) {
+        _videoNavStack.pop();
+        const prev = _videoNavStack[_videoNavStack.length - 1];
+        loadVideoCategories(prev ? prev.id : null, prev ? prev.name : '');
+    } else {
+        _videoNavStack = [];
+        loadVideoCategories(null, '');
+    }
 }
 
 function backToVideoList() {
@@ -261,65 +281,84 @@ function backToVideoList() {
 // گالری عکس محلی
 // ====================================================
 let _galleryCatsLoaded = false;
+let _galleryNavStack = []; // stack for breadcrumb navigation
 
 async function initGallery() {
     if (_galleryCatsLoaded) return;
-    await loadGalleryCategories();
+    _galleryNavStack = [];
+    await loadGalleryCategories(null, '');
 }
 
-async function loadGalleryCategories() {
+function _renderGalleryCatGrid(cats, view, onClickFn) {
+    const colors = ['from-teal-400 to-teal-600','from-emerald-400 to-emerald-600','from-cyan-400 to-cyan-600','from-blue-400 to-blue-600','from-violet-400 to-violet-600','from-rose-400 to-rose-600','from-amber-400 to-amber-600','from-pink-400 to-pink-600'];
+    view.innerHTML = cats.map((cat, i) => {
+        const grad = colors[i % colors.length];
+        const coverHtml = cat.cover
+            ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
+            : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-images text-white text-3xl opacity-80"></i></div>`;
+        const badge = cat.sub_count > 0
+            ? `<p class="text-[10px] text-white/70 mt-0.5">${cat.sub_count} زیردسته</p>`
+            : `<p class="text-[10px] text-white/70 mt-0.5">${cat.photo_count} تصویر</p>`;
+        const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+        return `
+        <div onclick="${onClickFn(cat)}" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+            <div class="w-full aspect-square overflow-hidden relative">
+                ${coverHtml}
+                ${hasFolder}
+                <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                    <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
+                    ${badge}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function loadGalleryCategories(parentId, parentName) {
     setMediaLoading(true);
     const view = document.getElementById('gallery-categories-view');
     const photosView = document.getElementById('gallery-photos-view');
     if(photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
     if(view) view.classList.remove('hidden');
 
+    // Update breadcrumb/back button
+    const backBtn = document.getElementById('gallery-back-btn');
+    const titleEl = document.getElementById('gallery-cat-list-title');
+    const hdr = document.getElementById('gallery-cats-header');
+    if(backBtn) { backBtn.style.display = _galleryNavStack.length > 0 ? '' : 'none'; }
+    if(titleEl) titleEl.textContent = parentName || 'گالری عکس';
+    if(hdr) { if(_galleryNavStack.length > 0 || parentName) { hdr.classList.remove('hidden'); hdr.classList.add('flex'); } else { hdr.classList.add('hidden'); hdr.classList.remove('flex'); } }
+
     try {
-        const res = await fetch('/api/gallery/categories');
+        const url = parentId != null ? `/api/gallery/categories?parent_id=${parentId}` : '/api/gallery/categories';
+        const res = await fetch(url);
         const cats = await res.json();
         _galleryCatsLoaded = true;
 
         if(cats && cats.length > 0) {
-            const colors = [
-                'from-teal-400 to-teal-600',
-                'from-emerald-400 to-emerald-600',
-                'from-cyan-400 to-cyan-600',
-                'from-blue-400 to-blue-600',
-                'from-violet-400 to-violet-600',
-                'from-rose-400 to-rose-600',
-                'from-amber-400 to-amber-600',
-                'from-pink-400 to-pink-600',
-            ];
-            view.innerHTML = cats.map((cat, i) => {
-                const grad = colors[i % colors.length];
-                const coverHtml = cat.cover
-                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-images text-white text-3xl opacity-80"></i></div>`;
-                return `
-                <div onclick="loadGalleryPhotos(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.photo_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
-                    <div class="w-full aspect-square overflow-hidden relative">
-                        ${coverHtml}
-                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                            <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
-                            <p class="text-[10px] text-white/70 mt-0.5">${cat.photo_count} تصویر</p>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
+            _renderGalleryCatGrid(cats, view, (cat) => {
+                if(cat.sub_count > 0) return `galleryNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')`;
+                return `loadGalleryPhotos(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.photo_count})`;
+            });
         } else {
             view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
                 <i class="fas fa-images text-5xl opacity-20"></i>
-                <p class="text-sm font-bold opacity-50">هنوز گالری‌ای ایجاد نشده</p>
-                <p class="text-xs opacity-40">از پنل مدیریت گالری اضافه کنید</p>
+                <p class="text-sm font-bold opacity-50">دسته‌بندی‌ای وجود ندارد</p>
             </div>`;
         }
     } catch(e) {
         if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
             <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
             <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
-            <button onclick="_galleryCatsLoaded=false;loadGalleryCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+            <button onclick="_galleryCatsLoaded=false;initGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
         </div>`;
     } finally { setMediaLoading(false); }
+}
+
+function galleryNavToSub(catId, catName) {
+    _galleryNavStack.push({id: catId, name: catName});
+    _galleryCatsLoaded = false;
+    loadGalleryCategories(catId, catName);
 }
 
 async function loadGalleryPhotos(categoryId, title, count) {
@@ -362,7 +401,14 @@ function backToGalleryCategories() {
     const photosView = document.getElementById('gallery-photos-view');
     if(photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
     if(catsView) catsView.classList.remove('hidden');
-    loadGalleryCategories();
+    if(_galleryNavStack.length > 0) {
+        _galleryNavStack.pop();
+        const prev = _galleryNavStack[_galleryNavStack.length - 1];
+        loadGalleryCategories(prev ? prev.id : null, prev ? prev.name : '');
+    } else {
+        _galleryNavStack = [];
+        loadGalleryCategories(null, '');
+    }
 }
 
 // wrapper برای باز کردن از صفحه اصلی
@@ -520,46 +566,53 @@ function getAudioEl() {
     return audioEl;
 }
 
+let _audioNavStack = [];
+
 async function initAudioGallery() {
     if (_audioCatsLoaded) return;
-    await loadAudioCategories();
+    _audioNavStack = [];
+    await loadAudioCategories(null, '');
 }
 
-async function loadAudioCategories() {
+async function loadAudioCategories(parentId, parentName) {
     setMediaLoading(true);
     const view = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     if(view) view.classList.remove('hidden');
 
+    // Update breadcrumb/back
+    const backBtn = document.getElementById('audio-cats-back-btn');
+    const titleEl = document.getElementById('audio-cats-title');
+    const hdr = document.getElementById('audio-cats-header');
+    if(backBtn) backBtn.style.display = _audioNavStack.length > 0 ? '' : 'none';
+    if(titleEl) titleEl.textContent = parentName || 'گالری صوت';
+    if(hdr) { if(_audioNavStack.length > 0 || parentName) { hdr.classList.remove('hidden'); hdr.classList.add('flex'); } else { hdr.classList.add('hidden'); hdr.classList.remove('flex'); } }
+
     try {
-        const res = await fetch('/api/audio/categories');
+        const url = parentId != null ? `/api/audio/categories?parent_id=${parentId}` : '/api/audio/categories';
+        const res = await fetch(url);
         const cats = await res.json();
         _audioCatsLoaded = true;
 
         if(cats && cats.length > 0) {
-            const colors = [
-                'from-brand-500 to-brand-700',
-                'from-violet-500 to-violet-700',
-                'from-rose-500 to-rose-700',
-                'from-amber-500 to-amber-700',
-                'from-emerald-500 to-emerald-700',
-                'from-blue-500 to-blue-700',
-                'from-pink-500 to-pink-700',
-                'from-teal-500 to-teal-700',
-            ];
+            const colors = ['from-brand-500 to-brand-700','from-violet-500 to-violet-700','from-rose-500 to-rose-700','from-amber-500 to-amber-700','from-emerald-500 to-emerald-700','from-blue-500 to-blue-700','from-pink-500 to-pink-700','from-teal-500 to-teal-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
                 const coverHtml = cat.cover
                     ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
                     : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-headphones text-white text-3xl opacity-80"></i></div>`;
+                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+                const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.track_count} صوت`;
+                const clickFn = cat.sub_count > 0 ? `audioNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadAudioPlaylist(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.track_count})`;
                 return `
-                <div onclick="loadAudioPlaylist(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.track_count})" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                <div onclick="${clickFn}" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
                     <div class="w-full aspect-square overflow-hidden relative">
                         ${coverHtml}
+                        ${hasFolder}
                         <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                             <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
-                            <p class="text-[10px] text-white/70 mt-0.5">${cat.track_count} صوت</p>
+                            <p class="text-[10px] text-white/70 mt-0.5">${badge}</p>
                         </div>
                     </div>
                 </div>`;
@@ -567,17 +620,22 @@ async function loadAudioCategories() {
         } else {
             view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
                 <i class="fas fa-headphones text-5xl opacity-20"></i>
-                <p class="text-sm font-bold opacity-50">هنوز گالری صوتی ایجاد نشده</p>
-                <p class="text-xs opacity-40">از پنل مدیریت صوت اضافه کنید</p>
+                <p class="text-sm font-bold opacity-50">دسته‌بندی صوتی وجود ندارد</p>
             </div>`;
         }
     } catch(e) {
         if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
             <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
             <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
-            <button onclick="_audioCatsLoaded=false;loadAudioCategories()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
+            <button onclick="_audioCatsLoaded=false;initAudioGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
         </div>`;
     } finally { setMediaLoading(false); }
+}
+
+function audioNavToSub(catId, catName) {
+    _audioNavStack.push({id: catId, name: catName});
+    _audioCatsLoaded = false;
+    loadAudioCategories(catId, catName);
 }
 
 async function loadAudioPlaylist(categoryId, title, count) {
@@ -746,7 +804,14 @@ function backToAudioCategories() {
     const plView = document.getElementById('audio-playlist-view');
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     if(catsView) catsView.classList.remove('hidden');
-    loadAudioCategories();
+    if(_audioNavStack.length > 0) {
+        _audioNavStack.pop();
+        const prev = _audioNavStack[_audioNavStack.length - 1];
+        loadAudioCategories(prev ? prev.id : null, prev ? prev.name : '');
+    } else {
+        _audioNavStack = [];
+        loadAudioCategories(null, '');
+    }
 }
 
 function formatAudioTime(sec) {

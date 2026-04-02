@@ -334,7 +334,13 @@
                 <!-- 1. فیلم - گالری ویدیو آپارات -->
                 <div id="media-content-video" class="w-full">
                     <!-- نمای دسته‌بندی‌ها -->
-                    <div id="video-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    <div class="flex flex-col gap-3 w-full">
+                      <div id="video-cats-header" class="hidden items-center gap-2 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                        <button id="video-cats-back-btn" onclick="backToVideoCategories()" style="display:none" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                        <h2 id="video-cats-title" class="font-bold text-sm text-gray-800 truncate flex-1">گالری ویدیو</h2>
+                      </div>
+                      <div id="video-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    </div>
 
                     <!-- نمای لیست ویدیوها -->
                     <div id="video-list-view" class="hidden flex-col gap-3 w-full">
@@ -366,7 +372,13 @@
                 <!-- 2. صوت - گالری صوت محلی -->
                 <div id="media-content-audio" class="hidden w-full">
                     <!-- نمای دسته‌بندی‌ها -->
-                    <div id="audio-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    <div class="flex flex-col gap-3 w-full">
+                      <div id="audio-cats-header" class="hidden items-center gap-2 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                        <button id="audio-cats-back-btn" onclick="backToAudioCategories()" style="display:none" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                        <h2 id="audio-cats-title" class="font-bold text-sm text-gray-800 truncate flex-1">گالری صوت</h2>
+                      </div>
+                      <div id="audio-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    </div>
 
                     <!-- نمای پلی‌لیست -->
                     <div id="audio-playlist-view" class="hidden flex-col gap-3 w-full">
@@ -437,7 +449,13 @@
                 <!-- 3. عکس - گالری محلی -->
                 <div id="media-content-photo" class="hidden w-full">
                     <!-- نمای دسته‌بندی‌ها -->
-                    <div id="gallery-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    <div class="flex flex-col gap-3 w-full">
+                      <div id="gallery-cats-header" class="hidden items-center gap-2 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
+                        <button id="gallery-back-btn" onclick="backToGalleryCategories()" style="display:none" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                        <h2 id="gallery-cat-list-title" class="font-bold text-sm text-gray-800 truncate flex-1">گالری عکس</h2>
+                      </div>
+                      <div id="gallery-categories-view" class="grid grid-cols-2 gap-4 w-full"></div>
+                    </div>
 
                     <!-- نمای تصاویر داخل دسته -->
                     <div id="gallery-photos-view" class="hidden flex-col gap-3 w-full">
@@ -484,7 +502,7 @@
             <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="qa-tickets-list"></div>
 
             <!-- نمایش مکالمه یک تیکت -->
-            <div id="qa-conversation" class="hidden absolute inset-0 bg-gray-50 flex-col z-10">
+            <div id="qa-conversation" class="hidden absolute inset-0 bg-gray-50 flex-col z-10" style="height:100%;max-height:100%;">
                 <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
                     <button onclick="closeQAConversation()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <div class="flex-1 min-w-0">
@@ -493,8 +511,8 @@
                     </div>
                     <button onclick="refreshQAConversation()" class="w-9 h-9 bg-gray-50 rounded-full text-gray-400 flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-sync-alt text-xs"></i></button>
                 </header>
-                <div id="qa-conv-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3"></div>
-                <div id="qa-conv-reply" class="shrink-0 p-3 bg-white border-t border-gray-100 flex gap-2 hidden">
+                <div id="qa-conv-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" style="-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;"></div>
+                <div id="qa-conv-reply" class="shrink-0 p-3 bg-white border-t border-gray-100 flex gap-2 hidden safe-bottom">
                     <input type="text" id="qa-conv-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 text-sm" placeholder="پیام خود را بنویسید..." onkeypress="if(event.key==='Enter')sendQAConvMessage()">
                     <button onclick="sendQAConvMessage()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-xl font-bold text-sm transition"><i class="fas fa-paper-plane"></i></button>
                 </div>

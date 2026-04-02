@@ -142,9 +142,12 @@ async function loadSliders() {
     const s = window._siteSettings || {};
     const padding = parseInt(s.slider_padding || '0');
     const radius = parseInt(s.slider_radius || '0');
-    const baseH = parseInt(s.slider_height || '180');
     const vw = window.innerWidth;
-    const height = vw >= 1024 ? Math.round(baseH * 1.8) : vw >= 640 ? Math.round(baseH * 1.35) : baseH;
+    // استفاده از ارتفاع‌های جداگانه برای هر دستگاه
+    const mobileH = parseInt(s.slider_height_mobile || s.slider_height || '200');
+    const tabletH = parseInt(s.slider_height_tablet || s.slider_height || '350');
+    const desktopH = parseInt(s.slider_height_desktop || s.slider_height || '500');
+    const height = vw >= 1024 ? desktopH : vw >= 640 ? tabletH : mobileH;
     wrapper.style.display = 'block';
     wrapper.style.height = height + 'px';
     wrapper.style.padding = padding + 'px';
@@ -542,11 +545,11 @@ async function refreshQAConversation() {
 
 function renderMsgBubble(text, senderType, timeStr) {
     const isAdmin = senderType === 'admin';
-    return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}">
-        <div class="max-w-[80%] ${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
-            ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
-            <p class="text-sm leading-relaxed">${text}</p>
-            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1 block">${timeStr}</span>` : ''}
+    return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}" style="width:100%">
+        <div style="max-width:82%;word-break:break-word;overflow-wrap:break-word;" class="${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
+            ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1.5"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">${text}</p>
+            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1.5 block">${timeStr}</span>` : ''}
         </div>
     </div>`;
 }
