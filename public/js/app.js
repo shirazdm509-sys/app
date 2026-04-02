@@ -64,9 +64,22 @@ async function init() {
             const r = await fetch('/api/books');
             allBooks = await r.json();
             if(!Array.isArray(allBooks)) allBooks = [];
+            // کش لیست کتاب‌ها برای استفاده آفلاین
+            try { localStorage.setItem('cached_books_list', JSON.stringify(allBooks)); } catch(e2) {}
         } catch(e) {
             console.warn('Books err:', e);
-            allBooks=[];
+            // بارگذاری از کش localStorage
+            try {
+                const cached = localStorage.getItem('cached_books_list');
+                if (cached) { allBooks = JSON.parse(cached); if(!Array.isArray(allBooks)) allBooks = []; }
+            } catch(e2) { allBooks = []; }
+            // اگر کشی نبود از IndexedDB کتاب‌های آفلاین بارگذاری شود
+            if (!allBooks.length) {
+                try {
+                    const offlineBooks = await getAllOfflineBooks();
+                    allBooks = offlineBooks.map(b => ({ id: b.id, title: b.title, author: b.author||'', cover: b.cover||'', page_count: b.page_count||0 }));
+                } catch(e3) {}
+            }
         }
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
@@ -1104,3 +1117,24 @@ function applyGlobalTheme(theme) {
 function toggleGlobalTheme() { applyGlobalTheme(globalTheme === 'dark' ? 'light' : 'dark'); }
 
 applyGlobalTheme(globalTheme);
+
+// ====================================================
+// مدیریت وضعیت آنلاین/آفلاین
+// ====================================================
+window.addEventListener('online', () => {
+    showToast('اتصال اینترنت برقرار شد');
+    // بارگذاری مجدد اطلاعات از سرور
+    fetch('/api/books').then(r => r.json()).then(books => {
+        if (Array.isArray(books) && books.length) {
+            allBooks = books;
+            try { localStorage.setItem('cached_books_list', JSON.stringify(allBooks)); } catch(e) {}
+            renderLibrary();
+        }
+    }).catch(() => {});
+    try { loadSliders(); } catch(e) {}
+});
+
+window.addEventListener('offline', () => {
+    showToast('اتصال اینترنت قطع شد — حالت آفلاین');
+    try { renderLibrary(); } catch(e) {}
+});

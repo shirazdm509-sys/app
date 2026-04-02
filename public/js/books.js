@@ -14,6 +14,23 @@ function renderLibrary() {
     const homeContainer=document.getElementById('home-books-container');
     if(!grid || !homeContainer || !empty) return;
 
+    const isOffline = !navigator.onLine;
+
+    // نمایش/مخفی کردن بنر آفلاین
+    let offlineBanner = document.getElementById('offline-library-banner');
+    if (isOffline) {
+        if (!offlineBanner) {
+            offlineBanner = document.createElement('div');
+            offlineBanner.id = 'offline-library-banner';
+            offlineBanner.className = 'mx-4 mb-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-amber-700 text-xs';
+            offlineBanner.innerHTML = '<i class="fas fa-wifi-slash text-amber-500"></i><span>حالت آفلاین — فقط کتاب‌های دانلودشده قابل مطالعه‌اند</span>';
+            grid.parentElement.insertBefore(offlineBanner, grid);
+        }
+        offlineBanner.style.display = '';
+    } else if (offlineBanner) {
+        offlineBanner.style.display = 'none';
+    }
+
     count.textContent = allBooks.length ? toFa(allBooks.length)+' عنوان کتاب' : '';
     if (!allBooks.length) {
         grid.innerHTML='';
@@ -33,17 +50,18 @@ function renderLibrary() {
         const progress=saved&&book.page_count?Math.round((saved/book.page_count)*100):0;
         const widthClass = isHome ? 'w-28 shrink-0 snap-center' : 'w-full';
         const offline = isBookOffline(book.id);
+        const unavailable = isOffline && !offline;
 
-        return `<div onclick="openBook(${book.id})" class="${widthClass} relative cursor-pointer book-card active:scale-95 transition-transform">
+        return `<div onclick="openBook(${book.id})" class="${widthClass} relative cursor-pointer book-card active:scale-95 transition-transform${unavailable ? ' opacity-40' : ''}">
             <div class="rounded-2xl overflow-hidden aspect-[2/3] relative book-cover-wrap shadow-md">
                 ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
                 <div class="absolute inset-0 bg-gradient-to-br ${colors[i%colors.length]} flex items-end justify-center pb-3 px-2" style="${book.cover?'display:none':''}"><span class="text-white text-center font-black text-[9px] leading-tight drop-shadow">${book.title}</span></div>
                 ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-4 pb-1.5 px-2"><div class="w-full bg-white/30 rounded-full h-1 overflow-hidden"><div class="bg-white h-full rounded-full" style="width:${progress}%"></div></div><span class="text-[8px] text-white/80 block text-center mt-0.5">${toFa(progress)}٪</span></div>`:''}
-                <button onclick="event.stopPropagation();toggleOfflineBook(${book.id})" id="dl-btn-${book.id}"
+                ${!isOffline ? `<button onclick="event.stopPropagation();toggleOfflineBook(${book.id})" id="dl-btn-${book.id}"
                     class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 ${offline ? 'bg-brand-500 text-white' : 'bg-white/90 text-gray-500'}"
                     title="${offline ? 'حذف آفلاین' : 'دانلود'}">
                     <i class="fas ${offline ? 'fa-check' : 'fa-download'} text-[9px]"></i>
-                </button>
+                </button>` : offline ? `<span class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 bg-brand-500 text-white" title="آفلاین"><i class="fas fa-check text-[9px]"></i></span>` : ''}
             </div>
             <h3 class="book-title font-bold text-[11px] text-gray-800 truncate mt-1.5 leading-tight transition-all duration-200">${book.title}</h3>
             <p class="text-[9px] text-gray-400 truncate">${book.author||''}</p>
@@ -78,6 +96,8 @@ async function openBook(bookId) {
             // حالت آفلاین: بارگذاری از IndexedDB
             rows = offlineData.pages;
             showToast('بارگذاری از حافظه آفلاین');
+        } else if (!isOnline && !offlineData) {
+            throw new Error('این کتاب دانلود نشده. برای مطالعه آفلاین ابتدا آن را دانلود کنید');
         } else {
             // حالت آنلاین: دریافت از سرور
             const r = await fetch('/api/books/'+bookId+'/pages');
@@ -356,42 +376,51 @@ function loadSettings() {
     applySiteSettings();
 }
 
+function applySettingsObject(s) {
+    const nameEl = document.querySelector('#screen-home header h1');
+    const subEl = document.querySelector('#screen-home header h2');
+    if (nameEl && s.site_name) nameEl.textContent = s.site_name;
+    if (subEl && s.site_subtitle) subEl.textContent = s.site_subtitle;
+    if (s.site_name) document.title = s.site_name;
+    if (s.logo_url) {
+        const logoWrapper = document.querySelector('#screen-home header .w-11');
+        if (logoWrapper) logoWrapper.innerHTML = `<img src="${s.logo_url}" class="w-full h-full object-contain">`;
+    }
+    if (s.favicon_url) {
+        let link = document.querySelector("link[rel~='icon']");
+        if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+        link.href = s.favicon_url;
+    }
+    if (s.primary_color) document.documentElement.style.setProperty('--brand-color', s.primary_color);
+    const themeBtn = document.getElementById('global-theme-btn');
+    if (themeBtn) {
+        if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';
+        else themeBtn.style.display = '';
+    }
+    const liveBanner = document.getElementById('home-live-banner');
+    if (liveBanner) liveBanner.style.display = s.live_active === '1' ? '' : 'none';
+    window._siteSettings = s;
+}
+
 async function applySiteSettings() {
+    // اعمال تنظیمات کش‌شده برای نمایش فوری
+    try {
+        const cachedSettings = localStorage.getItem('cached_site_settings');
+        if (cachedSettings) applySettingsObject(JSON.parse(cachedSettings));
+    } catch(e2) {}
+
     try {
         const r = await fetch('/api/settings');
         if (!r.ok) return;
         const s = await r.json();
-        const nameEl = document.querySelector('#screen-home header h1');
-        const subEl = document.querySelector('#screen-home header h2');
-        if (nameEl && s.site_name) nameEl.textContent = s.site_name;
-        if (subEl && s.site_subtitle) subEl.textContent = s.site_subtitle;
-        if (s.site_name) document.title = s.site_name;
-        if (s.logo_url) {
-            const logoWrapper = document.querySelector('#screen-home header .w-11');
-            if (logoWrapper) logoWrapper.innerHTML = `<img src="${s.logo_url}" class="w-full h-full object-contain">`;
-        }
-        if (s.favicon_url) {
-            let link = document.querySelector("link[rel~='icon']");
-            if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-            link.href = s.favicon_url;
-        }
-        if (s.primary_color) document.documentElement.style.setProperty('--brand-color', s.primary_color);
-        const themeBtn = document.getElementById('global-theme-btn');
-        if (themeBtn) {
-            if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';
-            else themeBtn.style.display = '';
-        }
+        // کش کردن تنظیمات برای استفاده آفلاین
+        try { localStorage.setItem('cached_site_settings', JSON.stringify(s)); } catch(e2) {}
         // ذخیره تنظیمات اسپلش برای اعمال فوری در بارگذاری بعدی
         const splashKeys = ['splash_bg_color','splash_title','splash_subtitle','splash_spinner_color','splash_icon_url'];
         const splashObj = {};
         splashKeys.forEach(k => { if (s[k] !== undefined) splashObj[k] = s[k]; });
-        localStorage.setItem('_splashSettings', JSON.stringify(splashObj));
-
-        window._siteSettings = s;
-
-        // نمایش/مخفی کردن بنر پخش زنده در صفحه اصلی
-        const liveBanner = document.getElementById('home-live-banner');
-        if (liveBanner) liveBanner.style.display = s.live_active === '1' ? '' : 'none';
+        try { localStorage.setItem('_splashSettings', JSON.stringify(splashObj)); } catch(e2) {}
+        applySettingsObject(s);
     } catch(e) {}
 }
 
