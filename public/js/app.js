@@ -899,39 +899,30 @@ function confirmExit() {
     setTimeout(() => { window.close(); }, 200);
 }
 
-// مدیریت دکمه Back با روش hash-based (قابل اطمینان در تمام مرورگرهای اندروید)
+// مدیریت دکمه Back با روش popstate + بافر بزرگ
 (function initBackHandler() {
     const BASE_URL = location.href.split('#')[0];
-    const HASH = '#bk';
-    const PREV_HASH = '#bk0';
-    let _lock = false;
+    const BUFFER = 15; // بافر بزرگ: حتی اگر کاربر سریع چند بار بزند، از اپ خارج نمی‌شود
+    let _handling = false;
 
-    function triggerBack() {
-        if (_lock) return;
-        _lock = true;
-        // دو entry مختلف push می‌کنیم تا دفعه بعد hashchange حتماً fire بشه
-        history.pushState({ pwaApp: true }, document.title, BASE_URL + PREV_HASH);
-        history.pushState({ pwaApp: true }, document.title, BASE_URL + HASH);
-        handleBackButton();
-        setTimeout(() => { _lock = false; }, 150);
+    function refill() {
+        // pushState هیچ‌وقت popstate/hashchange را trigger نمی‌کند — کاملاً ایمن است
+        for (let i = 0; i < BUFFER; i++) {
+            history.pushState({ pwaApp: true }, document.title, BASE_URL + '#bk');
+        }
     }
 
-    // تنظیم hash اولیه: دو entry تا اولین back هم قابل intercept باشه
-    document.addEventListener('DOMContentLoaded', () => {
-        history.replaceState({ pwaApp: true }, document.title, BASE_URL + PREV_HASH);
-        history.pushState({ pwaApp: true }, document.title, BASE_URL + HASH);
-    });
+    // اول از همه بافر را پر می‌کنیم
+    document.addEventListener('DOMContentLoaded', refill);
 
-    // اصلی‌ترین روش در اندروید: hashchange
-    window.addEventListener('hashchange', () => {
-        const h = window.location.hash;
-        if (!h || h === '#' || h === PREV_HASH) triggerBack();
-    });
-
-    // fallback برای مرورگرهایی که hashchange را به درستی پشتیبانی نمی‌کنند
     window.addEventListener('popstate', () => {
-        const h = window.location.hash;
-        if (!h || h === '#' || h === PREV_HASH) triggerBack();
+        // اول بلافاصله بافر را پر کن تا ضربات سریع بعدی هم جذب شوند
+        refill();
+
+        if (_handling) return;
+        _handling = true;
+        handleBackButton();
+        setTimeout(() => { _handling = false; }, 350);
     });
 })();
 
