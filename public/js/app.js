@@ -9,6 +9,12 @@ function navToScreen(name) {
 
     if (typeof closeImageModal === 'function') closeImageModal();
 
+    // بستن overlayهای کتاب‌خوان هنگام تغییر صفحه
+    const readerEl = document.getElementById('reader-overlay');
+    const tocEl = document.getElementById('toc-overlay');
+    if (readerEl) readerEl.classList.remove('open');
+    if (tocEl) tocEl.classList.remove('open');
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const targetScreen = document.getElementById('screen-' + name);
     if (targetScreen) targetScreen.classList.add('active');
