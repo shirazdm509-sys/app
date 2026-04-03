@@ -887,11 +887,6 @@ function showExitDialog() {
 function closeExitDialog() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
-    // اطمینان از وجود hash برای interceptکردن back بعدی
-    const base = location.href.split('#')[0];
-    if (!location.hash || location.hash === '#') {
-        history.pushState({ pwaApp: true }, document.title, base + '#bk');
-    }
 }
 
 function confirmExit() {
@@ -908,32 +903,35 @@ function confirmExit() {
 (function initBackHandler() {
     const BASE_URL = location.href.split('#')[0];
     const HASH = '#bk';
+    const PREV_HASH = '#bk0';
     let _lock = false;
 
     function triggerBack() {
         if (_lock) return;
         _lock = true;
-        // بازگرداندن hash تا next back هم intercept بشه
+        // دو entry مختلف push می‌کنیم تا دفعه بعد hashchange حتماً fire بشه
+        history.pushState({ pwaApp: true }, document.title, BASE_URL + PREV_HASH);
         history.pushState({ pwaApp: true }, document.title, BASE_URL + HASH);
         handleBackButton();
         setTimeout(() => { _lock = false; }, 150);
     }
 
-    // تنظیم hash اولیه
+    // تنظیم hash اولیه: دو entry تا اولین back هم قابل intercept باشه
     document.addEventListener('DOMContentLoaded', () => {
-        history.replaceState({ pwaApp: true }, document.title, BASE_URL + HASH);
+        history.replaceState({ pwaApp: true }, document.title, BASE_URL + PREV_HASH);
+        history.pushState({ pwaApp: true }, document.title, BASE_URL + HASH);
     });
 
     // اصلی‌ترین روش در اندروید: hashchange
     window.addEventListener('hashchange', () => {
         const h = window.location.hash;
-        if (!h || h === '#') triggerBack();
+        if (!h || h === '#' || h === PREV_HASH) triggerBack();
     });
 
     // fallback برای مرورگرهایی که hashchange را به درستی پشتیبانی نمی‌کنند
     window.addEventListener('popstate', () => {
         const h = window.location.hash;
-        if (!h || h === '#') triggerBack();
+        if (!h || h === '#' || h === PREV_HASH) triggerBack();
     });
 })();
 
