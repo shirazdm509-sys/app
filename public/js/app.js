@@ -887,8 +887,11 @@ function showExitDialog() {
 function closeExitDialog() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
-    // یک state دوباره push کن تا back بعدی هم کار کنه
-    history.pushState({ pwaApp: true }, document.title, location.href);
+    // اطمینان از وجود hash برای interceptکردن back بعدی
+    const base = location.href.split('#')[0];
+    if (!location.hash || location.hash === '#') {
+        history.pushState({ pwaApp: true }, document.title, base + '#bk');
+    }
 }
 
 function confirmExit() {
@@ -901,18 +904,38 @@ function confirmExit() {
     setTimeout(() => { window.close(); }, 200);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // state‌های بیشتر تا back button در مرورگر/اندروید مطمئناً intercept بشه
-    for (let i = 0; i < 10; i++) {
-        history.pushState({ pwaApp: true, depth: i }, document.title, location.href);
-    }
-});
+// مدیریت دکمه Back با روش hash-based (قابل اطمینان در تمام مرورگرهای اندروید)
+(function initBackHandler() {
+    const BASE_URL = location.href.split('#')[0];
+    const HASH = '#bk';
+    let _lock = false;
 
-window.addEventListener('popstate', (e) => {
-    // بلافاصله state رو برگردون تا back بعدی هم کار کنه
-    history.pushState({ pwaApp: true }, document.title, location.href);
-    handleBackButton();
-});
+    function triggerBack() {
+        if (_lock) return;
+        _lock = true;
+        // بازگرداندن hash تا next back هم intercept بشه
+        history.pushState({ pwaApp: true }, document.title, BASE_URL + HASH);
+        handleBackButton();
+        setTimeout(() => { _lock = false; }, 150);
+    }
+
+    // تنظیم hash اولیه
+    document.addEventListener('DOMContentLoaded', () => {
+        history.replaceState({ pwaApp: true }, document.title, BASE_URL + HASH);
+    });
+
+    // اصلی‌ترین روش در اندروید: hashchange
+    window.addEventListener('hashchange', () => {
+        const h = window.location.hash;
+        if (!h || h === '#') triggerBack();
+    });
+
+    // fallback برای مرورگرهایی که hashchange را به درستی پشتیبانی نمی‌کنند
+    window.addEventListener('popstate', () => {
+        const h = window.location.hash;
+        if (!h || h === '#') triggerBack();
+    });
+})();
 
 // جلوگیری از خروج تصادفی وقتی PWA standalone هست
 window.addEventListener('beforeunload', (e) => {
@@ -1037,10 +1060,15 @@ function showPwaInstallPrompt() {
     const modal = document.getElementById('pwa-install-modal');
     if (!modal) return;
 
-    // بارگذاری نام اپ از سرور
+    // بارگذاری نام و آیکون اپ از سرور
     fetch('/api/settings').then(r=>r.json()).then(s=>{
         const el = document.getElementById('pwa-modal-appname');
         if(el && s.pwa_short_name) el.textContent = s.pwa_short_name;
+        const iconEl = document.getElementById('pwa-modal-icon');
+        if(iconEl) {
+            const iconUrl = s.logo_url || s.splash_icon_url;
+            if(iconUrl) { iconEl.src = iconUrl; iconEl.style.display = ''; }
+        }
     }).catch(()=>{});
 
     document.getElementById('pwa-ios-guide')?.classList.add('hidden');

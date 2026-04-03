@@ -124,6 +124,13 @@ body.global-dark .notif-panel > div:last-child { background: #1e293b !important;
 /* Desktop Layout */
 @media (min-width: 640px) {
     body { background: #e2e8f0; }
+    #reader-header, #reader-footer {
+        width: 1000px !important;
+        max-width: 100vw !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+    }
     #app-wrapper {
         position: fixed !important;
         top: 0 !important;
@@ -136,7 +143,8 @@ body.global-dark .notif-panel > div:last-child { background: #1e293b !important;
         box-shadow: 0 0 60px rgba(0,0,0,0.2) !important;
     }
     #reader-overlay, #toc-overlay {
-        max-width: 1000px !important;
+        width: 1000px !important;
+        max-width: 100vw !important;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%) !important;

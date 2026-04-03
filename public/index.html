@@ -64,12 +64,16 @@
       spin.style.borderTopColor = sp.splash_spinner_color;
     }
     if (sp.splash_icon_url) {
-      var iw = document.getElementById('splash-icon-wrap');
-      if (iw) {
-        iw.style.display = 'block';
-        iw.innerHTML = '<img src="'+sp.splash_icon_url+'" style="width:80px;height:80px;object-fit:contain;border-radius:20px;" onerror="this.style.display=\'none\'">';
-        if (spin) spin.style.display = 'none'; // اگه آیکون داره، اسپینر رو مخفی کن
+      // نمایش تصویر به صورت تمام‌صفحه
+      if (ls) {
+        ls.style.backgroundImage = 'url("' + sp.splash_icon_url + '")';
+        ls.style.backgroundSize = 'cover';
+        ls.style.backgroundPosition = 'center center';
+        ls.style.backgroundRepeat = 'no-repeat';
       }
+      if (spin) spin.style.display = 'none';
+      if (st) st.style.display = 'none';
+      if (sub) sub.style.display = 'none';
     }
   } catch(e) {}
 })();
@@ -1088,7 +1092,7 @@
   <div class="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
     <!-- هدر -->
     <div class="bg-gradient-to-r from-brand-600 to-brand-700 p-5 flex items-center gap-3">
-      <img src="/icons/icon-96.png" class="w-14 h-14 rounded-2xl shadow-md border-2 border-white/30" alt="icon" onerror="this.style.display='none'">
+      <img id="pwa-modal-icon" src="/icons/icon-96.png" class="w-14 h-14 rounded-2xl shadow-md border-2 border-white/30" alt="icon" onerror="this.style.display='none'">
       <div class="flex-1">
         <div class="font-black text-white text-base" id="pwa-modal-appname">مرکز نشر آثار</div>
         <div class="text-xs text-white/70 mt-0.5">نصب اپلیکیشن رایگان</div>
