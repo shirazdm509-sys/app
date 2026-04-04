@@ -875,15 +875,24 @@ function handleBackButton() {
         return;
     }
 
-    // روی home هستیم → دیالوگ تأیید خروج نشان بده
+    // روی home هستیم → الگوی «دوبار بزن تا خارج شوی»
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const h = document.getElementById('screen-home');
     if (h) h.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const nb = document.querySelector('[data-nav="home"]');
     if (nb) nb.classList.add('active');
-    showExitDialog();
+
+    const now = Date.now();
+    if (now - _lastBackPressTime < 2000) {
+        confirmExit();
+    } else {
+        _lastBackPressTime = now;
+        showToast('برای خروج دوباره دکمه بازگشت را بزنید');
+    }
 }
+
+let _lastBackPressTime = 0;
 
 function showExitDialog() {
     const modal = document.getElementById('exit-confirm-modal');
@@ -896,33 +905,33 @@ function closeExitDialog() {
 }
 
 function confirmExit() {
-    // بستن مودال و خروج واقعی
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
-    // در PWA standalone خروج واقعی داریم
-    // در مرورگر history را خالی می‌کنیم
-    history.go(-(history.length));
-    setTimeout(() => { window.close(); }, 200);
+    _wantToExit = true;
+    setTimeout(() => { history.go(-(history.length)); }, 50);
+    setTimeout(() => { window.close(); }, 300);
 }
 
 // مدیریت دکمه Back با روش popstate + بافر بزرگ
+let _wantToExit = false;
 (function initBackHandler() {
     const BASE_URL = location.href.split('#')[0];
-    const BUFFER = 15; // بافر بزرگ: حتی اگر کاربر سریع چند بار بزند، از اپ خارج نمی‌شود
+    const BUFFER = 15;
     let _handling = false;
 
     function refill() {
-        // pushState هیچ‌وقت popstate/hashchange را trigger نمی‌کند — کاملاً ایمن است
+        if (_wantToExit) return;
         for (let i = 0; i < BUFFER; i++) {
             history.pushState({ pwaApp: true }, document.title, BASE_URL + '#bk');
         }
     }
 
-    // اول از همه بافر را پر می‌کنیم
+    // بافر اولیه را فوری پر کن (و روی DOMContentLoaded هم برای اطمینان)
+    refill();
     document.addEventListener('DOMContentLoaded', refill);
 
     window.addEventListener('popstate', () => {
-        // اول بلافاصله بافر را پر کن تا ضربات سریع بعدی هم جذب شوند
+        if (_wantToExit) return;
         refill();
 
         if (_handling) return;
