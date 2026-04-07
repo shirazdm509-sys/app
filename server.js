@@ -56,9 +56,9 @@ app.get('/manifest.json', (req, res) => {
         const v = s.icon_version || '1';
         const iconSizes = [72,96,128,144,152,192,384,512];
         const manifest = {
-            name: s.pwa_name || 'مرکز نشر آثار آیت الله دستغیب',
-            short_name: s.pwa_short_name || 'مرکز نشر آثار',
-            description: s.pwa_description || 'اپلیکیشن مرکز نشر آثار',
+            name: s.pwa_name || 'نرم افزار آیت الله دستغیب',
+            short_name: s.pwa_short_name || 'آیت الله دستغیب',
+            description: s.pwa_description || 'نرم افزار آیت الله دستغیب',
             theme_color: s.pwa_theme_color || '#0d9488',
             background_color: s.pwa_bg_color || '#ffffff',
             display: 'standalone',
@@ -356,6 +356,46 @@ app.get('/api/settings',(req,res)=>{
         if(err) return res.status(500).json({error:err.message});
         const s={};rows.forEach(r=>s[r.key]=r.value);res.json(s);
     });
+});
+
+// === PROXY برای مرورگر داخلی (حذف X-Frame-Options) ===
+app.get('/api/proxy', async (req, res) => {
+    const url = req.query.url;
+    if (!url || !/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
+    const { request: httpReq } = url.startsWith('https') ? require('https') : require('http');
+    try {
+        const proxyReq = httpReq(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/108.0.0.0 Mobile Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'fa,en;q=0.9',
+            },
+            timeout: 15000
+        }, (proxyRes) => {
+            const headers = {...proxyRes.headers};
+            delete headers['x-frame-options'];
+            delete headers['content-security-policy'];
+            delete headers['x-content-type-options'];
+            // تزریق <base> برای URL نسبی
+            const ct = headers['content-type'] || '';
+            res.writeHead(proxyRes.statusCode, headers);
+            if (ct.includes('text/html')) {
+                let body = '';
+                proxyRes.setEncoding('utf8');
+                proxyRes.on('data', chunk => { body += chunk; });
+                proxyRes.on('end', () => {
+                    const base = `<base href="${url}">`;
+                    body = body.replace(/<head[^>]*>/i, m => m + base);
+                    res.end(body);
+                });
+            } else {
+                proxyRes.pipe(res);
+            }
+        });
+        proxyReq.on('error', () => res.status(502).send('Proxy error'));
+        proxyReq.on('timeout', () => { proxyReq.destroy(); res.status(504).send('Timeout'); });
+        proxyReq.end();
+    } catch(e) { res.status(500).send('Server error'); }
 });
 
 // === API BANNERS (PUBLIC) ===

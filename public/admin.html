@@ -603,9 +603,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-mobile-alt text-teal-600 ml-2"></i>تنظیمات PWA (اپلیکیشن)</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کامل اپلیکیشن</label><input type="text" id="s-pwa_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مرکز نشر آثار آیت الله دستغیب"></div>
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کوتاه (نمایش روی آیکون)</label><input type="text" id="s-pwa_short_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="مرکز نشر آثار"></div>
-        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات اپلیکیشن</label><input type="text" id="s-pwa_description" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="اپلیکیشن مرکز نشر آثار"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کامل اپلیکیشن</label><input type="text" id="s-pwa_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نرم افزار آیت الله دستغیب"></div>
+        <div><label class="block text-xs font-bold text-gray-500 mb-2">نام کوتاه (نمایش روی آیکون)</label><input type="text" id="s-pwa_short_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نرم افزار آیت الله دستغیب"></div>
+        <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات اپلیکیشن</label><input type="text" id="s-pwa_description" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نرم افزار آیت الله دستغیب"></div>
         <div>
           <label class="block text-xs font-bold text-gray-500 mb-2">رنگ تم اپلیکیشن</label>
           <div class="flex items-center gap-3">
@@ -629,7 +629,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label class="block text-xs font-bold text-gray-500 mb-2">عنوان صفحه اسپلش</label>
-          <input type="text" id="s-splash_title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-purple-500" placeholder="مرکز نشر آثار">
+          <input type="text" id="s-splash_title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-purple-500" placeholder="نرم افزار آیت الله دستغیب">
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-500 mb-2">متن زیر عنوان</label>
@@ -682,10 +682,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div id="splash-preview-box" style="background:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:16px;padding:32px;gap:12px;border:2px dashed #e5e7eb;min-height:180px;">
           <div id="sp-icon" style="display:none;width:80px;height:80px;border-radius:20px;overflow:hidden;"><img src="" style="width:100%;height:100%;object-fit:contain;"></div>
           <div id="sp-spinner" style="width:44px;height:44px;border:4px solid #ccfbf1;border-top-color:#0d9488;border-radius:50%;animation:inlineSpin 1s linear infinite;"></div>
-          <div id="sp-title" style="font-size:18px;font-weight:900;color:#1f2937;font-family:Vazir,Tahoma,sans-serif;">مرکز نشر آثار</div>
+          <div id="sp-title" style="font-size:18px;font-weight:900;color:#1f2937;font-family:Vazir,Tahoma,sans-serif;">نرم افزار آیت الله دستغیب</div>
           <div id="sp-sub" style="font-size:12px;color:#6b7280;font-family:Vazir,Tahoma,sans-serif;text-align:center;">در حال آماده‌سازی...</div>
         </div>
         <button onclick="updateSplashPreview()" class="mt-3 bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition"><i class="fas fa-eye ml-1"></i>به‌روزرسانی پیش‌نمایش</button>
+      </div>
+    </div>
+
+    <!-- Home Section Gap -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-arrows-alt-v text-teal-600 ml-2"></i>فاصله عمودی بخش‌های صفحه اصلی</h2>
+      <div class="flex items-center gap-4">
+        <div class="flex-1">
+          <label class="block text-xs font-bold text-gray-500 mb-2">فاصله بین بخش‌ها (پیکسل)</label>
+          <input type="number" id="s-home_section_gap" min="0" max="80" value="16" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500">
+        </div>
+        <div class="text-xs text-gray-400 mt-5">پیش‌فرض: ۱۶</div>
       </div>
     </div>
 
@@ -1480,7 +1492,7 @@ async function loadSettings(){
     const r=await adminFetch('/api/admin/settings');
     const s=await r.json();
     ['site_name','site_subtitle','primary_color','secondary_color','live_embed','pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color',
-     'splash_title','splash_subtitle','splash_bg_color','splash_spinner_color'].forEach(k=>{
+     'splash_title','splash_subtitle','splash_bg_color','splash_spinner_color','home_section_gap'].forEach(k=>{
       const el=document.getElementById('s-'+k);
       if(el) el.value=s[k]||'';
     });
@@ -1525,6 +1537,7 @@ async function saveSettings(){
     splash_subtitle:document.getElementById('s-splash_subtitle').value,
     splash_bg_color:document.getElementById('s-splash_bg_color').value,
     splash_spinner_color:document.getElementById('s-splash_spinner_color').value,
+    home_section_gap:document.getElementById('s-home_section_gap').value||'16',
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});

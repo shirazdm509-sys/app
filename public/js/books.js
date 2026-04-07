@@ -338,6 +338,20 @@ function openNoteModal(){document.getElementById('page-action-menu').classList.a
 function closeNoteModal(){document.getElementById('note-modal').classList.add('hidden');document.getElementById('note-modal').classList.remove('flex');}
 function saveNote(){const v=document.getElementById('note-textarea').value.trim();if(v)notes[currentIndex]=v;else delete notes[currentIndex];saveBookUserData();closeNoteModal();goToPage(currentIndex);showToast('یادداشت ذخیره شد');}
 
+function saveSelectionToNote() {
+    restoreSelectionIfNeeded();
+    const sel = window.getSelection();
+    const text = sel && !sel.isCollapsed ? sel.toString().trim() : (_savedRange ? _savedRange.toString().trim() : '');
+    if (!text) { hideHighlightToolbar(); showToast('متنی انتخاب نشده'); return; }
+    hideHighlightToolbar();
+    sel && sel.removeAllRanges();
+    const existing = notes[currentIndex] || '';
+    const separator = existing ? '\n---\n' : '';
+    notes[currentIndex] = existing + separator + text;
+    saveBookUserData();
+    showToast('متن انتخابی در یادداشت ذخیره شد');
+}
+
 // ====================================================
 // جستجوی داخل کتاب
 // ====================================================
@@ -392,6 +406,7 @@ function applySettingsObject(s) {
         link.href = s.favicon_url;
     }
     if (s.primary_color) document.documentElement.style.setProperty('--brand-color', s.primary_color);
+    if (s.home_section_gap !== undefined) document.documentElement.style.setProperty('--home-gap', s.home_section_gap + 'px');
     const themeBtn = document.getElementById('global-theme-btn');
     if (themeBtn) {
         if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';

@@ -63,38 +63,10 @@ function openWebView(url) {
     const loading = document.getElementById('webview-loading');
     try { urlBar.textContent = new URL(url).hostname; } catch(e) { urlBar.textContent = url; }
     loading.classList.remove('hidden');
-    iframe.src = '';
-    iframe.onload = () => {
-        loading.classList.add('hidden');
-        try {
-            const doc = iframe.contentDocument || iframe.contentWindow.document;
-            // حذف target از لینک‌ها تا در iframe بمونن
-            doc.querySelectorAll('a[target="_blank"], a[target="_top"], a[target="_parent"]').forEach(a => {
-                a.removeAttribute('target');
-            });
-            // رهگیری لینک‌های داخل iframe → باز کردن در webview
-            doc.addEventListener('click', function(e) {
-                const a = e.target.closest('a[href]');
-                if (!a) return;
-                const href = a.getAttribute('href') || '';
-                if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-                if (a.hasAttribute('download')) return;
-                if (/\.(mp3|mp4|m4a|wav|ogg|mkv|webm|pdf|zip|rar|apk)(\?|$)/i.test(href)) return;
-                // لینک نسبی یا مطلق → بذار iframe خودش بره
-                // فقط URL bar رو آپدیت کن
-                try {
-                    const fullUrl = new URL(href, url).href;
-                    _webviewCurrentUrl = fullUrl;
-                    urlBar.textContent = new URL(fullUrl).hostname;
-                } catch(ex) {}
-            });
-            // مخفی کردن هدر و فوتر سایت
-            const style = doc.createElement('style');
-            style.innerHTML = 'header,footer,#masthead,#colophon,.site-header,.site-footer,.elementor-location-header,.elementor-location-footer,.main-header,.main-footer,nav.main-navigation{display:none!important;}body{padding-top:0!important;margin-top:0!important;}';
-            doc.head.appendChild(style);
-        } catch(e) {} // CORS: نمی‌تونیم محتوای iframe رو تغییر بدیم
-    };
-    iframe.src = url;
+    // استفاده از proxy برای دور زدن X-Frame-Options
+    const proxyUrl = '/api/proxy?url=' + encodeURIComponent(url);
+    iframe.onload = () => { loading.classList.add('hidden'); };
+    iframe.src = proxyUrl;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 }

@@ -34,6 +34,7 @@ function navToScreen(name) {
     if (name === 'lectures') initWP(prevName === 'lectures');
     if (name === 'news') initNews();
     if (name === 'statements') initStatements();
+    if (name === 'auth') { updateAuthScreenUI(); }
     if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
     if (name === 'media') initMedia();
     else {
@@ -191,7 +192,7 @@ async function loadSliders() {
     }, { passive: true });
     wrapper.addEventListener('touchend', e => {
         const dx = e.changedTouches[0].clientX - _sliderTouchX;
-        if (Math.abs(dx) > 40) { if (dx < 0) sliderNext(); else sliderPrev(); }
+        if (Math.abs(dx) > 40) { if (dx > 0) sliderNext(); else sliderPrev(); }
         startSliderAuto();
     }, { passive: true });
 }
@@ -353,9 +354,82 @@ function hideLoading() {
     }, 500);
 }
 
-function loginDummy() {
-    showToast('با موفقیت وارد شدید!');
-    navToScreen('home');
+// ====================================================
+// ورود / ثبت‌نام اصلی
+// ====================================================
+function authTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('auth-login-form').classList.toggle('hidden', !isLogin);
+    document.getElementById('auth-register-form').classList.toggle('hidden', isLogin);
+    document.getElementById('auth-tab-login').className = `flex-1 py-2.5 rounded-xl text-sm font-bold transition ${isLogin ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'}`;
+    document.getElementById('auth-tab-reg').className = `flex-1 py-2.5 rounded-xl text-sm font-bold transition ${!isLogin ? 'bg-white shadow-sm text-brand-600' : 'text-gray-500'}`;
+    document.getElementById('auth-screen-title').textContent = isLogin ? 'ورود به حساب کاربری' : 'ثبت‌نام';
+}
+
+function updateAuthScreenUI() {
+    const profileBox = document.getElementById('auth-profile-box');
+    const formBox = document.getElementById('auth-form-box');
+    if (!profileBox || !formBox) return;
+    if (qaUser) {
+        profileBox.classList.remove('hidden'); profileBox.classList.add('flex');
+        formBox.classList.add('hidden');
+        const nameEl = document.getElementById('auth-profile-name');
+        if (nameEl) nameEl.textContent = qaUser.username;
+    } else {
+        profileBox.classList.add('hidden'); profileBox.classList.remove('flex');
+        formBox.classList.remove('hidden');
+    }
+}
+
+async function mainLogin() {
+    const u = (document.getElementById('main-login-username').value || '').trim();
+    const p = document.getElementById('main-login-password').value || '';
+    if (!u || !p) { showToast('نام کاربری و رمز عبور را وارد کنید'); return; }
+    const btn = document.getElementById('main-login-btn');
+    btn.disabled = true; btn.textContent = 'در حال ورود...';
+    try {
+        const r = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+        const d = await r.json();
+        if (r.ok && d.success) {
+            qaUser = { id: d.id, username: d.username };
+            localStorage.setItem('qa_user', JSON.stringify(qaUser));
+            updateAuthScreenUI(); updateQAUserUI();
+            showToast('خوش آمدید ' + d.username);
+            startNotifPolling();
+        } else { showToast(d.error || 'نام کاربری یا رمز عبور اشتباه است'); }
+    } catch(e) { showToast('خطا در اتصال به سرور'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-sign-in-alt ml-2"></i>ورود به حساب';
+}
+
+async function mainRegister() {
+    const u = (document.getElementById('main-reg-username').value || '').trim();
+    const p = document.getElementById('main-reg-password').value || '';
+    const p2 = document.getElementById('main-reg-password2').value || '';
+    if (!u || !p) { showToast('همه فیلدها را پر کنید'); return; }
+    if (u.length < 3) { showToast('نام کاربری حداقل ۳ کاراکتر باشد'); return; }
+    if (p.length < 6) { showToast('رمز عبور حداقل ۶ کاراکتر باشد'); return; }
+    if (p !== p2) { showToast('رمز عبور و تکرار آن یکسان نیستند'); return; }
+    const btn = document.getElementById('main-reg-btn');
+    btn.disabled = true; btn.textContent = 'در حال ثبت‌نام...';
+    try {
+        const r = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+        const d = await r.json();
+        if (r.ok && d.success) {
+            qaUser = { id: d.id, username: d.username };
+            localStorage.setItem('qa_user', JSON.stringify(qaUser));
+            updateAuthScreenUI(); updateQAUserUI();
+            showToast('ثبت‌نام با موفقیت انجام شد');
+            startNotifPolling();
+        } else { showToast(d.error || 'خطا در ثبت‌نام'); }
+    } catch(e) { showToast('خطا در اتصال به سرور'); }
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-user-plus ml-2"></i>ایجاد حساب کاربری';
+}
+
+function authLogout() {
+    qaUser = null; qaTickets = [];
+    localStorage.removeItem('qa_user');
+    updateAuthScreenUI(); updateQAUserUI();
+    showToast('از حساب خارج شدید');
 }
 
 // ====================================================
@@ -798,9 +872,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     // موبایل: touchend — بعد از رها کردن انگشت، selection نهایی شده
     document.addEventListener('touchend', () => {
-        if (!_selInContainer) return;
-        // تاخیر کوتاه تا اندروید selection نهایی رو confirm کنه
-        setTimeout(_handleSelectionEnd, 100);
+        // تأخیر ۲۰۰ms تا selectionchange فرصت بده و selection نهایی ثبت بشه
+        setTimeout(() => {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+            if (typeof getHighlightContainer !== 'function') return;
+            if (!getHighlightContainer(sel.anchorNode)) return;
+            if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
+            showHighlightToolbar(window.innerWidth / 2, window.innerHeight * 0.35, true);
+        }, 200);
     });
 
     // دسکتاپ: mouseup

@@ -1,7 +1,8 @@
 /* ====================================================
    استایل‌های اصلی اپلیکیشن
    ==================================================== */
-:root { --safe-bottom: 20px; --title-color: inherit; --text-color: inherit; --line-height: 2.2; }
+:root { --safe-bottom: 20px; --title-color: inherit; --text-color: inherit; --line-height: 2.2; --home-gap: 16px; }
+#home-scroll-content > div { margin-bottom: var(--home-gap) !important; }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
      :root { --safe-bottom: env(safe-area-inset-bottom); }
 }
