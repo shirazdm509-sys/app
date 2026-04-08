@@ -12,7 +12,7 @@ async function openNewsPostInApp(postId, fallbackUrl) {
     if (cached) { showNewsSingle(postId); return; }
     setNewsLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts/${postId}?_embed=1`);
+        const res = await wpFetch(`posts/${postId}?_embed=1`);
         if (res.ok) {
             const post = await res.json();
             cachedNewsPosts = [post, ...cachedNewsPosts.filter(p => p.id !== post.id)];
@@ -35,7 +35,7 @@ function setNewsLoading(show) {
 async function initNews() {
     if (allWPCats.length === 0) {
         try {
-            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+            const res = await wpFetch('categories?per_page=100');
             allWPCats = await res.json();
         } catch(e) {}
     }
@@ -59,9 +59,9 @@ async function showNewsAllPosts() {
         const cats = Array.isArray(allWPCats) ? allWPCats : [];
         const newsCat = cats.find(c => NEWS_CAT_NAMES.some(n => c.name.trim().includes(n)) && c.count > 0);
         const url = newsCat
-            ? `${WP_API_URL}/posts?categories=${newsCat.id}&_embed=1&per_page=50`
-            : `${WP_API_URL}/posts?_embed=1&per_page=50`;
-        const res = await fetch(url);
+            ? `posts?categories=${newsCat.id}&_embed=1&per_page=50`
+            : `posts?_embed=1&per_page=50`;
+        const res = await wpFetch(url);
         cachedNewsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news');
     } catch(e) {
@@ -99,7 +99,7 @@ async function showNewsPosts(catId, catName) {
     postsView.innerHTML = '';
     setNewsLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts?categories=${catId}&_embed=1&per_page=30`);
+        const res = await wpFetch(`posts?categories=${catId}&_embed=1&per_page=30`);
         cachedNewsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedNewsPosts, 'news');
     } catch(e) {
@@ -149,7 +149,7 @@ function setStatementsLoading(show) {
 async function initStatements() {
     if (allWPCats.length === 0) {
         try {
-            const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+            const res = await wpFetch('categories?per_page=100');
             allWPCats = await res.json();
         } catch(e) {}
     }
@@ -174,9 +174,9 @@ async function showStatementsAllPosts() {
         const cats = Array.isArray(allWPCats) ? allWPCats : [];
         const stmtCat = cats.find(c => STATEMENTS_CAT_NAMES.some(n => c.name.trim().includes(n)) && c.count > 0);
         const url = stmtCat
-            ? `${WP_API_URL}/posts?categories=${stmtCat.id}&_embed=1&per_page=50`
-            : `${WP_API_URL}/posts?_embed=1&per_page=50`;
-        const res = await fetch(url);
+            ? `posts?categories=${stmtCat.id}&_embed=1&per_page=50`
+            : `posts?_embed=1&per_page=50`;
+        const res = await wpFetch(url);
         cachedStatementsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements');
     } catch(e) {
@@ -214,7 +214,7 @@ async function showStatementsPosts(catId, catName) {
     postsView.innerHTML = '';
     setStatementsLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts?categories=${catId}&_embed=1&per_page=30`);
+        const res = await wpFetch(`posts?categories=${catId}&_embed=1&per_page=30`);
         cachedStatementsPosts = await res.json();
         postsView.innerHTML = renderWPPostsList(cachedStatementsPosts, 'statements');
     } catch(e) {

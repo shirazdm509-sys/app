@@ -1,7 +1,10 @@
 // ====================================================
 // متغیرهای سخنرانی‌ها
 // ====================================================
-const WP_API_URL = 'https://dastgheibqoba.info/wp-json/wp/v2';
+// همه درخواست‌های WP API از طریق سرور پروکسی می‌شوند (رفع CORS و مشکلات شبکه)
+function wpFetch(path) {
+    return fetch('/api/wp?path=' + encodeURIComponent(path));
+}
 let allWPCats = [];
 let wpState = { view: 'main', mainCat: { id: null, name: '' }, currentCat: { id: null, name: '' } };
 const TARGET_MAIN_CATS = ['تفسیر قرآن', 'محرم الحرام', 'مناسبت ها', 'رمضان المبارک'];
@@ -26,7 +29,7 @@ async function fetchWPCategories() {
     setWPLoading(true);
     const catView = document.getElementById('lectures-categories-view');
     try {
-        const res = await fetch(`${WP_API_URL}/categories?per_page=100`);
+        const res = await wpFetch('categories?per_page=100');
         if (!res.ok) throw new Error('API ERROR');
         allWPCats = await res.json();
         if(!Array.isArray(allWPCats) || allWPCats.length === 0) return;
@@ -99,7 +102,7 @@ async function showWPPostsView(catId, catName) {
 
     setWPLoading(true);
     try {
-        const res = await fetch(`${WP_API_URL}/posts?categories=${catId}&_embed=1&per_page=30`);
+        const res = await wpFetch(`posts?categories=${catId}&_embed=1&per_page=30`);
         if (!res.ok) throw new Error('API ERROR');
         cachedPosts = await res.json();
 
@@ -195,7 +198,7 @@ async function fetchLatestLectures() {
     const container = document.getElementById('home-lectures-container');
     if (!container) return;
     try {
-        const res = await fetch(`${WP_API_URL}/posts?per_page=5&_embed=1&orderby=date&order=desc`);
+        const res = await wpFetch('posts?per_page=5&_embed=1&orderby=date&order=desc');
         if (!res.ok) throw new Error();
         const posts = await res.json();
         if (!Array.isArray(posts) || posts.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-400 text-xs">محتوایی یافت نشد</div>'; return; }
@@ -221,7 +224,7 @@ function openLatestPost(postId) {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
     if (allWPCats.length === 0) {
-        fetch(`${WP_API_URL}/categories?per_page=100`).then(r=>r.json()).then(cats=>{allWPCats=cats;});
+        wpFetch('categories?per_page=100').then(r=>r.json()).then(cats=>{allWPCats=cats;});
     }
     cachedPosts = posts;
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));

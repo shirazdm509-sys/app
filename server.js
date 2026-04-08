@@ -434,6 +434,37 @@ app.get('/api/proxy', (req, res) => {
     try { _proxyFetch(url, res, 0); } catch(e) { res.status(500).send('Server error'); }
 });
 
+// === پروکسی عمومی برای WordPress REST API ===
+// مسیریابی درخواست‌های WP API از سرور (دور زدن CORS و مشکلات شبکه در سمت کلاینت)
+app.get('/api/wp', (req, res) => {
+    const path = req.query.path;
+    if (!path || typeof path !== 'string') return res.status(400).json({error:'path required'});
+    // فقط مسیرهای ایمن مجاز هستند
+    if (!/^[a-zA-Z0-9\/_\-?=&%+.,]+$/.test(path)) return res.status(400).json({error:'invalid path'});
+    const WP_BASE = 'https://dastgheibqoba.info/wp-json/wp/v2/';
+    const fullUrl = WP_BASE + path;
+    const {request: httpsReq} = require('https');
+    const pr = httpsReq(fullUrl, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11)',
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip, deflate'
+        },
+        timeout: 15000
+    }, (wpRes) => {
+        const enc = wpRes.headers['content-encoding'] || '';
+        const headers = {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60'};
+        if (wpRes.statusCode !== 200) return res.status(wpRes.statusCode).json({error:'WP API error'});
+        res.writeHead(200, headers);
+        if (enc === 'gzip') wpRes.pipe(zlib.createGunzip()).pipe(res);
+        else if (enc === 'deflate') wpRes.pipe(zlib.createInflate()).pipe(res);
+        else wpRes.pipe(res);
+    });
+    pr.on('error', e => { if (!res.headersSent) res.status(502).json({error: e.message}); });
+    pr.on('timeout', () => { pr.destroy(); if (!res.headersSent) res.status(504).json({error:'timeout'}); });
+    pr.end();
+});
+
 // === API BANNERS (PUBLIC) ===
 app.get('/api/banners',(req,res)=>{
     res.set('Cache-Control','no-store');
