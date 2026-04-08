@@ -82,7 +82,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <form id="upload-form" onsubmit="uploadBook(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان کتاب *</label><input type="text" id="book-title" required class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان کتاب"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نویسنده</label><input type="text" id="book-author" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="نام نویسنده"></div>
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">فایل دیتابیس (SQLite) *</label><input type="file" id="book-db" accept=".sqlite,.db" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">نوع کتاب *</label>
+          <div class="flex gap-4 bg-gray-50 border border-gray-200 p-3 rounded-xl">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="book-type" id="book-type-db" value="db" checked onchange="toggleBookTypeFields()"><span class="text-sm font-bold text-gray-700">دیتابیس (SQLite)</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="book-type" id="book-type-pdf" value="pdf" onchange="toggleBookTypeFields()"><span class="text-sm font-bold text-gray-700">فایل PDF</span></label>
+          </div>
+        </div>
+        <div id="field-book-db"><label class="block text-xs font-bold text-gray-500 mb-2">فایل دیتابیس (SQLite) *</label><input type="file" id="book-db" accept=".sqlite,.db" required class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer"></div>
+        <div id="field-book-pdf" class="hidden"><label class="block text-xs font-bold text-gray-500 mb-2">فایل PDF *</label><input type="file" id="book-pdf" accept=".pdf" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 cursor-pointer"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">تصویر جلد</label><input type="file" id="book-cover" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 cursor-pointer"></div>
         <div class="md:col-span-2"><button type="submit" id="btn-upload" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-cloud-upload-alt"></i>آپلود و ذخیره کتاب</button></div>
       </form>
@@ -330,8 +338,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <div>
             <label class="block text-xs font-bold text-gray-500 mb-2">تصویر بندانگشتی <span class="text-gray-400 font-normal">(اختیاری - اگر خالی بماند از آپارات دریافت می‌شود)</span></label>
             <div class="flex flex-col gap-2">
+              <button type="button" onclick="useCatCover('video','vitem-cat-id','vitem-thumb-url')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition"><i class="fas fa-palette"></i>استفاده از کاور دسته‌بندی</button>
               <input type="file" id="vitem-thumb-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('vitem-thumb-url').value=''">
-              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا URL<span class="flex-1 border-t border-gray-200"></span></div>
               <input type="url" id="vitem-thumb-url" placeholder="https://example.com/thumb.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('vitem-thumb-file').value=''">
             </div>
           </div>
@@ -358,6 +367,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک جدید آپارات (اختیاری)</label><textarea id="edit-vitem-embed" rows="2" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm font-mono resize-none" placeholder="خالی بذارید تا تغییر نکند"></textarea></div>
           <div><label class="block text-xs font-bold text-gray-500 mb-2">تصویر بندانگشتی جدید (اختیاری)</label>
             <div class="flex flex-col gap-2">
+              <button type="button" onclick="useCatCover('video','edit-vitem-cat-id','edit-vitem-thumb-url')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition"><i class="fas fa-palette"></i>استفاده از کاور دسته‌بندی</button>
               <input type="file" id="edit-vitem-thumb-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 cursor-pointer">
               <input type="url" id="edit-vitem-thumb-url" placeholder="https://..." class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
             </div>
@@ -450,8 +460,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <div>
             <label class="block text-xs font-bold text-gray-500 mb-2">تصویر کاور (اختیاری)</label>
             <div class="flex flex-col gap-2">
+              <button type="button" onclick="useCatCover('audio','atrack-cat-id','atrack-cover-url')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition"><i class="fas fa-palette"></i>استفاده از کاور دسته‌بندی</button>
               <input type="file" id="atrack-cover-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 cursor-pointer" onchange="if(this.files[0])document.getElementById('atrack-cover-url').value=''">
-              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا<span class="flex-1 border-t border-gray-200"></span></div>
+              <div class="flex items-center gap-2 text-xs text-gray-400"><span class="flex-1 border-t border-gray-200"></span>یا URL<span class="flex-1 border-t border-gray-200"></span></div>
               <input type="url" id="atrack-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.files[0]||this.value)document.getElementById('atrack-cover-file').value=''">
             </div>
           </div>
@@ -476,6 +487,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک فایل صوتی (اختیاری — خالی بذارید تا تغییر نکند)</label><input type="url" id="edit-atrack-url" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" placeholder="https://..."></div>
           <div><label class="block text-xs font-bold text-gray-500 mb-2">کاور جدید (اختیاری)</label>
             <div class="flex flex-col gap-2">
+              <button type="button" onclick="useCatCover('audio','edit-atrack-cat-id','edit-atrack-cover-url')" class="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition"><i class="fas fa-palette"></i>استفاده از کاور دسته‌بندی</button>
               <input type="file" id="edit-atrack-cover-file" accept="image/*" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 cursor-pointer">
               <input type="url" id="edit-atrack-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
             </div>
@@ -833,9 +845,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <button onclick="closeEditBook()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200"><i class="fas fa-times text-sm"></i></button>
     </div>
     <input type="hidden" id="edit-book-id">
+    <input type="hidden" id="edit-book-type">
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">عنوان کتاب *</label><input type="text" id="edit-book-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">نویسنده</label><input type="text" id="edit-book-author" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">توضیحات</label><textarea id="edit-book-desc" rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none"></textarea></div>
+    <div id="edit-book-pdf-field" class="hidden"><label class="block text-xs font-bold text-gray-500 mb-1.5">فایل PDF جدید (اختیاری - برای جایگزینی)</label><input type="file" id="edit-book-pdf" accept=".pdf" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 text-xs cursor-pointer"></div>
     <div>
       <label class="block text-xs font-bold text-gray-500 mb-1.5">تصویر جلد (اختیاری - برای تغییر)</label>
       <div class="flex items-center gap-3">
@@ -982,18 +996,48 @@ function switchSupportTab(mode) {
 }
 
 // BOOKS
+function toggleBookTypeFields(){
+  const isPdf=document.getElementById('book-type-pdf').checked;
+  document.getElementById('field-book-db').classList.toggle('hidden',isPdf);
+  document.getElementById('field-book-pdf').classList.toggle('hidden',!isPdf);
+  document.getElementById('book-db').required=!isPdf;
+  document.getElementById('book-pdf').required=isPdf;
+}
+async function useCatCover(type, catIdEl, urlEl){
+  const catId=document.getElementById(catIdEl).value;
+  if(!catId) return showToast('دسته‌بندی مشخص نیست',false);
+  const endpoint=type==='audio'?'/api/admin/audio/categories':'/api/admin/video/categories';
+  const r=await adminFetch(endpoint);
+  const cats=await r.json();
+  const cat=cats.find(c=>c.id==catId);
+  if(cat&&cat.cover){document.getElementById(urlEl).value=cat.cover;showToast('کاور دسته بارگذاری شد');}
+  else showToast('این دسته کاور ندارد',false);
+}
 async function uploadBook(e){
   e.preventDefault();
   const t=document.getElementById('book-title').value,a=document.getElementById('book-author').value;
-  const dbf=document.getElementById('book-db').files[0],cf=document.getElementById('book-cover').files[0];
-  if(!t||!dbf) return showToast('عنوان و فایل دیتابیس الزامی است',false);
-  if(dbf.size > 400*1024*1024) return showToast('حجم فایل دیتابیس نباید بیشتر از ۴۰۰ مگابایت باشد',false);
+  const isPdf=document.getElementById('book-type-pdf').checked;
+  const cf=document.getElementById('book-cover').files[0];
+  if(!t) return showToast('عنوان الزامی است',false);
   if(cf && cf.size > 10*1024*1024) return showToast('حجم تصویر جلد نباید بیشتر از ۱۰ مگابایت باشد',false);
   const btn=document.getElementById('btn-upload');
-  const sizeMB = (dbf.size/1024/1024).toFixed(1);
-  btn.innerHTML=`<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود... (${sizeMB} MB)`;btn.disabled=true;
   const fd=new FormData();
-  fd.append('title',t);fd.append('author',a);fd.append('database',dbf);
+  fd.append('title',t);fd.append('author',a);
+  if(isPdf){
+    const pf=document.getElementById('book-pdf').files[0];
+    if(!pf) return showToast('فایل PDF الزامی است',false);
+    if(pf.size > 400*1024*1024) return showToast('حجم فایل PDF نباید بیشتر از ۴۰۰ مگابایت باشد',false);
+    fd.append('book_type','pdf');fd.append('pdf_file',pf);
+    const sizeMB=(pf.size/1024/1024).toFixed(1);
+    btn.innerHTML=`<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود... (${sizeMB} MB)`;btn.disabled=true;
+  } else {
+    const dbf=document.getElementById('book-db').files[0];
+    if(!dbf) return showToast('فایل دیتابیس الزامی است',false);
+    if(dbf.size > 400*1024*1024) return showToast('حجم فایل دیتابیس نباید بیشتر از ۴۰۰ مگابایت باشد',false);
+    fd.append('book_type','db');fd.append('database',dbf);
+    const sizeMB=(dbf.size/1024/1024).toFixed(1);
+    btn.innerHTML=`<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود... (${sizeMB} MB)`;btn.disabled=true;
+  }
   if(cf) fd.append('cover',cf);
   try{
     const r=await adminFetch('/api/admin/books',{method:'POST',body:fd});
@@ -1017,17 +1061,17 @@ async function loadBooks(){
     c.innerHTML=bs.map(b=>`
       <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group" data-id="${b.id}">
         <div class="absolute top-2 right-2 flex gap-1 z-10">
-          <button onclick="openEditBook(${b.id},'${b.title.replace(/'/g,"\\'")}','${(b.author||'').replace(/'/g,"\\'")}','${(b.description||'').replace(/'/g,"\\'")}','${b.cover||''}')" class="bg-white text-teal-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-teal-100 text-xs"><i class="fas fa-edit"></i></button>
+          <button onclick="openEditBook(${b.id})" class="bg-white text-teal-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-teal-100 text-xs"><i class="fas fa-edit"></i></button>
           <button onclick="deleteBook(${b.id})" class="bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-rose-100 text-xs"><i class="fas fa-trash"></i></button>
         </div>
         <div class="flex items-center gap-3">
           <div class="w-14 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
-            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover" id="book-cover-preview-${b.id}">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="fas fa-book"></i></div>`}
+            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="${b.book_type==='pdf'?'fas fa-file-pdf text-rose-300':'fas fa-book'}"></i></div>`}
           </div>
           <div>
             <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
             <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
-            <span class="text-[10px] bg-gray-100 text-gray-400 px-2 py-0.5 rounded mt-1 inline-block">${b.page_count} صفحه</span>
+            <span class="text-[10px] ${b.book_type==='pdf'?'bg-rose-50 text-rose-400':'bg-gray-100 text-gray-400'} px-2 py-0.5 rounded mt-1 inline-block">${b.book_type==='pdf'?'PDF':(b.page_count+' صفحه')}</span>
           </div>
         </div>
       </div>
@@ -1043,15 +1087,20 @@ async function deleteBook(id){
     else showToast('خطا',false);
   }catch(e){}
 }
-function openEditBook(id,title,author,desc,cover){
-  document.getElementById('edit-book-id').value=id;
-  document.getElementById('edit-book-title').value=title;
-  document.getElementById('edit-book-author').value=author;
-  document.getElementById('edit-book-desc').value=desc;
+async function openEditBook(id){
+  const r=await fetch('/api/books');const bs=await r.json();
+  const b=bs.find(x=>x.id==id);if(!b) return showToast('کتاب یافت نشد',false);
+  document.getElementById('edit-book-id').value=b.id;
+  document.getElementById('edit-book-type').value=b.book_type||'db';
+  document.getElementById('edit-book-title').value=b.title;
+  document.getElementById('edit-book-author').value=b.author||'';
+  document.getElementById('edit-book-desc').value=b.description||'';
   document.getElementById('edit-book-cover').value='';
+  if(b.book_type==='pdf'){document.getElementById('edit-book-pdf-field').classList.remove('hidden');}
+  else{document.getElementById('edit-book-pdf-field').classList.add('hidden');}
   const prev=document.getElementById('edit-book-cover-preview');
   const ph=document.getElementById('edit-book-cover-placeholder');
-  if(cover){prev.src=cover;prev.classList.remove('hidden');ph.classList.add('hidden');}
+  if(b.cover){prev.src=b.cover;prev.classList.remove('hidden');ph.classList.add('hidden');}
   else{prev.src='';prev.classList.add('hidden');ph.classList.remove('hidden');}
   document.getElementById('book-edit-modal').classList.remove('hidden');
 }
@@ -1075,6 +1124,8 @@ async function saveBookEdit(){
   fd.append('description',document.getElementById('edit-book-desc').value);
   const cf=document.getElementById('edit-book-cover').files[0];
   if(cf) fd.append('cover',cf);
+  const pf=document.getElementById('edit-book-pdf').files[0];
+  if(pf) fd.append('pdf_file',pf);
   const btn=document.getElementById('btn-save-book-edit');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال ذخیره...';btn.disabled=true;
   try{

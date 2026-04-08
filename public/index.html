@@ -1094,6 +1094,15 @@
   </div>
 </div>
 
+<!-- ====== PDF VIEWER ====== -->
+<div id="pdf-viewer-overlay" class="fixed inset-0 z-[290] hidden flex-col bg-gray-900">
+  <div class="shrink-0 h-12 bg-gray-900 flex items-center px-3 gap-2">
+    <button onclick="closePdfViewer()" class="w-9 h-9 flex items-center justify-center text-white rounded-full hover:bg-white/10 transition"><i class="fas fa-times"></i></button>
+    <span id="pdf-viewer-title" class="flex-1 text-sm font-bold text-white truncate text-center px-2"></span>
+    <button onclick="downloadPdfBook()" class="w-9 h-9 flex items-center justify-center text-white rounded-full hover:bg-white/10 transition" title="دانلود / باز در مرورگر"><i class="fas fa-external-link-alt text-sm"></i></button>
+  </div>
+  <iframe id="pdf-viewer-iframe" src="" class="flex-1 w-full border-none bg-white"></iframe>
+</div>
 <!-- GLOBAL SEARCH PANEL -->
 <!-- ====== WEBVIEW MODAL ====== -->
 <div id="webview-modal" class="fixed inset-0 z-[300] hidden flex-col bg-white">

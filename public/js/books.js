@@ -53,7 +53,7 @@ function renderLibrary() {
         const offline = isBookOffline(book.id);
         const unavailable = isOffline && !offline;
 
-        return `<div onclick="openBook(${book.id})" class="${widthClass} relative cursor-pointer book-card active:scale-95 transition-transform${unavailable ? ' opacity-40' : ''}">
+        return `<div onclick="${book.book_type==='pdf'?`openPdfBook(${book.id})`:`openBook(${book.id})`}" class="${widthClass} relative cursor-pointer book-card active:scale-95 transition-transform${unavailable ? ' opacity-40' : ''}">
             <div class="rounded-2xl overflow-hidden aspect-[2/3] relative book-cover-wrap shadow-md">
                 ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
                 <div class="absolute inset-0 bg-gradient-to-br ${colors[i%colors.length]} flex items-end justify-center pb-3 px-2" style="${book.cover?'display:none':''}"><span class="text-white text-center font-black text-[9px] leading-tight drop-shadow">${book.title}</span></div>
@@ -94,6 +94,36 @@ function setLibSort(mode) {
     document.getElementById('lib-sort-visited').className = 'lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition ' +
         (mode === 'visited' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500');
     renderLibrary();
+}
+
+// ====================================================
+// نمایش‌دهنده PDF
+// ====================================================
+function openPdfBook(bookId) {
+    const book = allBooks.find(b => b.id == bookId);
+    if (!book) return;
+    localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
+    const overlay = document.getElementById('pdf-viewer-overlay');
+    const iframe = document.getElementById('pdf-viewer-iframe');
+    const title = document.getElementById('pdf-viewer-title');
+    if (!overlay || !iframe) return;
+    title.textContent = book.title;
+    iframe.src = '/api/books/' + bookId + '/pdf';
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+}
+
+function closePdfViewer() {
+    const overlay = document.getElementById('pdf-viewer-overlay');
+    const iframe = document.getElementById('pdf-viewer-iframe');
+    overlay.classList.add('hidden');
+    overlay.classList.remove('flex');
+    iframe.src = '';
+}
+
+function downloadPdfBook() {
+    const iframe = document.getElementById('pdf-viewer-iframe');
+    if (iframe && iframe.src) window.open(iframe.src, '_blank');
 }
 
 async function openBook(bookId) {

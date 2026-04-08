@@ -131,6 +131,8 @@ function initDb() {
         mainDb.run(`ALTER TABLE audio_tracks ADD COLUMN publish_date TEXT DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE video_items ADD COLUMN publish_date TEXT DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE books ADD COLUMN sort_order INTEGER DEFAULT 0`, () => {});
+        mainDb.run(`ALTER TABLE books ADD COLUMN book_type TEXT DEFAULT 'db'`, () => {});
+        mainDb.run(`ALTER TABLE books ADD COLUMN pdf_filename TEXT DEFAULT ''`, () => {});
 
         const defaults = [
             ['site_name','مرکز نشر آثار آیت الله دستغیب'],
@@ -180,7 +182,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
@@ -235,7 +237,7 @@ function countPages(p){
 
 // === API BOOKS ===
 app.get('/api/books',(req,res)=>{
-    mainDb.all('SELECT id,title,author,description,cover,page_count,sort_order,created_at FROM books ORDER BY sort_order ASC, created_at DESC',[],(err,rows)=>{
+    mainDb.all('SELECT id,title,author,description,cover,page_count,sort_order,created_at,book_type,pdf_filename FROM books ORDER BY sort_order ASC, created_at DESC',[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows);
     });
@@ -631,37 +633,64 @@ app.post('/api/admin/login',(req,res)=>{
     else res.status(401).json({error:'رمز عبور اشتباه است'});
 });
 
-app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1},{name:'cover',maxCount:1}]),async(req,res)=>{
+app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1},{name:'pdf_file',maxCount:1},{name:'cover',maxCount:1}]),async(req,res)=>{
     try{
         const t=san(req.body.title),a=san(req.body.author),d=san(req.body.description);
-        if(!t||!req.files['database']) return res.status(400).json({error:'عنوان و فایل دیتابیس الزامی است'});
-        const dbf=req.files['database'][0],cf=req.files['cover']?req.files['cover'][0]:null;
+        const bookType=req.body.book_type==='pdf'?'pdf':'db';
+        if(!t) return res.status(400).json({error:'عنوان الزامی است'});
+        const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
         const cp=cf?`/covers/${cf.filename}`:'';
-        const pc=await countPages(path.resolve(__dirname,'books',dbf.filename));
-        mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count) VALUES (?,?,?,?,?,?)',[t,a||'',d||'',cp,dbf.filename,pc],function(err){
-            if(err) return res.status(500).json({error:err.message});
-            res.json({success:true,id:this.lastID,page_count:pc});
-        });
+        if(bookType==='pdf'){
+            const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
+            if(!pf) return res.status(400).json({error:'فایل PDF الزامی است'});
+            mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,'',0,'pdf',pf.filename],function(err){
+                if(err) return res.status(500).json({error:err.message});
+                res.json({success:true,id:this.lastID,page_count:0});
+            });
+        } else {
+            const dbf=req.files&&req.files['database']?req.files['database'][0]:null;
+            if(!dbf) return res.status(400).json({error:'فایل دیتابیس الزامی است'});
+            const pc=await countPages(path.resolve(__dirname,'books',dbf.filename));
+            mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,dbf.filename,pc,'db',''],function(err){
+                if(err) return res.status(500).json({error:err.message});
+                res.json({success:true,id:this.lastID,page_count:pc});
+            });
+        }
     }catch(e){res.status(500).json({error:e.message});}
 });
 app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.get('SELECT db_filename,cover FROM books WHERE id=?',[id],(err,b)=>{
+    mainDb.get('SELECT db_filename,pdf_filename,cover,book_type FROM books WHERE id=?',[id],(err,b)=>{
         if(err||!b) return res.status(404).json({error:'کتاب یافت نشد'});
-        const dp=path.resolve(__dirname,'books',path.basename(b.db_filename));
-        if(fs.existsSync(dp)) fs.unlinkSync(dp);
+        if(b.book_type==='pdf'&&b.pdf_filename){const pp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));if(fs.existsSync(pp)) fs.unlinkSync(pp);}
+        else if(b.db_filename){const dp=path.resolve(__dirname,'books',path.basename(b.db_filename));if(fs.existsSync(dp)) fs.unlinkSync(dp);}
         if(b.cover){const cp=path.resolve(__dirname,'public',b.cover.replace(/^\//,''));if(fs.existsSync(cp)) fs.unlinkSync(cp);}
         mainDb.run('DELETE FROM books WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
-app.put('/api/admin/books/:id',adminAuth,uploadImage.fields([{name:'cover',maxCount:1}]),(req,res)=>{
+app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1},{name:'pdf_file',maxCount:1}]),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT * FROM books WHERE id=?',[id],(err,b)=>{
         if(err||!b) return res.status(404).json({error:'کتاب یافت نشد'});
         const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
+        const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
         let cp=b.cover;
         if(cf){if(b.cover){const op=path.resolve(__dirname,'public',b.cover.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}cp=`/covers/${cf.filename}`;}
-        mainDb.run('UPDATE books SET title=?,author=?,description=?,cover=? WHERE id=?',[san(req.body.title)||b.title,san(req.body.author)||b.author,san(req.body.description)||b.description,cp,id],()=>res.json({success:true}));
+        let pdfFn=b.pdf_filename||'';
+        if(pf){if(b.pdf_filename){const op=path.resolve(__dirname,'books',path.basename(b.pdf_filename));if(fs.existsSync(op)) fs.unlinkSync(op);}pdfFn=pf.filename;}
+        mainDb.run('UPDATE books SET title=?,author=?,description=?,cover=?,pdf_filename=? WHERE id=?',[san(req.body.title)||b.title,san(req.body.author)||b.author,san(req.body.description)||b.description,cp,pdfFn,id],()=>res.json({success:true}));
+    });
+});
+// سرویس‌دهی فایل‌های PDF کتاب‌ها
+app.get('/api/books/:id/pdf',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).end();
+    mainDb.get('SELECT book_type,pdf_filename,title FROM books WHERE id=?',[id],(err,b)=>{
+        if(err||!b||b.book_type!=='pdf'||!b.pdf_filename) return res.status(404).end();
+        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
+        if(!fs.existsSync(fp)) return res.status(404).end();
+        res.setHeader('Content-Type','application/pdf');
+        res.setHeader('Content-Disposition',`inline; filename="${b.id}.pdf"`);
+        fs.createReadStream(fp).pipe(res);
     });
 });
 
