@@ -337,6 +337,10 @@
                 </div>
                 <a href="/admin" class="w-9 h-9 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center hover:bg-gray-100 transition"><i class="fas fa-cog"></i></a>
             </header>
+            <div class="shrink-0 flex gap-2 px-4 py-2 bg-white border-b border-gray-100">
+                <button id="lib-sort-date" onclick="setLibSort('date')" class="lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition bg-brand-500 text-white">بر اساس تاریخ انتشار</button>
+                <button id="lib-sort-visited" onclick="setLibSort('visited')" class="lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition bg-gray-100 text-gray-500">آخرین بازدید</button>
+            </div>
             <div class="flex-1 overflow-y-auto px-3 pb-20 pt-4">
                 <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3"></div>
                 <div id="lib-empty" class="hidden flex-col items-center justify-center py-32 opacity-60">

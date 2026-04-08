@@ -192,7 +192,7 @@ async function loadSliders() {
     }, { passive: true });
     wrapper.addEventListener('touchend', e => {
         const dx = e.changedTouches[0].clientX - _sliderTouchX;
-        if (Math.abs(dx) > 40) { if (dx > 0) sliderNext(); else sliderPrev(); }
+        if (Math.abs(dx) > 40) { if (dx < 0) sliderNext(); else sliderPrev(); }
         startSliderAuto();
     }, { passive: true });
 }

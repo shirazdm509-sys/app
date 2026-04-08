@@ -5,6 +5,7 @@ let allBooks=[], currentBookId=null, bookData=[], currentIndex=0;
 let fontSize=16, currentTheme='light', currentFont='vazir', lineHeight=2.2;
 let uiVisible=true, bookmarks=[], notes={};
 let touchStartX=0, touchEndX=0;
+let _libSort = 'date'; // ترتیب کتابخانه: date | visited
 
 // ====================================================
 // رندر کتابخانه
@@ -68,16 +69,31 @@ function renderLibrary() {
         </div>`;
     };
 
-    grid.innerHTML = allBooks.map((b,i)=>renderCard(b,i,false)).join('');
+    // مرتب‌سازی کتابخانه
+    let sortedBooks = [...allBooks];
+    if (_libSort === 'visited') {
+        sortedBooks.sort((a, b2) => {
+            const ra = parseInt(localStorage.getItem('book_'+a.id+'_last_read')||'0');
+            const rb = parseInt(localStorage.getItem('book_'+b2.id+'_last_read')||'0');
+            return rb - ra;
+        });
+    }
+    grid.innerHTML = sortedBooks.map((b) => renderCard(b, allBooks.indexOf(b), false)).join('');
 
-    // در خانه: کتاب‌های آخر مطالعه‌شده، اگر نبود آخرین کتاب‌های اضافه‌شده
-    const booksWithRead = allBooks.map(b => ({...b, _lastRead: parseInt(localStorage.getItem('book_'+b.id+'_last_read')||'0')}));
-    const readBooks = booksWithRead.filter(b => b._lastRead > 0).sort((a,b2) => b2._lastRead - a._lastRead);
-    const homeBooks = readBooks.length > 0 ? readBooks : allBooks;
+    // در خانه: آخرین کتاب‌های اضافه‌شده بر اساس ترتیب آپلود
     const titleEl = document.getElementById('home-books-title');
     if (titleEl) titleEl.textContent = 'آخرین کتاب‌ها';
-    homeContainer.innerHTML = homeBooks.slice(0, 5).map((b) => renderCard(b, allBooks.findIndex(ab => ab.id === b.id), true)).join('') +
+    homeContainer.innerHTML = allBooks.slice(0, 5).map((b, i) => renderCard(b, i, true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
+}
+
+function setLibSort(mode) {
+    _libSort = mode;
+    document.getElementById('lib-sort-date').className = 'lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition ' +
+        (mode === 'date' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500');
+    document.getElementById('lib-sort-visited').className = 'lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition ' +
+        (mode === 'visited' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500');
+    renderLibrary();
 }
 
 async function openBook(bookId) {
@@ -391,6 +407,30 @@ function loadSettings() {
 }
 
 function applySettingsObject(s) {
+    // اعمال تنظیمات اسپلش روی صفحه بارگذاری (اگر هنوز نمایش داده می‌شود)
+    const ls = document.getElementById('loading-screen');
+    if (ls) {
+        if (s.splash_icon_url) {
+            ls.style.backgroundImage = 'url("' + s.splash_icon_url + '")';
+            ls.style.backgroundSize = 'cover';
+            ls.style.backgroundPosition = 'center center';
+            ls.style.backgroundRepeat = 'no-repeat';
+            const spin = document.getElementById('loading-spinner');
+            const st = document.getElementById('splash-title-el');
+            const sub = document.getElementById('loading-text');
+            if (spin) spin.style.display = 'none';
+            if (st) st.style.display = 'none';
+            if (sub) sub.style.display = 'none';
+        } else {
+            if (s.splash_bg_color) ls.style.background = s.splash_bg_color;
+            if (s.splash_title) { const el = document.getElementById('splash-title-el'); if (el) { el.style.display = ''; el.textContent = s.splash_title; } }
+            if (s.splash_subtitle) { const el = document.getElementById('loading-text'); if (el) { el.style.display = ''; el.textContent = s.splash_subtitle; } }
+            if (s.splash_spinner_color) {
+                const spin = document.getElementById('loading-spinner');
+                if (spin) { spin.style.borderColor = s.splash_spinner_color + '33'; spin.style.borderTopColor = s.splash_spinner_color; }
+            }
+        }
+    }
     const nameEl = document.querySelector('#screen-home header h1');
     const subEl = document.querySelector('#screen-home header h2');
     if (nameEl && s.site_name) nameEl.textContent = s.site_name;

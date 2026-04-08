@@ -358,44 +358,74 @@ app.get('/api/settings',(req,res)=>{
     });
 });
 
-// === PROXY برای مرورگر داخلی (حذف X-Frame-Options) ===
-app.get('/api/proxy', async (req, res) => {
-    const url = req.query.url;
-    if (!url || !/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
+// === PROXY برای مرورگر داخلی (حذف X-Frame-Options + redirect + gzip) ===
+const zlib = require('zlib');
+function _proxyFetch(url, res, redirectCount) {
+    if (redirectCount > 10) return res.status(502).send('Too many redirects');
+    if (!/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
     const { request: httpReq } = url.startsWith('https') ? require('https') : require('http');
-    try {
-        const proxyReq = httpReq(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/108.0.0.0 Mobile Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'fa,en;q=0.9',
-            },
-            timeout: 15000
-        }, (proxyRes) => {
-            const headers = {...proxyRes.headers};
-            delete headers['x-frame-options'];
-            delete headers['content-security-policy'];
-            delete headers['x-content-type-options'];
-            // تزریق <base> برای URL نسبی
-            const ct = headers['content-type'] || '';
-            res.writeHead(proxyRes.statusCode, headers);
-            if (ct.includes('text/html')) {
-                let body = '';
-                proxyRes.setEncoding('utf8');
-                proxyRes.on('data', chunk => { body += chunk; });
-                proxyRes.on('end', () => {
+    const proxyReq = httpReq(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/108.0.0.0 Mobile Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'fa,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+        },
+        timeout: 15000
+    }, (proxyRes) => {
+        const status = proxyRes.statusCode;
+        // دنبال کردن redirect
+        if ((status === 301 || status === 302 || status === 303 || status === 307 || status === 308) && proxyRes.headers.location) {
+            proxyReq.destroy();
+            let loc = proxyRes.headers.location;
+            if (!/^https?:\/\//.test(loc)) {
+                const base = new URL(url);
+                loc = new URL(loc, base).href;
+            }
+            return _proxyFetch(loc, res, redirectCount + 1);
+        }
+        const headers = {...proxyRes.headers};
+        delete headers['x-frame-options'];
+        delete headers['content-security-policy'];
+        delete headers['x-content-type-options'];
+        delete headers['content-encoding']; // ما decode می‌کنیم
+        const ct = headers['content-type'] || '';
+        const enc = proxyRes.headers['content-encoding'] || '';
+        if (ct.includes('text/html')) {
+            let chunks = [];
+            proxyRes.on('data', c => chunks.push(c));
+            proxyRes.on('end', () => {
+                const buf = Buffer.concat(chunks);
+                const decode = (raw) => {
+                    let body = raw.toString('utf8');
                     const base = `<base href="${url}">`;
                     body = body.replace(/<head[^>]*>/i, m => m + base);
+                    headers['content-length'] = Buffer.byteLength(body, 'utf8').toString();
+                    res.writeHead(status, headers);
                     res.end(body);
-                });
-            } else {
-                proxyRes.pipe(res);
-            }
-        });
-        proxyReq.on('error', () => res.status(502).send('Proxy error'));
-        proxyReq.on('timeout', () => { proxyReq.destroy(); res.status(504).send('Timeout'); });
-        proxyReq.end();
-    } catch(e) { res.status(500).send('Server error'); }
+                };
+                if (enc === 'gzip') zlib.gunzip(buf, (e, d) => decode(e ? buf : d));
+                else if (enc === 'deflate') zlib.inflate(buf, (e, d) => decode(e ? buf : d));
+                else if (enc === 'br') zlib.brotliDecompress(buf, (e, d) => decode(e ? buf : d));
+                else decode(buf);
+            });
+        } else {
+            res.writeHead(status, headers);
+            const enc2 = proxyRes.headers['content-encoding'] || '';
+            if (enc2 === 'gzip') proxyRes.pipe(zlib.createGunzip()).pipe(res);
+            else if (enc2 === 'deflate') proxyRes.pipe(zlib.createInflate()).pipe(res);
+            else if (enc2 === 'br') proxyRes.pipe(zlib.createBrotliDecompress()).pipe(res);
+            else proxyRes.pipe(res);
+        }
+    });
+    proxyReq.on('error', (e) => { if (!res.headersSent) res.status(502).send('Proxy error: ' + e.message); });
+    proxyReq.on('timeout', () => { proxyReq.destroy(); if (!res.headersSent) res.status(504).send('Timeout'); });
+    proxyReq.end();
+}
+app.get('/api/proxy', (req, res) => {
+    const url = req.query.url;
+    if (!url || !/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
+    try { _proxyFetch(url, res, 0); } catch(e) { res.status(500).send('Server error'); }
 });
 
 // === API BANNERS (PUBLIC) ===
