@@ -27,7 +27,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   #main-content:not(.hidden){padding-top:3.5rem;}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="/vendor/Sortable.min.js"></script>
 </head>
 <body class="text-gray-800 h-screen flex overflow-hidden bg-slate-50">
 
@@ -1965,7 +1965,7 @@ function renderAudioAdminCat(cat, isChild=false){
         </div>
         <div class="flex gap-1.5 shrink-0">
           <button onclick="openAudioTrackModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن صوت</span></button>
-          <button onclick="openEditAudioCat(${cat.id},'${cat.name.replace(/'/g,"\\'")}','${(cat.description||'').replace(/'/g,"\\'")}',${cat.parent_id||'null'})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
+          <button onclick="openEditAudioCat(${cat.id})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
           <button onclick="deleteAudioCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
         </div>
       </div>
@@ -2031,7 +2031,7 @@ async function loadCategoryTracksAdmin(catId){
           ${tr.artist?`<p class="text-[10px] text-gray-400">${tr.artist}</p>`:''}
           <p class="text-[10px] text-gray-300 truncate mt-0.5">${tr.publish_date?'📅 '+tr.publish_date:''} ${tr.audio_url.startsWith('/')?'فایل آپلود شده':tr.audio_url.substring(0,40)+'...'}</p>
         </div>
-        <button onclick="openEditAudioTrack(${tr.id},${catId},'${tr.title.replace(/'/g,"\\'")}','${(tr.artist||'').replace(/'/g,"\\'")}','${tr.audio_url.replace(/'/g,"\\'")}','${(tr.publish_date||'')}','${(tr.cover||'').replace(/'/g,"\\'")}');" class="bg-amber-50 text-amber-500 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-amber-100 transition shrink-0"><i class="fas fa-edit text-xs"></i></button>
+        <button onclick="openEditAudioTrack(${tr.id},${catId})" class="bg-amber-50 text-amber-500 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-amber-100 transition shrink-0"><i class="fas fa-edit text-xs"></i></button>
         <button onclick="deleteAudioTrack(${tr.id},${catId})" class="bg-rose-50 text-rose-500 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-rose-100 transition shrink-0"><i class="fas fa-trash text-xs"></i></button>
       </div>`).join('')}</div>`;
     // Drag-and-drop for tracks
@@ -2142,16 +2142,22 @@ async function deleteAudioTrack(id,catId){
 }
 
 // ---- ویرایش دسته‌بندی صوت ----
-function openEditAudioCat(id,name,desc,parentId){
+async function openEditAudioCat(id){
   document.getElementById('edit-acat-id').value=id;
-  document.getElementById('edit-acat-name').value=name;
-  document.getElementById('edit-acat-desc').value=desc||'';
-  // populate parent dropdown
-  adminFetch('/api/admin/audio/categories').then(r=>r.json()).then(cats=>{
-    const sel=document.getElementById('edit-acat-parent');
-    sel.innerHTML='<option value="">--- دسته اصلی ---</option>'+
-      cats.filter(x=>!x.parent_id&&x.id!=id).map(x=>`<option value="${x.id}" ${x.id==parentId?'selected':''}>${x.name}</option>`).join('');
-  });
+  document.getElementById('edit-acat-cover-file').value='';
+  document.getElementById('edit-acat-cover-url').value='';
+  try{
+    const r=await adminFetch('/api/admin/audio/categories');
+    const cats=await r.json();
+    const cat=cats.find(x=>x.id==id);
+    if(cat){
+      document.getElementById('edit-acat-name').value=cat.name||'';
+      document.getElementById('edit-acat-desc').value=cat.description||'';
+      const sel=document.getElementById('edit-acat-parent');
+      sel.innerHTML='<option value="">--- دسته اصلی ---</option>'+
+        cats.filter(x=>!x.parent_id&&x.id!=id).map(x=>`<option value="${x.id}" ${x.id==cat.parent_id?'selected':''}>${x.name}</option>`).join('');
+    }
+  }catch(e){}
   const m=document.getElementById('edit-audio-cat-modal');
   m.classList.remove('hidden');m.classList.add('flex');
 }
@@ -2179,15 +2185,23 @@ async function saveEditAudioCat(e){
 }
 
 // ---- ویرایش صوت ----
-function openEditAudioTrack(id,catId,title,artist,audioUrl,publishDate,cover){
+async function openEditAudioTrack(id,catId){
   document.getElementById('edit-atrack-id').value=id;
   document.getElementById('edit-atrack-cat-id').value=catId;
-  document.getElementById('edit-atrack-title').value=title;
-  document.getElementById('edit-atrack-artist').value=artist||'';
   document.getElementById('edit-atrack-url').value='';
   document.getElementById('edit-atrack-cover-url').value='';
-  document.getElementById('edit-atrack-publish-date').value=publishDate||'';
   document.getElementById('edit-atrack-cover-file').value='';
+  // fetch track data
+  try{
+    const r=await fetch(`/api/audio/categories/${catId}/tracks`);
+    const tracks=await r.json();
+    const tr=tracks.find(x=>x.id==id);
+    if(tr){
+      document.getElementById('edit-atrack-title').value=tr.title||'';
+      document.getElementById('edit-atrack-artist').value=tr.artist||'';
+      document.getElementById('edit-atrack-publish-date').value=tr.publish_date||'';
+    }
+  }catch(e){}
   const m=document.getElementById('edit-audio-track-modal');
   m.classList.remove('hidden');m.classList.add('flex');
 }
@@ -2240,7 +2254,7 @@ function renderVideoAdminCat(cat, isChild=false){
         </div>
         <div class="flex gap-1.5 shrink-0">
           <button onclick="openVideoItemModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن ویدیو</span></button>
-          <button onclick="openEditVideoCat(${cat.id},'${cat.name.replace(/'/g,"\\'")}','${(cat.description||'').replace(/'/g,"\\'")}',${cat.parent_id||'null'})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
+          <button onclick="openEditVideoCat(${cat.id})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
           <button onclick="deleteVideoCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
         </div>
       </div>
@@ -2305,7 +2319,7 @@ async function loadCategoryItemsAdmin(catId){
         </div>
         <div class="p-2.5 flex items-start gap-2">
           <p class="font-bold text-xs flex-1 line-clamp-2" data-id="${v.id}">${v.title}${v.publish_date?`<span class='block text-[9px] text-gray-400 font-normal mt-0.5'>📅 ${v.publish_date}</span>`:''}</p>
-          <button onclick="openEditVideoItem(${v.id},${catId},'${v.title.replace(/'/g,"\\'")}','${(v.description||'').replace(/'/g,"\\'")}','${(v.publish_date||'')}','${(v.thumbnail||'').replace(/'/g,\"\\\\'\")}');" class="bg-amber-50 text-amber-500 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-100 transition shrink-0 mt-0.5"><i class="fas fa-edit text-[10px]"></i></button>
+          <button onclick="openEditVideoItem(${v.id},${catId})" class="bg-amber-50 text-amber-500 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-amber-100 transition shrink-0 mt-0.5"><i class="fas fa-edit text-[10px]"></i></button>
           <button onclick="deleteVideoItem(${v.id},${catId})" class="bg-rose-50 text-rose-500 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-rose-100 transition shrink-0 mt-0.5"><i class="fas fa-trash text-[10px]"></i></button>
         </div>
       </div>`).join('')}</div>`;
@@ -2420,15 +2434,22 @@ async function deleteVideoItem(id,catId){
 }
 
 // ---- ویرایش دسته‌بندی ویدیو ----
-function openEditVideoCat(id,name,desc,parentId){
+async function openEditVideoCat(id){
   document.getElementById('edit-vcat-id').value=id;
-  document.getElementById('edit-vcat-name').value=name;
-  document.getElementById('edit-vcat-desc').value=desc||'';
-  adminFetch('/api/admin/video/categories').then(r=>r.json()).then(cats=>{
-    const sel=document.getElementById('edit-vcat-parent');
-    sel.innerHTML='<option value="">--- دسته اصلی ---</option>'+
-      cats.filter(x=>!x.parent_id&&x.id!=id).map(x=>`<option value="${x.id}" ${x.id==parentId?'selected':''}>${x.name}</option>`).join('');
-  });
+  document.getElementById('edit-vcat-cover-file').value='';
+  document.getElementById('edit-vcat-cover-url').value='';
+  try{
+    const r=await adminFetch('/api/admin/video/categories');
+    const cats=await r.json();
+    const cat=cats.find(x=>x.id==id);
+    if(cat){
+      document.getElementById('edit-vcat-name').value=cat.name||'';
+      document.getElementById('edit-vcat-desc').value=cat.description||'';
+      const sel=document.getElementById('edit-vcat-parent');
+      sel.innerHTML='<option value="">--- دسته اصلی ---</option>'+
+        cats.filter(x=>!x.parent_id&&x.id!=id).map(x=>`<option value="${x.id}" ${x.id==cat.parent_id?'selected':''}>${x.name}</option>`).join('');
+    }
+  }catch(e){}
   const m=document.getElementById('edit-video-cat-modal');
   m.classList.remove('hidden');m.classList.add('flex');
 }
@@ -2456,15 +2477,23 @@ async function saveEditVideoCat(e){
 }
 
 // ---- ویرایش ویدیو ----
-function openEditVideoItem(id,catId,title,desc,publishDate,thumbnail){
+async function openEditVideoItem(id,catId){
   document.getElementById('edit-vitem-id').value=id;
   document.getElementById('edit-vitem-cat-id').value=catId;
-  document.getElementById('edit-vitem-title').value=title;
-  document.getElementById('edit-vitem-desc').value=desc||'';
-  document.getElementById('edit-vitem-publish-date').value=publishDate||'';
   document.getElementById('edit-vitem-embed').value='';
   document.getElementById('edit-vitem-thumb-url').value='';
   document.getElementById('edit-vitem-thumb-file').value='';
+  // fetch item data from server
+  try{
+    const r=await adminFetch(`/api/videos/categories/${catId}/items`);
+    const items=await r.json();
+    const v=items.find(x=>x.id==id);
+    if(v){
+      document.getElementById('edit-vitem-title').value=v.title||'';
+      document.getElementById('edit-vitem-desc').value=v.description||'';
+      document.getElementById('edit-vitem-publish-date').value=v.publish_date||'';
+    }
+  }catch(e){}
   const m=document.getElementById('edit-video-item-modal');
   m.classList.remove('hidden');m.classList.add('flex');
 }
