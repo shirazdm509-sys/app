@@ -184,6 +184,7 @@ function videoNavToSub(catId, catName) {
 }
 
 async function loadVideoList(categoryId, title, count) {
+    _currentVideoCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
@@ -198,7 +199,8 @@ async function loadVideoList(categoryId, title, count) {
     if(list) list.innerHTML = '';
 
     try {
-        const res = await fetch(`/api/videos/categories/${categoryId}/items`);
+        const sortParam = _videoSort === 'date' ? '?sort=date' : '';
+        const res = await fetch(`/api/videos/categories/${categoryId}/items${sortParam}`);
         const items = await res.json();
         videoCachedItems = items;
 
@@ -638,7 +640,27 @@ function audioNavToSub(catId, catName) {
     loadAudioCategories(catId, catName);
 }
 
+let _currentAudioCatId = null;
+let _audioSort = 'order'; // order | date
+let _currentVideoCatId = null;
+let _videoSort = 'order'; // order | date
+
+async function toggleAudioSort() {
+    _audioSort = _audioSort === 'order' ? 'date' : 'order';
+    const btn = document.getElementById('audio-sort-btn');
+    if(btn) btn.innerHTML = `<i class="fas fa-sort-amount-${_audioSort==='date'?'down':'up'} ml-1"></i>${_audioSort==='date'?'تاریخ':'ترتیب'}`;
+    if(_currentAudioCatId) await loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0);
+}
+
+async function toggleVideoSort() {
+    _videoSort = _videoSort === 'order' ? 'date' : 'order';
+    const btn = document.getElementById('video-sort-btn');
+    if(btn) btn.innerHTML = `<i class="fas fa-sort-amount-${_videoSort==='date'?'down':'up'} ml-1"></i>${_videoSort==='date'?'تاریخ':'ترتیب'}`;
+    if(_currentVideoCatId) await loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
+}
+
 async function loadAudioPlaylist(categoryId, title, count) {
+    _currentAudioCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
@@ -651,7 +673,8 @@ async function loadAudioPlaylist(categoryId, title, count) {
     if(list) list.innerHTML = '';
 
     try {
-        const res = await fetch(`/api/audio/categories/${categoryId}/tracks`);
+        const sortParam = _audioSort === 'date' ? '?sort=date' : '';
+        const res = await fetch(`/api/audio/categories/${categoryId}/tracks${sortParam}`);
         const tracks = await res.json();
         audioCurrentTracks = tracks;
 
@@ -679,7 +702,7 @@ function renderAudioTrackList() {
         <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)"
             class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50'} shadow-sm">
             <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">
-                ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
+                ${(tr.cover||tr._catCover) ? `<img src="${tr.cover||tr._catCover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
                 ${isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : ''}
             </div>
             <div class="flex-1 min-w-0">
@@ -708,8 +731,9 @@ function selectAudioTrack(idx, autoPlay) {
 
     const coverEl = document.getElementById('audio-player-cover');
     if(coverEl) {
-        coverEl.innerHTML = tr.cover
-            ? `<img src="${tr.cover}" class="w-full h-full object-cover">`
+        const coverSrc = tr.cover || tr._catCover || '';
+        coverEl.innerHTML = coverSrc
+            ? `<img src="${coverSrc}" class="w-full h-full object-cover">`
             : `<div class="w-full h-full bg-white/20 flex items-center justify-center"><i class="fas fa-music text-white/60 text-3xl"></i></div>`;
     }
 
@@ -826,17 +850,21 @@ async function downloadCurrentAudio() {
     if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
     const tr = audioCurrentTracks[audioCurrentIndex];
     try {
-        if(tr.audio_url.startsWith('/')) {
+        const ext = tr.audio_url.match(/\.(mp3|m4a|ogg|wav|aac|opus)$/i);
+        const filename = tr.title + (ext ? ext[0] : '.mp3');
+        if(tr.audio_url.startsWith('/audio/')) {
+            // استفاده از endpoint اختصاصی دانلود برای اعمال header صحیح
+            const dlUrl = '/api/download/audio/' + tr.audio_url.split('/').pop();
             const a = document.createElement('a');
-            a.href = tr.audio_url;
-            a.download = tr.title + '.mp3';
+            a.href = dlUrl;
+            a.download = filename;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         } else {
             const response = await fetch(tr.audio_url);
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = tr.title + '.mp3';
+            a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }

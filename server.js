@@ -127,6 +127,10 @@ function initDb() {
         mainDb.run(`ALTER TABLE gallery_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE audio_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE video_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
+        // Migration: add publish_date and sort_order
+        mainDb.run(`ALTER TABLE audio_tracks ADD COLUMN publish_date TEXT DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE video_items ADD COLUMN publish_date TEXT DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE books ADD COLUMN sort_order INTEGER DEFAULT 0`, () => {});
 
         const defaults = [
             ['site_name','مرکز نشر آثار آیت الله دستغیب'],
@@ -231,7 +235,7 @@ function countPages(p){
 
 // === API BOOKS ===
 app.get('/api/books',(req,res)=>{
-    mainDb.all('SELECT id,title,author,description,cover,page_count,created_at FROM books ORDER BY created_at DESC',[],(err,rows)=>{
+    mainDb.all('SELECT id,title,author,description,cover,page_count,sort_order,created_at FROM books ORDER BY sort_order ASC, created_at DESC',[],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows);
     });
@@ -1007,9 +1011,13 @@ app.get('/api/audio/categories',(req,res)=>{
 });
 app.get('/api/audio/categories/:id/tracks',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.all('SELECT * FROM audio_tracks WHERE category_id=? ORDER BY sort_order ASC, created_at ASC',[id],(err,rows)=>{
-        if(err) return res.status(500).json({error:err.message});
-        res.json(rows||[]);
+    const sortBy = req.query.sort === 'date' ? 'COALESCE(at.publish_date,at.created_at) DESC' : 'at.sort_order ASC, COALESCE(at.publish_date,at.created_at) ASC';
+    mainDb.get('SELECT cover FROM audio_categories WHERE id=?',[id],(err,cat)=>{
+        const catCover=cat?cat.cover:'';
+        mainDb.all(`SELECT at.* FROM audio_tracks at WHERE at.category_id=? ORDER BY ${sortBy}`,[id],(err2,rows)=>{
+            if(err2) return res.status(500).json({error:err2.message});
+            res.json((rows||[]).map(t=>({...t,_catCover:catCover})));
+        });
     });
 });
 
@@ -1068,9 +1076,10 @@ app.post('/api/admin/audio/tracks',adminAuth,uploadAudio.fields([{name:'audio_fi
         }catch(e){console.warn('ID3 cover extract:',e.message);}
     }
     const artist=san(req.body.artist||'');
+    const publishDate=req.body.publish_date||null;
     mainDb.get('SELECT MAX(sort_order) as mx FROM audio_tracks WHERE category_id=?',[catId],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
-        mainDb.run('INSERT INTO audio_tracks (category_id,title,artist,audio_url,cover,sort_order) VALUES (?,?,?,?,?,?)',[catId,title,artist,audioUrl,cover,so],function(err2){
+        mainDb.run('INSERT INTO audio_tracks (category_id,title,artist,audio_url,cover,sort_order,publish_date) VALUES (?,?,?,?,?,?,?)',[catId,title,artist,audioUrl,cover,so,publishDate],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
             mainDb.run('UPDATE audio_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[cover||audioUrl,catId]);
             res.json({success:true,id:this.lastID,audio_url:audioUrl,cover});
@@ -1084,6 +1093,58 @@ app.delete('/api/admin/audio/tracks/:id',adminAuth,(req,res)=>{
         if(t&&t.cover&&t.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',t.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
         mainDb.run('DELETE FROM audio_tracks WHERE id=?',[id],()=>res.json({success:true}));
     });
+});
+app.put('/api/admin/audio/categories/:id',adminAuth,uploadImage.single('audio_cover'),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const name=san(req.body.name||'').trim();if(!name) return res.status(400).json({error:'نام الزامی است'});
+    const desc=san(req.body.description||'');
+    const parentId=req.body.parent_id&&+req.body.parent_id>0?+req.body.parent_id:null;
+    const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    const newCover=req.file?`/gallery/${req.file.filename}`:coverUrl;
+    if(newCover){
+        mainDb.run('UPDATE audio_categories SET name=?,description=?,cover=?,parent_id=? WHERE id=?',[name,desc,newCover,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+    } else {
+        mainDb.run('UPDATE audio_categories SET name=?,description=?,parent_id=? WHERE id=?',[name,desc,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+    }
+});
+app.put('/api/admin/audio/tracks/:id',adminAuth,uploadAudio.fields([{name:'audio_file',maxCount:1},{name:'audio_cover',maxCount:1}]),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان الزامی است'});
+    const artist=san(req.body.artist||'');
+    const publishDate=req.body.publish_date||null;
+    const sets=['title=?','artist=?','publish_date=?'];const vals=[title,artist,publishDate];
+    const audioFile=req.files&&req.files['audio_file']?req.files['audio_file'][0]:null;
+    const audioUrlInput=req.body.audio_url&&req.body.audio_url.trim().length>5?san(req.body.audio_url.trim()):null;
+    if(audioFile){sets.push('audio_url=?');vals.push(`/audio/${audioFile.filename}`);}
+    else if(audioUrlInput){sets.push('audio_url=?');vals.push(audioUrlInput);}
+    const coverFile=req.files&&req.files['audio_cover']?req.files['audio_cover'][0]:null;
+    const coverUrlInput=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    if(coverFile){sets.push('cover=?');vals.push(`/gallery/${coverFile.filename}`);}
+    else if(coverUrlInput){sets.push('cover=?');vals.push(coverUrlInput);}
+    vals.push(id);
+    mainDb.run(`UPDATE audio_tracks SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+});
+app.put('/api/admin/audio/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE audio_categories SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+app.put('/api/admin/audio/tracks/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE audio_tracks SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+
+// === AUDIO DOWNLOAD (force download with proper headers) ===
+app.get('/api/download/audio/:filename',(req,res)=>{
+    const filename=path.basename(req.params.filename);
+    const filePath=path.join(__dirname,'public','audio',filename);
+    if(!fs.existsSync(filePath)) return res.status(404).send('فایل یافت نشد');
+    res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('Content-Type','audio/mpeg');
+    res.sendFile(filePath);
 });
 
 // === APARAT URL PARSER ===
@@ -1130,7 +1191,8 @@ app.get('/api/videos/categories',(req,res)=>{
 });
 app.get('/api/videos/categories/:id/items',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.all('SELECT * FROM video_items WHERE category_id=? ORDER BY sort_order ASC, created_at ASC',[id],(err,rows)=>{
+    const sortBy = req.query.sort === 'date' ? 'COALESCE(publish_date,created_at) DESC' : 'sort_order ASC, COALESCE(publish_date,created_at) ASC';
+    mainDb.all(`SELECT * FROM video_items WHERE category_id=? ORDER BY ${sortBy}`,[id],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
@@ -1173,9 +1235,10 @@ app.post('/api/admin/video/items',adminAuth,uploadImage.single('gallery_image'),
     const thumbFile=req.file;
     let thumbnail=thumbFile?`/gallery/${thumbFile.filename}`:(thumbUrlInput||extractAparatThumb(embedUrl));
     const desc=san(req.body.description||'');
+    const publishDate=req.body.publish_date||null;
     mainDb.get('SELECT MAX(sort_order) as mx FROM video_items WHERE category_id=?',[catId],(err,r)=>{
         const so=(r&&r.mx!=null)?r.mx+1:0;
-        mainDb.run('INSERT INTO video_items (category_id,title,embed_url,thumbnail,description,sort_order) VALUES (?,?,?,?,?,?)',[catId,title,embedUrl,thumbnail,desc,so],function(err2){
+        mainDb.run('INSERT INTO video_items (category_id,title,embed_url,thumbnail,description,sort_order,publish_date) VALUES (?,?,?,?,?,?,?)',[catId,title,embedUrl,thumbnail,desc,so,publishDate],function(err2){
             if(err2) return res.status(500).json({error:err2.message});
             // Auto-set category cover if empty
             if(thumbnail) mainDb.run('UPDATE video_categories SET cover=? WHERE id=? AND (cover IS NULL OR cover="")',[thumbnail,catId]);
@@ -1189,6 +1252,51 @@ app.delete('/api/admin/video/items/:id',adminAuth,(req,res)=>{
         if(v&&v.thumbnail&&v.thumbnail.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',v.thumbnail.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
         mainDb.run('DELETE FROM video_items WHERE id=?',[id],()=>res.json({success:true}));
     });
+});
+app.put('/api/admin/video/categories/:id',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const name=san(req.body.name||'').trim();if(!name) return res.status(400).json({error:'نام الزامی است'});
+    const desc=san(req.body.description||'');
+    const parentId=req.body.parent_id&&+req.body.parent_id>0?+req.body.parent_id:null;
+    const coverUrl=req.body.cover_url&&req.body.cover_url.trim().length>5?san(req.body.cover_url.trim()):null;
+    const newCover=req.file?`/gallery/${req.file.filename}`:coverUrl;
+    if(newCover){
+        mainDb.run('UPDATE video_categories SET name=?,description=?,cover=?,parent_id=? WHERE id=?',[name,desc,newCover,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+    } else {
+        mainDb.run('UPDATE video_categories SET name=?,description=?,parent_id=? WHERE id=?',[name,desc,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+    }
+});
+app.put('/api/admin/video/items/:id',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان الزامی است'});
+    const desc=san(req.body.description||'');
+    const publishDate=req.body.publish_date||null;
+    const sets=['title=?','description=?','publish_date=?'];const vals=[title,desc,publishDate];
+    const embedRaw=req.body.embed_url||'';
+    if(embedRaw.trim()){const embedUrl=parseAparatEmbed(embedRaw);if(embedUrl){sets.push('embed_url=?');vals.push(embedUrl);}}
+    const thumbUrlInput=req.body.thumb_url&&req.body.thumb_url.trim().length>5?san(req.body.thumb_url.trim()):null;
+    if(req.file){sets.push('thumbnail=?');vals.push(`/gallery/${req.file.filename}`);}
+    else if(thumbUrlInput){sets.push('thumbnail=?');vals.push(thumbUrlInput);}
+    vals.push(id);
+    mainDb.run(`UPDATE video_items SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+});
+app.put('/api/admin/video/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE video_categories SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+app.put('/api/admin/video/items/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE video_items SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+app.put('/api/admin/books/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE books SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
 });
 
 // === استخراج کاور از فایل‌های صوتی موجود ===
