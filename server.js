@@ -1107,6 +1107,19 @@ app.put('/api/admin/audio/categories/:id',adminAuth,uploadImage.single('audio_co
         mainDb.run('UPDATE audio_categories SET name=?,description=?,parent_id=? WHERE id=?',[name,desc,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
     }
 });
+// sort قبل از :id تا Express آن را با id='sort' مطابقت ندهد
+app.put('/api/admin/audio/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE audio_categories SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+app.put('/api/admin/audio/tracks/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE audio_tracks SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
 app.put('/api/admin/audio/tracks/:id',adminAuth,uploadAudio.fields([{name:'audio_file',maxCount:1},{name:'audio_cover',maxCount:1}]),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان الزامی است'});
@@ -1123,18 +1136,6 @@ app.put('/api/admin/audio/tracks/:id',adminAuth,uploadAudio.fields([{name:'audio
     else if(coverUrlInput){sets.push('cover=?');vals.push(coverUrlInput);}
     vals.push(id);
     mainDb.run(`UPDATE audio_tracks SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
-});
-app.put('/api/admin/audio/sort',adminAuth,express.json(),(req,res)=>{
-    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
-    const stmt=mainDb.prepare('UPDATE audio_categories SET sort_order=? WHERE id=?');
-    ids.forEach((id,i)=>stmt.run([i,id]));
-    stmt.finalize(()=>res.json({success:true}));
-});
-app.put('/api/admin/audio/tracks/sort',adminAuth,express.json(),(req,res)=>{
-    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
-    const stmt=mainDb.prepare('UPDATE audio_tracks SET sort_order=? WHERE id=?');
-    ids.forEach((id,i)=>stmt.run([i,id]));
-    stmt.finalize(()=>res.json({success:true}));
 });
 
 // === AUDIO DOWNLOAD (force download with proper headers) ===
@@ -1266,6 +1267,19 @@ app.put('/api/admin/video/categories/:id',adminAuth,uploadImage.single('gallery_
         mainDb.run('UPDATE video_categories SET name=?,description=?,parent_id=? WHERE id=?',[name,desc,parentId,id],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
     }
 });
+// sort قبل از :id
+app.put('/api/admin/video/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE video_categories SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
+app.put('/api/admin/video/items/sort',adminAuth,express.json(),(req,res)=>{
+    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE video_items SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
 app.put('/api/admin/video/items/:id',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     const title=san(req.body.title||'').trim();if(!title) return res.status(400).json({error:'عنوان الزامی است'});
@@ -1279,18 +1293,6 @@ app.put('/api/admin/video/items/:id',adminAuth,uploadImage.single('gallery_image
     else if(thumbUrlInput){sets.push('thumbnail=?');vals.push(thumbUrlInput);}
     vals.push(id);
     mainDb.run(`UPDATE video_items SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
-});
-app.put('/api/admin/video/sort',adminAuth,express.json(),(req,res)=>{
-    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
-    const stmt=mainDb.prepare('UPDATE video_categories SET sort_order=? WHERE id=?');
-    ids.forEach((id,i)=>stmt.run([i,id]));
-    stmt.finalize(()=>res.json({success:true}));
-});
-app.put('/api/admin/video/items/sort',adminAuth,express.json(),(req,res)=>{
-    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
-    const stmt=mainDb.prepare('UPDATE video_items SET sort_order=? WHERE id=?');
-    ids.forEach((id,i)=>stmt.run([i,id]));
-    stmt.finalize(()=>res.json({success:true}));
 });
 app.put('/api/admin/books/sort',adminAuth,express.json(),(req,res)=>{
     const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
