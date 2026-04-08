@@ -403,8 +403,10 @@ function _proxyFetch(url, res, redirectCount) {
                 const decode = (raw) => {
                     let body = raw.toString('utf8');
                     const base = `<base href="${url}">`;
-                    body = body.replace(/<head[^>]*>/i, m => m + base);
-                    headers['content-length'] = Buffer.byteLength(body, 'utf8').toString();
+                    // اسکریپت رهگیری کلیک‌های لینک: هر کلیک را از طریق proxy هدایت می‌کند
+                    const navScript = `<script>(function(){document.addEventListener('click',function(e){var a=e.target.closest('a[href]');if(!a)return;var h=a.href;if(!h||h.startsWith('javascript:')||h.startsWith('mailto:')||h.startsWith('tel:')||h.charAt(0)==='#'||h.includes('/api/proxy?url='))return;e.preventDefault();e.stopPropagation();try{window.parent.postMessage({type:'wv-nav',url:h},'*');}catch(x){}location.href='/api/proxy?url='+encodeURIComponent(h);},true);})()</script>`;
+                    body = body.replace(/<head[^>]*>/i, m => m + base + navScript);
+                    delete headers['content-length']; // اجازه می‌دهد Node خودش محاسبه کند
                     res.writeHead(status, headers);
                     res.end(body);
                 };
