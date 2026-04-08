@@ -849,26 +849,12 @@ function formatAudioTime(sec) {
 async function downloadCurrentAudio() {
     if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
     const tr = audioCurrentTracks[audioCurrentIndex];
-    try {
-        const ext = tr.audio_url.match(/\.(mp3|m4a|ogg|wav|aac|opus)$/i);
-        const filename = tr.title + (ext ? ext[0] : '.mp3');
-        if(tr.audio_url.startsWith('/audio/')) {
-            // استفاده از endpoint اختصاصی دانلود برای اعمال header صحیح
-            const dlUrl = '/api/download/audio/' + tr.audio_url.split('/').pop();
-            const a = document.createElement('a');
-            a.href = dlUrl;
-            a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        } else {
-            const response = await fetch(tr.audio_url);
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    } catch(e) {
+    // باز کردن لینک دانلود در مرورگر خارجی — در PWA روی اندروید
+    // مرورگر داخلی PWA اجازه دانلود نمی‌دهد
+    if(tr.audio_url.startsWith('/audio/')) {
+        const dlUrl = window.location.origin + '/api/download/audio/' + tr.audio_url.split('/').pop();
+        window.open(dlUrl, '_blank');
+    } else {
         window.open(tr.audio_url, '_blank');
     }
 }
