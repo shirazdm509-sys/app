@@ -47,6 +47,8 @@ if (rateLimit) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09', dir: __dirname }));
+
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
     const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color','icon_version'];
@@ -637,14 +639,16 @@ app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1
     try{
         const t=san(req.body.title),a=san(req.body.author),d=san(req.body.description);
         const bookType=req.body.book_type==='pdf'?'pdf':'db';
+        console.log('[books] upload start - type:',bookType,'files:',Object.keys(req.files||{}));
         if(!t) return res.status(400).json({error:'عنوان الزامی است'});
         const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
         const cp=cf?`/covers/${cf.filename}`:'';
         if(bookType==='pdf'){
             const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
             if(!pf) return res.status(400).json({error:'فایل PDF الزامی است'});
+            console.log('[books] pdf file saved:',pf.filename,'size:',pf.size);
             mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,'',0,'pdf',pf.filename],function(err){
-                if(err) return res.status(500).json({error:err.message});
+                if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
                 res.json({success:true,id:this.lastID,page_count:0});
             });
         } else {
@@ -652,11 +656,11 @@ app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1
             if(!dbf) return res.status(400).json({error:'فایل دیتابیس الزامی است'});
             const pc=await countPages(path.resolve(__dirname,'books',dbf.filename));
             mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,dbf.filename,pc,'db',''],function(err){
-                if(err) return res.status(500).json({error:err.message});
+                if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
                 res.json({success:true,id:this.lastID,page_count:pc});
             });
         }
-    }catch(e){res.status(500).json({error:e.message});}
+    }catch(e){console.error('[books] caught error:',e.message);res.status(500).json({error:e.message});}
 });
 app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
