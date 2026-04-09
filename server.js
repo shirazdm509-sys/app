@@ -643,23 +643,27 @@ app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1
         if(!t) return res.status(400).json({error:'عنوان الزامی است'});
         const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
         const cp=cf?`/covers/${cf.filename}`:'';
-        if(bookType==='pdf'){
-            const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
-            if(!pf) return res.status(400).json({error:'فایل PDF الزامی است'});
-            console.log('[books] pdf file saved:',pf.filename,'size:',pf.size);
-            mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,'',0,'pdf',pf.filename],function(err){
-                if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
-                res.json({success:true,id:this.lastID,page_count:0});
-            });
-        } else {
-            const dbf=req.files&&req.files['database']?req.files['database'][0]:null;
-            if(!dbf) return res.status(400).json({error:'فایل دیتابیس الزامی است'});
-            const pc=await countPages(path.resolve(__dirname,'books',dbf.filename));
-            mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename) VALUES (?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,dbf.filename,pc,'db',''],function(err){
-                if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
-                res.json({success:true,id:this.lastID,page_count:pc});
-            });
-        }
+        // sort_order جدید = حداکثر موجود + ۱ (تا ترتیب دستی خراب نشود)
+        mainDb.get('SELECT COALESCE(MAX(sort_order),0)+1 AS next_order FROM books',[],async(err2,row)=>{
+            const nextOrder=(row&&!err2)?row.next_order:9999;
+            if(bookType==='pdf'){
+                const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
+                if(!pf) return res.status(400).json({error:'فایل PDF الزامی است'});
+                console.log('[books] pdf file saved:',pf.filename,'size:',pf.size);
+                mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename,sort_order) VALUES (?,?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,'',0,'pdf',pf.filename,nextOrder],function(err){
+                    if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
+                    res.json({success:true,id:this.lastID,page_count:0});
+                });
+            } else {
+                const dbf=req.files&&req.files['database']?req.files['database'][0]:null;
+                if(!dbf) return res.status(400).json({error:'فایل دیتابیس الزامی است'});
+                const pc=await countPages(path.resolve(__dirname,'books',dbf.filename));
+                mainDb.run('INSERT INTO books (title,author,description,cover,db_filename,page_count,book_type,pdf_filename,sort_order) VALUES (?,?,?,?,?,?,?,?,?)',[t,a||'',d||'',cp,dbf.filename,pc,'db','',nextOrder],function(err){
+                    if(err){console.error('[books] db insert error:',err.message);return res.status(500).json({error:err.message});}
+                    res.json({success:true,id:this.lastID,page_count:pc});
+                });
+            }
+        });
     }catch(e){console.error('[books] caught error:',e.message);res.status(500).json({error:e.message});}
 });
 app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{

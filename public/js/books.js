@@ -80,10 +80,11 @@ function renderLibrary() {
     }
     grid.innerHTML = sortedBooks.map((b) => renderCard(b, allBooks.indexOf(b), false)).join('');
 
-    // در خانه: آخرین کتاب‌های اضافه‌شده بر اساس ترتیب آپلود
+    // در خانه: کتاب‌ها بر اساس ترتیب ادمین (sort_order)
     const titleEl = document.getElementById('home-books-title');
-    if (titleEl) titleEl.textContent = 'آخرین کتاب‌ها';
-    homeContainer.innerHTML = allBooks.slice(0, 5).map((b, i) => renderCard(b, i, true)).join('') +
+    if (titleEl) titleEl.textContent = 'کتاب‌ها';
+    const homeBooks = [...allBooks].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+    homeContainer.innerHTML = homeBooks.slice(0, 5).map((b, i) => renderCard(b, i, true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
 }
 

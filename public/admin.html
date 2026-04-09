@@ -28,6 +28,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 }
 </style>
 <script src="/vendor/Sortable.min.js"></script>
+<script src="/vendor/jalaali.js"></script>
 </head>
 <body class="text-gray-800 h-screen flex overflow-hidden bg-slate-50">
 
@@ -347,7 +348,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 
           <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات (اختیاری)</label><textarea id="vitem-desc" rows="2" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none" placeholder="توضیح کوتاه درباره ویدیو"></textarea></div>
 
-          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار (اختیاری)</label><input type="date" id="vitem-publish-date" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار (اختیاری)</label><input type="text" id="vitem-publish-date" onclick="openJalaliPicker(this)" readonly placeholder="انتخاب تاریخ شمسی" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm cursor-pointer text-right"></div>
           <button type="submit" id="btn-add-vitem" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن ویدیو</button>
         </form>
       </div>
@@ -373,7 +374,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             </div>
           </div>
           <div><label class="block text-xs font-bold text-gray-500 mb-2">توضیحات</label><textarea id="edit-vitem-desc" rows="2" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none"></textarea></div>
-          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار</label><input type="date" id="edit-vitem-publish-date" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار</label><input type="text" id="edit-vitem-publish-date" onclick="openJalaliPicker(this)" readonly placeholder="انتخاب تاریخ شمسی" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm cursor-pointer text-right"></div>
           <button type="submit" id="btn-save-vitem" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
         </form>
       </div>
@@ -466,7 +467,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
               <input type="url" id="atrack-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.files[0]||this.value)document.getElementById('atrack-cover-file').value=''">
             </div>
           </div>
-          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار (اختیاری)</label><input type="date" id="atrack-publish-date" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار (اختیاری)</label><input type="text" id="atrack-publish-date" onclick="openJalaliPicker(this)" readonly placeholder="انتخاب تاریخ شمسی" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm cursor-pointer text-right"></div>
           <button type="submit" id="btn-add-atrack" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن صوت</button>
         </form>
       </div>
@@ -492,7 +493,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
               <input type="url" id="edit-atrack-cover-url" placeholder="https://example.com/cover.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm">
             </div>
           </div>
-          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار</label><input type="date" id="edit-atrack-publish-date" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">تاریخ انتشار</label><input type="text" id="edit-atrack-publish-date" onclick="openJalaliPicker(this)" readonly placeholder="انتخاب تاریخ شمسی" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm cursor-pointer text-right"></div>
           <button type="submit" id="btn-save-atrack" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
         </form>
       </div>
@@ -2572,6 +2573,90 @@ async function saveEditVideoItem(e){
     else showToast(d.error||'خطا',false);
   }catch(err){showToast('خطا',false);}
   finally{btn.innerHTML='<i class="fas fa-save ml-1"></i>ذخیره تغییرات';btn.disabled=false;}
+}
+
+// ====== تقویم جلالی ======
+let _jalaliTarget=null;
+function openJalaliPicker(input){
+  _jalaliTarget=input;
+  const existing=document.getElementById('jalali-picker-overlay');
+  if(existing){existing.remove();}
+  // تاریخ فعلی یا امروز
+  let jy,jm,jd;
+  if(input.value&&/^\d{4}\/\d{2}\/\d{2}$/.test(input.value)){
+    [jy,jm,jd]=input.value.split('/').map(Number);
+  } else {
+    const today=new Date();
+    const j=jalaali.toJalaali(today.getFullYear(),today.getMonth()+1,today.getDate());
+    jy=j.jy;jm=j.jm;jd=j.jd;
+  }
+  _renderJalaliPicker(jy,jm,jd);
+}
+function _renderJalaliPicker(jy,jm,jd){
+  const existing=document.getElementById('jalali-picker-overlay');if(existing)existing.remove();
+  const monthNames=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+  const overlay=document.createElement('div');
+  overlay.id='jalali-picker-overlay';
+  overlay.className='fixed inset-0 z-[999] flex items-center justify-center bg-black/40';
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+
+  // روزهای ماه
+  const daysInMonth=jalaali.jalaaliMonthLength(jy,jm);
+  const firstDay=new Date(...jalaali.toGregorian(jy,jm,1).slice(0,3).map((v,i)=>i===1?v-1:v));
+  // شنبه=0 ... جمعه=6
+  let startDow=(firstDay.getDay()+1)%7; // در تقویم شمسی شنبه اول هفته
+
+  let daysHtml='';
+  // خانه‌های خالی ابتدا
+  for(let i=0;i<startDow;i++) daysHtml+=`<div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const sel=d===jd?'bg-teal-500 text-white font-black':'hover:bg-teal-50 text-gray-700';
+    daysHtml+=`<button type="button" onclick="selectJalaliDay(${jy},${jm},${d})" class="h-8 w-8 rounded-full text-xs flex items-center justify-center mx-auto transition ${sel}">${d.toLocaleString('fa-IR')}</button>`;
+  }
+
+  overlay.innerHTML=`
+  <div class="bg-white rounded-2xl shadow-2xl p-4 w-80 select-none" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-3">
+      <button type="button" onclick="_renderJalaliPicker(${jm===1?jy-1:jy},${jm===1?12:jm-1},1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fas fa-chevron-right text-xs"></i></button>
+      <div class="flex gap-2 items-center">
+        <select onchange="let v=this.value.split('-');_renderJalaliPicker(+v[0],+v[1],1)" class="text-sm font-bold bg-transparent outline-none cursor-pointer">
+          ${Array.from({length:12},(_,i)=>`<option value="${jy}-${i+1}"${i+1===jm?' selected':''}>${monthNames[i]}</option>`).join('')}
+        </select>
+        <select onchange="_renderJalaliPicker(+this.value,${jm},1)" class="text-sm font-bold bg-transparent outline-none cursor-pointer">
+          ${Array.from({length:20},(_,i)=>`<option value="${1395+i}"${1395+i===jy?' selected':''}>${(1395+i).toLocaleString('fa-IR')}</option>`).join('')}
+        </select>
+      </div>
+      <button type="button" onclick="_renderJalaliPicker(${jm===12?jy+1:jy},${jm===12?1:jm+1},1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fas fa-chevron-left text-xs"></i></button>
+    </div>
+    <div class="grid grid-cols-7 gap-0 mb-1">
+      ${['ش','ی','د','س','چ','پ','ج'].map(d=>`<div class="text-center text-[10px] text-gray-400 font-bold py-1">${d}</div>`).join('')}
+    </div>
+    <div class="grid grid-cols-7 gap-0">${daysHtml}</div>
+    <div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+      <button type="button" onclick="selectJalaliToday()" class="flex-1 text-xs py-2 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-600 transition">امروز</button>
+      <button type="button" onclick="clearJalaliDate()" class="flex-1 text-xs py-2 bg-rose-50 hover:bg-rose-100 rounded-xl font-bold text-rose-500 transition">پاک کردن</button>
+      <button type="button" onclick="document.getElementById('jalali-picker-overlay').remove()" class="flex-1 text-xs py-2 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-600 transition">بستن</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+function selectJalaliDay(jy,jm,jd){
+  if(_jalaliTarget){
+    const jyStr=String(jy);
+    const jmStr=String(jm).padStart(2,'0');
+    const jdStr=String(jd).padStart(2,'0');
+    _jalaliTarget.value=`${jyStr}/${jmStr}/${jdStr}`;
+  }
+  document.getElementById('jalali-picker-overlay').remove();
+}
+function selectJalaliToday(){
+  const today=new Date();
+  const j=jalaali.toJalaali(today.getFullYear(),today.getMonth()+1,today.getDate());
+  selectJalaliDay(j.jy,j.jm,j.jd);
+}
+function clearJalaliDate(){
+  if(_jalaliTarget) _jalaliTarget.value='';
+  document.getElementById('jalali-picker-overlay').remove();
 }
 </script>
 </body>
