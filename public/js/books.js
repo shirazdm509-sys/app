@@ -182,6 +182,20 @@ function pdfGoToPage() {
     if (!isNaN(p) && p >= 1 && p <= _pdfTotal) _pdfLoadPage(p);
 }
 
+let _pdfZoom = 100;
+function pdfZoomIn() {
+    _pdfZoom = Math.min(_pdfZoom + 25, 250);
+    const img = document.getElementById('pdf-page-img');
+    img.style.width = _pdfZoom + '%';
+    img.style.maxWidth = _pdfZoom <= 100 ? '100%' : 'none';
+}
+function pdfZoomOut() {
+    _pdfZoom = Math.max(_pdfZoom - 25, 50);
+    const img = document.getElementById('pdf-page-img');
+    img.style.width = _pdfZoom + '%';
+    img.style.maxWidth = _pdfZoom <= 100 ? '100%' : 'none';
+}
+
 async function openBook(bookId) {
     // ذخیره زمان آخرین مطالعه
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
