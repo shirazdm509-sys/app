@@ -1406,8 +1406,13 @@ app.get('/admin',(req,res)=>res.sendFile(path.join(__dirname,'public','admin.htm
 app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
 app.get('/sw.js',(req,res)=>{res.setHeader('Content-Type','application/javascript');res.sendFile(path.join(__dirname,'public','sw.js'));});
 app.use((req,res)=>{if(req.path.startsWith('/api/')) return res.status(404).json({error:'مسیر یافت نشد'});res.sendFile(path.join(__dirname,'public','index.html'));});
-app.use((err,req,res,next)=>{console.error('Error:',err.message);if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۵۰ مگابایت، صوت حداکثر ۱۰۰ مگابایت)'});
-    if(err.code==='ENOENT') return res.status(500).json({error:'خطا در ذخیره فایل - لطفاً با مدیر تماس بگیرید'});res.status(500).json({error:'خطای داخلی سرور'});});
+app.use((err,req,res,next)=>{
+    console.error('Error:',err.code, err.message);
+    if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۵۰ مگابایت، صوت حداکثر ۱۰۰ مگابایت)'});
+    if(err.code==='LIMIT_UNEXPECTED_FILE') return res.status(400).json({error:'فیلد ناشناخته: '+err.field+' — لطفاً سرور را ری‌استارت کنید'});
+    if(err.code==='ENOENT') return res.status(500).json({error:'خطا در ذخیره فایل - لطفاً با مدیر تماس بگیرید'});
+    res.status(500).json({error:'خطای داخلی سرور: '+(err.message||'')});
+});
 
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
