@@ -52,96 +52,21 @@ function closeImageModal() {
 }
 
 // ====================================================
-// WebView Modal
 // ====================================================
-let _webviewCurrentUrl = '';
-let _webviewListenerInit = false;
-
-function _initWebViewListeners() {
-    if (_webviewListenerInit) return;
-    _webviewListenerInit = true;
-    const iframe = document.getElementById('webview-iframe');
-    const loading = document.getElementById('webview-loading');
-    const urlBar = document.getElementById('webview-url-bar');
-
-    // هر بار iframe بارگذاری شد (شامل navigationهای داخلی)
-    iframe.addEventListener('load', function() {
-        loading.classList.add('hidden');
-        document.getElementById('webview-progress-bar').classList.add('hidden');
-        // آدرس URL بار را از پارامتر ?url= به‌روز کن
-        try {
-            const urlParam = new URL(iframe.src, location.origin).searchParams.get('url');
-            if (urlParam) {
-                _webviewCurrentUrl = urlParam;
-                try { urlBar.textContent = new URL(urlParam).hostname; }
-                catch(e) { urlBar.textContent = urlParam; }
-            }
-        } catch(e) {}
-    });
-
-    // پیام‌های ناوبری از اسکریپت تزریق‌شده در صفحات proxy
-    window.addEventListener('message', function(e) {
-        if (!e.data || e.data.type !== 'wv-nav') return;
-        const modal = document.getElementById('webview-modal');
-        if (!modal.classList.contains('flex')) return;
-        loading.classList.remove('hidden');
-        document.getElementById('webview-progress-bar').classList.remove('hidden');
-        _webviewCurrentUrl = e.data.url;
-        try { urlBar.textContent = new URL(e.data.url).hostname; }
-        catch(ex) { urlBar.textContent = e.data.url; }
-    });
-}
-
+// لینک‌های خارجی — باز کردن در تب جدید
+// ====================================================
 function openWebView(url) {
     if (!url) return;
-    _webviewCurrentUrl = url;
-    const modal = document.getElementById('webview-modal');
-    const iframe = document.getElementById('webview-iframe');
-    const urlBar = document.getElementById('webview-url-bar');
-    const loading = document.getElementById('webview-loading');
-    _initWebViewListeners();
-    try { urlBar.textContent = new URL(url).hostname; } catch(e) { urlBar.textContent = url; }
-    loading.classList.remove('hidden');
-    document.getElementById('webview-progress-bar').classList.remove('hidden');
-    iframe.src = '/api/proxy?url=' + encodeURIComponent(url);
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    window.open(url, '_blank');
 }
-
-function closeWebView() {
-    const modal = document.getElementById('webview-modal');
-    const iframe = document.getElementById('webview-iframe');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    iframe.src = '';
-    _webviewCurrentUrl = '';
-}
-
-function webviewGoBack() {
-    const iframe = document.getElementById('webview-iframe');
-    const loading = document.getElementById('webview-loading');
-    try {
-        iframe.contentWindow.history.back();
-        loading.classList.remove('hidden');
-    } catch(e) {}
-}
-
+function closeWebView() {}
+function webviewGoBack() {}
 function webviewReload() {
-    const iframe = document.getElementById('webview-iframe');
-    const loading = document.getElementById('webview-loading');
-    loading.classList.remove('hidden');
-    document.getElementById('webview-progress-bar').classList.remove('hidden');
-    iframe.src = iframe.src;
 }
 
-function webviewOpenExternal() {
-    if (_webviewCurrentUrl) window.open(_webviewCurrentUrl, '_blank');
-}
-
+function webviewOpenExternal() {}
 function webviewCopyUrl() {
-    if (!_webviewCurrentUrl) return;
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(_webviewCurrentUrl);
+    if (false) {
         showToast('لینک کپی شد');
     }
 }

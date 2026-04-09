@@ -98,102 +98,11 @@ function setLibSort(mode) {
 }
 
 // ====================================================
-// نمایش‌دهنده PDF (image-based — pdftoppm سرور)
+// PDF — باز کردن مستقیم در تب جدید
 // ====================================================
-let _pdfPage = 1;
-let _pdfTotal = 0;
-let _pdfBookId = null;
-
 function openPdfBook(bookId) {
-    const book = allBooks.find(b => b.id == bookId);
-    if (!book) return;
-    _pdfBookId = bookId;
-    _pdfPage = 1;
-    _pdfTotal = 0;
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
-    const overlay = document.getElementById('pdf-viewer-overlay');
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
-    document.getElementById('pdf-viewer-title').textContent = book.title;
-    document.getElementById('pdf-page-current').textContent = '۱';
-    document.getElementById('pdf-page-total').textContent = '...';
-    document.getElementById('pdf-btn-prev').disabled = true;
-    document.getElementById('pdf-btn-next').disabled = true;
-    _pdfLoadPage(1);
-    // دریافت تعداد صفحات
-    fetch('/api/books/' + bookId + '/pdf-info')
-        .then(r => r.json())
-        .then(d => {
-            _pdfTotal = d.pages || 0;
-            document.getElementById('pdf-page-total').textContent = toFa ? toFa(_pdfTotal) : _pdfTotal;
-            document.getElementById('pdf-btn-next').disabled = _pdfPage >= _pdfTotal;
-            // پیش‌بارگذاری صفحه بعد
-            if (_pdfPage < _pdfTotal) new Image().src = '/api/books/' + bookId + '/pdf-page/' + (_pdfPage + 1);
-        }).catch(() => {});
-}
-
-function _pdfLoadPage(pageNum) {
-    document.getElementById('pdf-loading').classList.remove('hidden');
-    document.getElementById('pdf-btn-prev').disabled = true;
-    document.getElementById('pdf-btn-next').disabled = true;
-    const img = document.getElementById('pdf-page-img');
-    const src = '/api/books/' + _pdfBookId + '/pdf-page/' + pageNum;
-    img.onload = function() {
-        document.getElementById('pdf-loading').classList.add('hidden');
-        _pdfPage = pageNum;
-        document.getElementById('pdf-page-current').textContent = toFa ? toFa(pageNum) : pageNum;
-        document.getElementById('pdf-btn-prev').disabled = pageNum <= 1;
-        document.getElementById('pdf-btn-next').disabled = _pdfTotal > 0 ? pageNum >= _pdfTotal : false;
-        document.getElementById('pdf-canvas-container').scrollTop = 0;
-        // پیش‌بارگذاری صفحه بعد
-        if (_pdfTotal > 0 && pageNum < _pdfTotal) new Image().src = '/api/books/' + _pdfBookId + '/pdf-page/' + (pageNum + 1);
-    };
-    img.onerror = function() {
-        document.getElementById('pdf-loading').classList.add('hidden');
-        img.alt = 'خطا در بارگذاری صفحه';
-    };
-    img.src = src;
-}
-
-function pdfPrevPage() {
-    if (_pdfPage <= 1) return;
-    _pdfLoadPage(_pdfPage - 1);
-}
-
-function pdfNextPage() {
-    if (_pdfTotal > 0 && _pdfPage >= _pdfTotal) return;
-    _pdfLoadPage(_pdfPage + 1);
-}
-
-function closePdfViewer() {
-    document.getElementById('pdf-viewer-overlay').classList.add('hidden');
-    document.getElementById('pdf-viewer-overlay').classList.remove('flex');
-    document.getElementById('pdf-page-img').src = '';
-    _pdfBookId = null; _pdfPage = 1; _pdfTotal = 0;
-}
-
-function downloadPdfBook() {
-    if (_pdfBookId) window.open('/api/books/' + _pdfBookId + '/pdf', '_blank');
-}
-
-function pdfGoToPage() {
-    if (!_pdfTotal) return;
-    const p = parseInt(prompt('رفتن به صفحه (۱ تا ' + _pdfTotal + '):'));
-    if (!isNaN(p) && p >= 1 && p <= _pdfTotal) _pdfLoadPage(p);
-}
-
-let _pdfZoom = 100;
-function pdfZoomIn() {
-    _pdfZoom = Math.min(_pdfZoom + 25, 250);
-    const img = document.getElementById('pdf-page-img');
-    img.style.width = _pdfZoom + '%';
-    img.style.maxWidth = _pdfZoom <= 100 ? '100%' : 'none';
-}
-function pdfZoomOut() {
-    _pdfZoom = Math.max(_pdfZoom - 25, 50);
-    const img = document.getElementById('pdf-page-img');
-    img.style.width = _pdfZoom + '%';
-    img.style.maxWidth = _pdfZoom <= 100 ? '100%' : 'none';
+    window.open('/api/books/' + bookId + '/pdf', '_blank');
 }
 
 async function openBook(bookId) {

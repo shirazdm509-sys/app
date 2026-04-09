@@ -1077,7 +1077,16 @@ async function loadBooks(){
         </div>
       </div>
     `).join('');
-    if(typeof Sortable!=='undefined'){Sortable.create(c,{animation:150,onEnd:async()=>{const ids=Array.from(c.children).map(el=>+el.dataset.id).filter(Boolean);if(ids.length){await adminFetch('/api/admin/books/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});showToast('ترتیب کتاب‌ها ذخیره شد');}}});}
+    if(typeof Sortable!=='undefined'){
+      if(window._booksSortable){try{window._booksSortable.destroy();}catch(e){}}
+      window._booksSortable=Sortable.create(c,{animation:150,onEnd:async()=>{
+        const ids=Array.from(c.children).map(el=>+el.dataset.id).filter(Boolean);
+        if(ids.length){
+          const r=await adminFetch('/api/admin/books/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+          if(r.ok) showToast('ترتیب ذخیره شد');
+        }
+      }});
+    }
   }catch(e){}
 }
 async function deleteBook(id){
@@ -2602,7 +2611,7 @@ function _renderJalaliPicker(jy,jm,jd){
 
   // روزهای ماه
   const daysInMonth=jalaali.jalaaliMonthLength(jy,jm);
-  const firstDay=new Date(...jalaali.toGregorian(jy,jm,1).slice(0,3).map((v,i)=>i===1?v-1:v));
+  const _g=jalaali.toGregorian(jy,jm,1);const firstDay=new Date(_g.gy,_g.gm-1,_g.gd);
   // شنبه=0 ... جمعه=6
   let startDow=(firstDay.getDay()+1)%7; // در تقویم شمسی شنبه اول هفته
 
