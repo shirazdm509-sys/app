@@ -702,6 +702,54 @@ app.get('/api/books/:id/pdf',(req,res)=>{
     });
 });
 
+// تعداد صفحات PDF
+app.get('/api/books/:id/pdf-info',(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).end();
+    mainDb.get('SELECT pdf_filename FROM books WHERE id=? AND book_type="pdf"',[id],(err,b)=>{
+        if(err||!b) return res.status(404).json({error:'not found'});
+        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
+        if(!fs.existsSync(fp)) return res.status(404).json({error:'file missing'});
+        const {execFile}=require('child_process');
+        execFile('pdfinfo',[fp],(e,stdout)=>{
+            if(e) return res.json({pages:0});
+            const m=stdout.match(/Pages:\s*(\d+)/);
+            res.json({pages:m?+m[1]:0});
+        });
+    });
+});
+
+// رندر صفحه PDF به تصویر PNG با pdftoppm
+app.get('/api/books/:id/pdf-page/:page',(req,res)=>{
+    const id=+req.params.id, page=+req.params.page;
+    if(isNaN(id)||isNaN(page)||page<1) return res.status(400).end();
+    mainDb.get('SELECT pdf_filename FROM books WHERE id=? AND book_type="pdf"',[id],(err,b)=>{
+        if(err||!b) return res.status(404).end();
+        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
+        if(!fs.existsSync(fp)) return res.status(404).end();
+        const cacheDir=path.join(__dirname,'tmp','pdf-pages');
+        if(!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir,{recursive:true});
+        const cacheFile=path.join(cacheDir,`b${id}_p${page}.png`);
+        const sendImage=()=>{
+            res.setHeader('Content-Type','image/png');
+            res.setHeader('Cache-Control','public, max-age=86400');
+            fs.createReadStream(cacheFile).pipe(res);
+        };
+        if(fs.existsSync(cacheFile)) return sendImage();
+        // پوشه موقت اختصاصی برای هر render تا نام فایل خروجی قابل پیش‌بینی باشد
+        const tmpDir=path.join(cacheDir,`tmp_${id}_${page}_${Date.now()}`);
+        fs.mkdirSync(tmpDir,{recursive:true});
+        const {execFile}=require('child_process');
+        execFile('pdftoppm',['-r','180','-png','-f',String(page),'-l',String(page),fp,path.join(tmpDir,'p')],(e)=>{
+            if(e){fs.rmSync(tmpDir,{recursive:true,force:true});console.error('pdftoppm:',e.message);return res.status(500).end();}
+            const files=fs.readdirSync(tmpDir).filter(f=>f.endsWith('.png'));
+            if(!files.length){fs.rmSync(tmpDir,{recursive:true,force:true});return res.status(500).end();}
+            fs.renameSync(path.join(tmpDir,files[0]),cacheFile);
+            fs.rmSync(tmpDir,{recursive:true,force:true});
+            sendImage();
+        });
+    });
+});
+
 // Admin Settings
 app.get('/api/admin/settings',adminAuth,(req,res)=>{
     mainDb.all('SELECT key,value FROM settings',[],(err,rows)=>{

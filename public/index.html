@@ -1102,9 +1102,9 @@
     <span id="pdf-viewer-title" class="flex-1 text-sm font-bold text-white truncate text-center px-2"></span>
     <button onclick="downloadPdfBook()" class="w-9 h-9 flex items-center justify-center text-white rounded-full hover:bg-white/10 transition" title="دانلود PDF"><i class="fas fa-download text-sm"></i></button>
   </div>
-  <!-- Canvas container -->
-  <div id="pdf-canvas-container" class="flex-1 overflow-auto bg-gray-700 flex flex-col items-center p-3 gap-3">
-    <canvas id="pdf-canvas" class="shadow-2xl rounded max-w-full"></canvas>
+  <!-- Page image container -->
+  <div id="pdf-canvas-container" class="flex-1 overflow-auto bg-gray-700 flex flex-col items-center p-3">
+    <img id="pdf-page-img" src="" alt="" class="shadow-2xl rounded max-w-full select-none" draggable="false">
   </div>
   <!-- Loading overlay -->
   <div id="pdf-loading" class="absolute inset-0 bg-gray-900/90 flex flex-col items-center justify-center z-10">
