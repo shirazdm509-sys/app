@@ -126,7 +126,21 @@ function openPdfBook(bookId) {
         _pdfShowError('کتابخانه PDF بارگذاری نشد');
         return;
     }
-    pdfjsLib.getDocument('/api/books/' + bookId + '/pdf').promise.then(function(pdf) {
+    const loadingTask = pdfjsLib.getDocument({
+        url: '/api/books/' + bookId + '/pdf',
+        cMapUrl: '/vendor/pdfjs/cmaps/',
+        cMapPacked: true,
+        rangeChunkSize: 65536,
+    });
+    // نمایش پیشرفت دانلود
+    const loadingEl = document.getElementById('pdf-loading');
+    loadingTask.onProgress = function(data) {
+        if (data.total) {
+            const pct = Math.round(data.loaded / data.total * 100);
+            loadingEl.querySelector('p').textContent = 'در حال بارگذاری... ' + pct + '%';
+        }
+    };
+    loadingTask.promise.then(function(pdf) {
         _pdfDoc = pdf;
         document.getElementById('pdf-page-total').textContent = pdf.numPages;
         document.getElementById('pdf-loading').classList.add('hidden');
@@ -142,12 +156,15 @@ function _pdfRender(pageNum) {
     _pdfDoc.getPage(pageNum).then(function(page) {
         const container = document.getElementById('pdf-canvas-container');
         const canvas = document.getElementById('pdf-canvas');
+        const dpr = window.devicePixelRatio || 1;
         const containerW = container.clientWidth - 24;
         const vp1 = page.getViewport({scale: 1});
-        const scale = Math.min(containerW / vp1.width, 3);
+        const scale = (containerW / vp1.width) * dpr;
         const vp = page.getViewport({scale});
         canvas.width = vp.width;
         canvas.height = vp.height;
+        canvas.style.width = (vp.width / dpr) + 'px';
+        canvas.style.height = (vp.height / dpr) + 'px';
         const ctx = canvas.getContext('2d');
         page.render({canvasContext: ctx, viewport: vp}).promise.then(function() {
             _pdfRendering = false;
@@ -184,6 +201,12 @@ function closePdfViewer() {
 
 function downloadPdfBook() {
     if (_pdfBookId) window.open('/api/books/' + _pdfBookId + '/pdf', '_blank');
+}
+
+function pdfGoToPage() {
+    if (!_pdfDoc) return;
+    const p = parseInt(prompt('رفتن به صفحه (۱ تا ' + _pdfDoc.numPages + '):'));
+    if (!isNaN(p) && p >= 1 && p <= _pdfDoc.numPages) _pdfRender(p);
 }
 
 function _pdfShowError(msg) {

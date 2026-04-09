@@ -1116,10 +1116,10 @@
     <button id="pdf-btn-prev" onclick="pdfPrevPage()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-700 text-white active:scale-90 transition disabled:opacity-30 disabled:pointer-events-none">
       <i class="fas fa-chevron-right text-sm"></i>
     </button>
-    <div class="text-center">
+    <button onclick="pdfGoToPage()" class="text-center active:opacity-70">
       <div class="text-white text-sm font-bold"><span id="pdf-page-current">--</span> / <span id="pdf-page-total">--</span></div>
-      <div class="text-gray-400 text-[10px] mt-0.5">صفحه</div>
-    </div>
+      <div class="text-gray-400 text-[10px] mt-0.5">برو به صفحه</div>
+    </button>
     <button id="pdf-btn-next" onclick="pdfNextPage()" class="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-700 text-white active:scale-90 transition disabled:opacity-30 disabled:pointer-events-none">
       <i class="fas fa-chevron-left text-sm"></i>
     </button>
