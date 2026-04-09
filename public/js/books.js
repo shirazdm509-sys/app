@@ -97,33 +97,103 @@ function setLibSort(mode) {
 }
 
 // ====================================================
-// نمایش‌دهنده PDF
+// نمایش‌دهنده PDF (PDF.js)
 // ====================================================
+let _pdfDoc = null;
+let _pdfPage = 1;
+let _pdfBookId = null;
+let _pdfRendering = false;
+let _pdfPending = null;
+
 function openPdfBook(bookId) {
     const book = allBooks.find(b => b.id == bookId);
     if (!book) return;
+    _pdfBookId = bookId;
+    _pdfPage = 1;
+    _pdfDoc = null;
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     const overlay = document.getElementById('pdf-viewer-overlay');
-    const iframe = document.getElementById('pdf-viewer-iframe');
-    const title = document.getElementById('pdf-viewer-title');
-    if (!overlay || !iframe) return;
-    title.textContent = book.title;
-    iframe.src = '/api/books/' + bookId + '/pdf';
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
+    document.getElementById('pdf-viewer-title').textContent = book.title;
+    document.getElementById('pdf-page-current').textContent = '--';
+    document.getElementById('pdf-page-total').textContent = '--';
+    document.getElementById('pdf-loading').classList.remove('hidden');
+    document.getElementById('pdf-btn-prev').disabled = true;
+    document.getElementById('pdf-btn-next').disabled = true;
+
+    if (typeof pdfjsLib === 'undefined') {
+        _pdfShowError('کتابخانه PDF بارگذاری نشد');
+        return;
+    }
+    pdfjsLib.getDocument('/api/books/' + bookId + '/pdf').promise.then(function(pdf) {
+        _pdfDoc = pdf;
+        document.getElementById('pdf-page-total').textContent = pdf.numPages;
+        document.getElementById('pdf-loading').classList.add('hidden');
+        _pdfRender(_pdfPage);
+    }).catch(function(err) {
+        _pdfShowError('خطا در بارگذاری PDF: ' + err.message);
+    });
+}
+
+function _pdfRender(pageNum) {
+    if (_pdfRendering) { _pdfPending = pageNum; return; }
+    _pdfRendering = true;
+    _pdfDoc.getPage(pageNum).then(function(page) {
+        const container = document.getElementById('pdf-canvas-container');
+        const canvas = document.getElementById('pdf-canvas');
+        const containerW = container.clientWidth - 24;
+        const vp1 = page.getViewport({scale: 1});
+        const scale = Math.min(containerW / vp1.width, 3);
+        const vp = page.getViewport({scale});
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        const ctx = canvas.getContext('2d');
+        page.render({canvasContext: ctx, viewport: vp}).promise.then(function() {
+            _pdfRendering = false;
+            _pdfPage = pageNum;
+            document.getElementById('pdf-page-current').textContent = pageNum;
+            document.getElementById('pdf-btn-prev').disabled = pageNum <= 1;
+            document.getElementById('pdf-btn-next').disabled = pageNum >= _pdfDoc.numPages;
+            container.scrollTop = 0;
+            if (_pdfPending !== null) {
+                const p = _pdfPending; _pdfPending = null; _pdfRender(p);
+            }
+        });
+    }).catch(function(err) {
+        _pdfRendering = false;
+        _pdfShowError('خطا در رندر صفحه: ' + err.message);
+    });
+}
+
+function pdfPrevPage() {
+    if (!_pdfDoc || _pdfPage <= 1) return;
+    _pdfRender(_pdfPage - 1);
+}
+
+function pdfNextPage() {
+    if (!_pdfDoc || _pdfPage >= _pdfDoc.numPages) return;
+    _pdfRender(_pdfPage + 1);
 }
 
 function closePdfViewer() {
-    const overlay = document.getElementById('pdf-viewer-overlay');
-    const iframe = document.getElementById('pdf-viewer-iframe');
-    overlay.classList.add('hidden');
-    overlay.classList.remove('flex');
-    iframe.src = '';
+    document.getElementById('pdf-viewer-overlay').classList.add('hidden');
+    document.getElementById('pdf-viewer-overlay').classList.remove('flex');
+    _pdfDoc = null; _pdfBookId = null; _pdfRendering = false; _pdfPending = null;
 }
 
 function downloadPdfBook() {
-    const iframe = document.getElementById('pdf-viewer-iframe');
-    if (iframe && iframe.src) window.open(iframe.src, '_blank');
+    if (_pdfBookId) window.open('/api/books/' + _pdfBookId + '/pdf', '_blank');
+}
+
+function _pdfShowError(msg) {
+    document.getElementById('pdf-loading').classList.add('hidden');
+    const canvas = document.getElementById('pdf-canvas');
+    canvas.width = 300; canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,300,100);
+    ctx.fillStyle = '#e53e3e'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(msg, 150, 55);
 }
 
 async function openBook(bookId) {
