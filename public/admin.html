@@ -98,7 +98,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
     <div>
       <div class="flex items-center justify-between mb-4"><h2 class="text-base font-black">کتاب‌های موجود</h2><button onclick="loadBooks()" class="w-9 h-9 bg-white rounded-full shadow-sm text-gray-500 hover:text-teal-600 border border-gray-100"><i class="fas fa-sync-alt text-sm"></i></button></div>
-      <div id="books-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+      <div id="books-list" class="flex flex-col gap-2"></div>
     </div>
   </div>
 
@@ -1058,36 +1058,40 @@ async function loadBooks(){
   try{
     const r=await fetch('/api/books');const bs=await r.json();
     const c=document.getElementById('books-list');
-    if(!bs||!bs.length){c.innerHTML='<div class="col-span-full text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
+    if(!bs||!bs.length){c.innerHTML='<div class="text-center py-10 text-gray-400">هیچ کتابی یافت نشد.</div>';return;}
     c.innerHTML=bs.map(b=>`
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 relative group" data-id="${b.id}">
-        <div class="absolute top-2 right-2 flex gap-1 z-10">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 px-3 py-2" data-id="${b.id}">
+        <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 px-1 shrink-0 touch-none">
+          <i class="fas fa-grip-lines text-base"></i>
+        </div>
+        <div class="w-10 h-14 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+          ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="${b.book_type==='pdf'?'fas fa-file-pdf text-rose-300':'fas fa-book'} text-sm"></i></div>`}
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-black text-sm truncate">${b.title}</h3>
+          <p class="text-xs text-gray-400 truncate">${b.author||'ناشناس'}</p>
+          <span class="text-[10px] ${b.book_type==='pdf'?'bg-rose-50 text-rose-400':'bg-gray-100 text-gray-400'} px-2 py-0.5 rounded mt-0.5 inline-block">${b.book_type==='pdf'?'PDF':(b.page_count+' صفحه')}</span>
+        </div>
+        <div class="flex gap-1 shrink-0">
           <button onclick="openEditBook(${b.id})" class="bg-white text-teal-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-teal-100 text-xs"><i class="fas fa-edit"></i></button>
           <button onclick="deleteBook(${b.id})" class="bg-white text-rose-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border border-rose-100 text-xs"><i class="fas fa-trash"></i></button>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="w-14 bg-gray-100 rounded-xl overflow-hidden shrink-0 h-[72px]">
-            ${b.cover?`<img src="${b.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full flex items-center justify-center text-teal-300"><i class="${b.book_type==='pdf'?'fas fa-file-pdf text-rose-300':'fas fa-book'}"></i></div>`}
-          </div>
-          <div>
-            <h3 class="font-black text-sm line-clamp-2 mb-1">${b.title}</h3>
-            <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
-            <span class="text-[10px] ${b.book_type==='pdf'?'bg-rose-50 text-rose-400':'bg-gray-100 text-gray-400'} px-2 py-0.5 rounded mt-1 inline-block">${b.book_type==='pdf'?'PDF':(b.page_count+' صفحه')}</span>
-          </div>
         </div>
       </div>
     `).join('');
     if(typeof Sortable!=='undefined'){
       if(window._booksSortable){try{window._booksSortable.destroy();}catch(e){}}
-      window._booksSortable=Sortable.create(c,{animation:150,onEnd:async()=>{
+      window._booksSortable=Sortable.create(c,{animation:150,handle:'.drag-handle',ghostClass:'opacity-40',onEnd:async()=>{
         const ids=Array.from(c.children).map(el=>+el.dataset.id).filter(Boolean);
         if(ids.length){
-          const r=await adminFetch('/api/admin/books/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
-          if(r.ok) showToast('ترتیب ذخیره شد');
+          try{
+            const r=await adminFetch('/api/admin/books/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+            if(r.ok) showToast('ترتیب ذخیره شد');
+            else showToast('خطا در ذخیره ترتیب');
+          }catch(e){showToast('خطا در ذخیره ترتیب');}
         }
       }});
     }
-  }catch(e){}
+  }catch(e){console.error('loadBooks error:',e);}
 }
 async function deleteBook(id){
   if(!confirm('حذف شود؟')) return;

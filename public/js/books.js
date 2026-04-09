@@ -70,7 +70,7 @@ function renderLibrary() {
     };
 
     // مرتب‌سازی کتابخانه
-    let sortedBooks = [...allBooks];
+    let sortedBooks = [...allBooks].sort((a, b2) => (a.sort_order ?? 9999) - (b2.sort_order ?? 9999));
     if (_libSort === 'visited') {
         sortedBooks.sort((a, b2) => {
             const ra = parseInt(localStorage.getItem('book_'+a.id+'_last_read')||'0');
@@ -78,7 +78,7 @@ function renderLibrary() {
             return rb - ra;
         });
     }
-    grid.innerHTML = sortedBooks.map((b) => renderCard(b, allBooks.indexOf(b), false)).join('');
+    grid.innerHTML = sortedBooks.map((b, i) => renderCard(b, i, false)).join('');
 
     // در خانه: کتاب‌ها بر اساس ترتیب ادمین (sort_order)
     const titleEl = document.getElementById('home-books-title');
