@@ -718,7 +718,7 @@ app.get('/api/books/:id/pdf-info',(req,res)=>{
     });
 });
 
-// رندر صفحه PDF به تصویر PNG با ghostscript
+// رندر صفحه PDF به تصویر PNG
 app.get('/api/books/:id/pdf-page/:page',(req,res)=>{
     const id=+req.params.id, page=+req.params.page;
     if(isNaN(id)||isNaN(page)||page<1) return res.status(400).end();
@@ -736,32 +736,31 @@ app.get('/api/books/:id/pdf-page/:page',(req,res)=>{
         };
         if(fs.existsSync(cacheFile)) return sendImage();
         const {execFile}=require('child_process');
-        // ghostscript: رندر با کیفیت بالا + پشتیبانی فونت عربی/فارسی
-        const gsArgs=[
-            '-dNOPAUSE','-dBATCH','-dSAFER',
-            '-sDEVICE=png16m',
-            '-r220',
-            `-dFirstPage=${page}`,`-dLastPage=${page}`,
-            '-dTextAlphaBits=4','-dGraphicsAlphaBits=4',
-            `-sOutputFile=${cacheFile}`,
-            fp
-        ];
-        execFile('gs',gsArgs,{timeout:30000},(e)=>{
-            if(e||!fs.existsSync(cacheFile)){
-                console.error('gs error:',e&&e.message);
-                // fallback به pdftoppm
-                const tmpDir=path.join(cacheDir,`tmp_${id}_${page}_${Date.now()}`);
-                fs.mkdirSync(tmpDir,{recursive:true});
-                execFile('pdftoppm',['-r','200','-png','-f',String(page),'-l',String(page),fp,path.join(tmpDir,'p')],(e2)=>{
-                    if(e2){fs.rmSync(tmpDir,{recursive:true,force:true});return res.status(500).end();}
-                    const files=fs.readdirSync(tmpDir).filter(f=>f.endsWith('.png'));
-                    if(!files.length){fs.rmSync(tmpDir,{recursive:true,force:true});return res.status(500).end();}
-                    fs.renameSync(path.join(tmpDir,files[0]),cacheFile);
-                    fs.rmSync(tmpDir,{recursive:true,force:true});
-                    sendImage();
-                });
-                return;
+        // ابتدا pdftoppm (سریع‌تر) — اگر نبود ghostscript
+        const tmpDir=path.join(cacheDir,`tmp_${id}_${page}_${Date.now()}`);
+        fs.mkdirSync(tmpDir,{recursive:true});
+        execFile('pdftoppm',['-r','200','-png','-f',String(page),'-l',String(page),fp,path.join(tmpDir,'p')],{timeout:30000},(e)=>{
+            const files=fs.readdirSync(tmpDir).filter(f=>f.endsWith('.png'));
+            if(!e&&files.length){
+                fs.renameSync(path.join(tmpDir,files[0]),cacheFile);
+                fs.rmSync(tmpDir,{recursive:true,force:true});
+                return sendImage();
             }
+            fs.rmSync(tmpDir,{recursive:true,force:true});
+            console.error('[pdf-page] pdftoppm failed:',e&&e.message,', trying gs');
+            // fallback: ghostscript
+            const gsArgs=['-dNOPAUSE','-dBATCH','-dSAFER','-sDEVICE=png16m','-r200',
+                `-dFirstPage=${page}`,`-dLastPage=${page}`,
+                '-dTextAlphaBits=4','-dGraphicsAlphaBits=4',
+                `-sOutputFile=${cacheFile}`,fp];
+            execFile('gs',gsArgs,{timeout:30000},(e2)=>{
+                if(e2||!fs.existsSync(cacheFile)){
+                    console.error('[pdf-page] gs also failed:',e2&&e2.message);
+                    return res.status(500).end();
+                }
+                sendImage();
+            });
+        });
             sendImage();
         });
     });
