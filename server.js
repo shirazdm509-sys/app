@@ -761,8 +761,6 @@ app.get('/api/books/:id/pdf-page/:page',(req,res)=>{
                 sendImage();
             });
         });
-            sendImage();
-        });
     });
 });
 
