@@ -2107,7 +2107,7 @@ async function deleteGalleryPhoto(id,catId){
 function renderAudioAdminCat(cat, isChild=false){
   return `
     <div class="bg-white rounded-2xl shadow-sm border ${isChild?'border-teal-100':'border-gray-100'} overflow-hidden" id="acat-${cat.id}">
-      <div class="flex items-center gap-3 p-3 border-b ${isChild?'border-teal-50 bg-teal-50/30':'border-gray-100'}">
+      <div class="flex items-center gap-3 p-3 cursor-pointer select-none ${isChild?'border-teal-50 bg-teal-50/30':'border-gray-100'}" onclick="toggleAudioCat(${cat.id})">
         <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center">
           ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<div class="w-full h-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center"><i class="fas fa-headphones text-white text-xl"></i></div>`}
         </div>
@@ -2122,16 +2122,29 @@ function renderAudioAdminCat(cat, isChild=false){
             ${!isChild&&cat.sub_count>0?`<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${cat.sub_count} زیردسته</span>`:''}
           </div>
         </div>
-        <div class="flex gap-1.5 shrink-0">
+        <i id="acat-chevron-${cat.id}" class="fas fa-chevron-left text-gray-300 text-xs transition-transform shrink-0"></i>
+        <div class="flex gap-1.5 shrink-0" onclick="event.stopPropagation()">
           <button onclick="openAudioTrackModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن صوت</span></button>
           <button onclick="openEditAudioCat(${cat.id})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
           <button onclick="deleteAudioCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
         </div>
       </div>
-      <div id="acat-tracks-${cat.id}" class="p-3">
-        ${cat.track_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز صوتی اضافه نشده</div>'}
+      <div id="acat-tracks-${cat.id}" class="hidden p-3 border-t border-gray-100" data-loaded="0">
+        <div class="text-center py-3 text-gray-400 text-xs opacity-50">در حال بارگذاری...</div>
       </div>
     </div>`;
+}
+function toggleAudioCat(catId){
+  const body=document.getElementById('acat-tracks-'+catId);
+  const chev=document.getElementById('acat-chevron-'+catId);
+  if(!body) return;
+  const isOpen=!body.classList.contains('hidden');
+  if(isOpen){body.classList.add('hidden');if(chev){chev.style.transform='';}}
+  else{
+    body.classList.remove('hidden');
+    if(chev){chev.style.transform='rotate(-90deg)';}
+    if(body.dataset.loaded==='0'){body.dataset.loaded='1';loadCategoryTracksAdmin(catId);}
+  }
 }
 async function loadAudioGalleryAdmin(){
   try{
@@ -2166,7 +2179,6 @@ async function loadAudioGalleryAdmin(){
     const orphans=allCats.filter(x=>x.parent_id&&!parents.find(p=>p.id===x.parent_id));
     orphans.forEach(cat=>html+=renderAudioAdminCat(cat,false));
     c.innerHTML=`<div id="audio-cats-sortable" class="flex flex-col gap-2">${html}</div>`;
-    allCats.filter(c=>c.track_count>0).forEach(cat=>loadCategoryTracksAdmin(cat.id));
     // DnD برای ترتیب دسته‌بندی‌ها
     const sortableEl=document.getElementById('audio-cats-sortable');
     if(sortableEl&&typeof Sortable!=='undefined'){Sortable.create(sortableEl,{animation:150,handle:'.fa-folder-open,.fa-folder',onEnd:async()=>{const ids=Array.from(sortableEl.children).map(el=>{const m=el.id.match(/acat-(\d+)/);return m?+m[1]:null;}).filter(Boolean);if(ids.length)await adminFetch('/api/admin/audio/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});showToast('ترتیب ذخیره شد');}});}
@@ -2396,7 +2408,7 @@ async function saveEditAudioTrack(e){
 function renderVideoAdminCat(cat, isChild=false){
   return `
     <div class="bg-white rounded-2xl shadow-sm border ${isChild?'border-rose-100':'border-gray-100'} overflow-hidden" id="vcat-${cat.id}">
-      <div class="flex items-center gap-3 p-3 border-b ${isChild?'border-rose-50 bg-rose-50/20':'border-gray-100'}">
+      <div class="flex items-center gap-3 p-3 cursor-pointer select-none ${isChild?'border-rose-50 bg-rose-50/20':'border-gray-100'}" onclick="toggleVideoCat(${cat.id})">
         <div class="w-20 h-[45px] rounded-xl overflow-hidden shrink-0 bg-gray-900 flex items-center justify-center">
           ${cat.cover?`<img src="${cat.cover}" class="w-full h-full object-cover">`:`<i class="fas fa-film text-gray-600 text-xl"></i>`}
         </div>
@@ -2411,16 +2423,29 @@ function renderVideoAdminCat(cat, isChild=false){
             ${!isChild&&cat.sub_count>0?`<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">${cat.sub_count} زیردسته</span>`:''}
           </div>
         </div>
-        <div class="flex gap-1.5 shrink-0">
+        <i id="vcat-chevron-${cat.id}" class="fas fa-chevron-left text-gray-300 text-xs transition-transform shrink-0"></i>
+        <div class="flex gap-1.5 shrink-0" onclick="event.stopPropagation()">
           <button onclick="openVideoItemModal(${cat.id},'${cat.name.replace(/'/g,"\\'")}');" class="bg-teal-50 text-teal-600 hover:bg-teal-100 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition"><i class="fas fa-plus"></i><span class="hidden sm:inline">افزودن ویدیو</span></button>
           <button onclick="openEditVideoCat(${cat.id})" class="bg-amber-50 text-amber-600 hover:bg-amber-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-edit text-xs"></i></button>
           <button onclick="deleteVideoCategory(${cat.id})" class="bg-rose-50 text-rose-500 hover:bg-rose-100 w-8 h-8 rounded-xl flex items-center justify-center transition"><i class="fas fa-trash text-xs"></i></button>
         </div>
       </div>
-      <div id="vcat-items-${cat.id}" class="p-3">
-        ${cat.video_count>0?`<div class="text-center py-3 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin ml-1"></i>بارگذاری...</div>`:'<div class="text-center py-3 text-gray-400 text-xs opacity-50">هنوز ویدیویی اضافه نشده</div>'}
+      <div id="vcat-items-${cat.id}" class="hidden p-3 border-t border-gray-100" data-loaded="0">
+        <div class="text-center py-3 text-gray-400 text-xs opacity-50">در حال بارگذاری...</div>
       </div>
     </div>`;
+}
+function toggleVideoCat(catId){
+  const body=document.getElementById('vcat-items-'+catId);
+  const chev=document.getElementById('vcat-chevron-'+catId);
+  if(!body) return;
+  const isOpen=!body.classList.contains('hidden');
+  if(isOpen){body.classList.add('hidden');if(chev){chev.style.transform='';}}
+  else{
+    body.classList.remove('hidden');
+    if(chev){chev.style.transform='rotate(-90deg)';}
+    if(body.dataset.loaded==='0'){body.dataset.loaded='1';loadCategoryItemsAdmin(catId);}
+  }
 }
 async function loadVideoGalleryAdmin(){
   try{
@@ -2455,7 +2480,6 @@ async function loadVideoGalleryAdmin(){
     const orphans=allCats.filter(x=>x.parent_id&&!parents.find(p=>p.id===x.parent_id));
     orphans.forEach(cat=>html+=renderVideoAdminCat(cat,false));
     c.innerHTML=`<div id="video-cats-sortable" class="flex flex-col gap-2">${html}</div>`;
-    allCats.filter(c=>c.video_count>0).forEach(cat=>loadCategoryItemsAdmin(cat.id));
     const sortableEl=document.getElementById('video-cats-sortable');
     if(sortableEl&&typeof Sortable!=='undefined'){Sortable.create(sortableEl,{animation:150,handle:'.fa-folder-open,.fa-folder',onEnd:async()=>{const ids=Array.from(sortableEl.children).map(el=>{const m=el.id.match(/vcat-(\d+)/);return m?+m[1]:null;}).filter(Boolean);if(ids.length)await adminFetch('/api/admin/video/sort',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});showToast('ترتیب ذخیره شد');}});}
   }catch(e){}

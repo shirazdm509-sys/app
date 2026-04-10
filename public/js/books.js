@@ -5,7 +5,6 @@ let allBooks=[], currentBookId=null, bookData=[], currentIndex=0;
 let fontSize=16, currentTheme='light', currentFont='vazir', lineHeight=2.2;
 let uiVisible=true, bookmarks=[], notes={};
 let touchStartX=0, touchEndX=0;
-let _libSort = 'date'; // ترتیب کتابخانه: date | visited
 
 // ====================================================
 // رندر کتابخانه
@@ -69,15 +68,8 @@ function renderLibrary() {
         </div>`;
     };
 
-    // مرتب‌سازی کتابخانه
-    let sortedBooks = [...allBooks].sort((a, b2) => (a.sort_order ?? 9999) - (b2.sort_order ?? 9999));
-    if (_libSort === 'visited') {
-        sortedBooks.sort((a, b2) => {
-            const ra = parseInt(localStorage.getItem('book_'+a.id+'_last_read')||'0');
-            const rb = parseInt(localStorage.getItem('book_'+b2.id+'_last_read')||'0');
-            return rb - ra;
-        });
-    }
+    // مرتب‌سازی بر اساس ترتیب ادمین
+    const sortedBooks = [...allBooks].sort((a, b2) => (a.sort_order ?? 9999) - (b2.sort_order ?? 9999));
     grid.innerHTML = sortedBooks.map((b, i) => renderCard(b, i, false)).join('');
 
     // در خانه: کتاب‌ها بر اساس ترتیب ادمین (sort_order)
@@ -86,15 +78,6 @@ function renderLibrary() {
     const homeBooks = [...allBooks].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     homeContainer.innerHTML = homeBooks.slice(0, 5).map((b, i) => renderCard(b, i, true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
-}
-
-function setLibSort(mode) {
-    _libSort = mode;
-    document.getElementById('lib-sort-date').className = 'lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition ' +
-        (mode === 'date' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500');
-    document.getElementById('lib-sort-visited').className = 'lib-sort-btn flex-1 text-xs py-1.5 rounded-lg font-bold transition ' +
-        (mode === 'visited' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-500');
-    renderLibrary();
 }
 
 // ====================================================
