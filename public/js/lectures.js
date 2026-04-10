@@ -237,3 +237,23 @@ function openLatestPost(postId) {
     if (liveEl) liveEl.innerHTML = '';
     showWPSingleView(postId);
 }
+
+// ناوبری مستقیم برای لینک‌های داخلی بنر
+async function openLectureCatById(catId) {
+    if (allWPCats.length === 0) {
+        try { allWPCats = await wpFetch('categories?per_page=100').then(r => r.json()); } catch(e) {}
+    }
+    const cat = allWPCats.find(c => c.id === catId);
+    if (cat) handleCategoryClick(cat.id, cat.name);
+}
+
+async function openLecturePostById(postId) {
+    try {
+        let post = cachedPosts.find(p => p.id === postId);
+        if (!post) {
+            const r = await wpFetch(`posts/${postId}?_embed=1`);
+            if (r.ok) { post = await r.json(); cachedPosts = [post, ...cachedPosts]; }
+        }
+        if (post) { wpState.view = 'posts'; showWPSingleView(postId); }
+    } catch(e) {}
+}

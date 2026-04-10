@@ -1351,11 +1351,33 @@ async function loadBanners(){
     renderBannerCards(bns);
   }catch(e){renderBannerCards([]);}
 }
+// parse existing app:// link into {type, extUrl, intId}
+function parseBannerLink(link){
+  if(!link) return {type:'external',extUrl:'',intId:''};
+  if(link.startsWith('app://')){
+    const m=link.match(/^app:\/\/([^/]+)\/(.+)$/);
+    if(m) return {type:m[1],extUrl:'',intId:m[2]};
+  }
+  return {type:'external',extUrl:link,intId:''};
+}
 function renderBannerCards(bns){
   const c=document.getElementById('banners-list');
   c.innerHTML=[1,2,3].map(pos=>{
     const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
     const curSec=b.page_section||'after_books';
+    const lp=parseBannerLink(b.link||'');
+    const linkTypes=[
+      {v:'external',l:'لینک خارجی (URL)'},
+      {v:'book',l:'کتاب'},
+      {v:'audio',l:'صوت'},
+      {v:'audio_cat',l:'دسته بندی صوت'},
+      {v:'video',l:'ویدیو'},
+      {v:'video_cat',l:'دسته بندی ویدیو'},
+      {v:'news',l:'خبر'},
+      {v:'news_cat',l:'دسته بندی خبر'},
+      {v:'lecture',l:'سخنرانی'},
+      {v:'lecture_cat',l:'دسته بندی سخنرانی'},
+    ];
     return `
     <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col gap-3" id="banner-card-${pos}">
       <h3 class="font-bold text-sm text-gray-700">بنر ${pos}</h3>
@@ -1369,7 +1391,20 @@ function renderBannerCards(bns){
         <input type="url" id="banner-url-${pos}" value="" placeholder="https://example.com/banner.jpg" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" oninput="if(this.value.trim()){document.getElementById('banner-img-${pos}').value='';previewBannerUrl(${pos},this.value);}">
       </div>
       <input type="text" id="banner-title-${pos}" value="${b.title||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="عنوان بنر (اختیاری)">
-      <input type="text" id="banner-link-${pos}" value="${b.link||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" placeholder="لینک بنر (https://...)">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1.5">نوع لینک</label>
+        <select id="banner-link-type-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" onchange="onBannerLinkTypeChange(${pos})">
+          ${linkTypes.map(lt=>`<option value="${lt.v}" ${lp.type===lt.v?'selected':''}>${lt.l}</option>`).join('')}
+        </select>
+      </div>
+      <div id="banner-link-ext-${pos}" ${lp.type!=='external'?'style="display:none"':''}>
+        <input type="url" id="banner-link-${pos}" value="${lp.extUrl}" placeholder="https://..." class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
+      </div>
+      <div id="banner-link-int-${pos}" ${lp.type==='external'?'style="display:none"':''}>
+        <select id="banner-internal-id-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
+          <option value="${lp.intId}">${lp.intId?'در حال بارگذاری...':'انتخاب کنید'}</option>
+        </select>
+      </div>
       <div>
         <label class="block text-xs font-bold text-gray-500 mb-1.5">موقعیت در صفحه</label>
         <select id="banner-section-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
@@ -1384,6 +1419,65 @@ function renderBannerCards(bns){
       </label>
     </div>`;
   }).join('');
+  // load internal options for banners that already have app:// links
+  [1,2,3].forEach(pos=>{
+    const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
+    const lp=parseBannerLink(b.link||'');
+    if(lp.type!=='external') loadBannerContentOptions(pos,lp.type,lp.intId);
+  });
+}
+async function onBannerLinkTypeChange(pos){
+  const type=document.getElementById('banner-link-type-'+pos).value;
+  const extDiv=document.getElementById('banner-link-ext-'+pos);
+  const intDiv=document.getElementById('banner-link-int-'+pos);
+  if(type==='external'){
+    extDiv.style.display='';
+    intDiv.style.display='none';
+  } else {
+    extDiv.style.display='none';
+    intDiv.style.display='';
+    await loadBannerContentOptions(pos,type,'');
+  }
+}
+async function loadBannerContentOptions(pos,type,selectedId){
+  const sel=document.getElementById('banner-internal-id-'+pos);
+  if(!sel) return;
+  sel.innerHTML='<option value="">در حال بارگذاری...</option>';
+  try{
+    let items=[];
+    if(type==='book'){
+      const r=await adminFetch('/api/books');
+      items=(await r.json()).map(x=>({id:x.id,label:x.title}));
+    } else if(type==='audio_cat'){
+      const r=await adminFetch('/api/admin/audio/categories');
+      items=(await r.json()).map(x=>({id:x.id,label:x.name}));
+    } else if(type==='audio'){
+      const r=await adminFetch('/api/admin/audio/all-tracks');
+      items=(await r.json()).map(x=>({id:x.id,label:(x.cat_name?x.cat_name+' / ':'')+x.title}));
+    } else if(type==='video_cat'){
+      const r=await adminFetch('/api/admin/video/categories');
+      items=(await r.json()).map(x=>({id:x.id,label:x.name}));
+    } else if(type==='video'){
+      const r=await adminFetch('/api/admin/video/all-items');
+      items=(await r.json()).map(x=>({id:x.id,label:(x.cat_name?x.cat_name+' / ':'')+x.title}));
+    } else if(type==='news'||type==='lecture'){
+      const r=await fetch('/api/wp?path='+encodeURIComponent('posts?per_page=50&_fields=id,title&orderby=date&order=desc'));
+      const posts=await r.json();
+      items=Array.isArray(posts)?posts.map(x=>({id:x.id,label:x.title&&x.title.rendered?x.title.rendered:String(x.id)})):[];
+    } else if(type==='news_cat'||type==='lecture_cat'){
+      const r=await fetch('/api/wp?path='+encodeURIComponent('categories?per_page=100&_fields=id,name'));
+      const cats=await r.json();
+      items=Array.isArray(cats)?cats.map(x=>({id:x.id,label:x.name})):[];
+    }
+    sel.innerHTML='<option value="">انتخاب کنید</option>'+items.map(x=>`<option value="${x.id}" ${String(x.id)===String(selectedId)?'selected':''}>${x.label}</option>`).join('');
+  }catch(e){sel.innerHTML='<option value="">خطا در بارگذاری</option>';}
+}
+function getBannerLinkValue(pos){
+  const type=document.getElementById('banner-link-type-'+pos)?.value||'external';
+  if(type==='external') return document.getElementById('banner-link-'+pos)?.value||'';
+  const id=document.getElementById('banner-internal-id-'+pos)?.value||'';
+  if(!id) return '';
+  return 'app://'+type+'/'+id;
 }
 function previewBanner(pos,input){
   if(!input.files[0]) return;
@@ -1408,7 +1502,7 @@ async function saveBanners(){
     const img=document.getElementById('banner-img-'+pos).files[0];
     if(img && img.size > 10*1024*1024){ showToast(`تصویر بنر ${pos} بیش از ۱۰ مگابایت است`,false); continue; }
     const imageUrl=document.getElementById('banner-url-'+pos)?.value?.trim()||'';
-    const link=document.getElementById('banner-link-'+pos).value;
+    const link=getBannerLinkValue(pos);
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
     const section=document.getElementById('banner-section-'+pos)?.value||'after_books';

@@ -905,6 +905,77 @@ function handleMediaBack() {
     return false;
 }
 
+// ====================================================
+// ناوبری مستقیم از بنر / لینک‌های داخلی
+// ====================================================
+
+// باز کردن یک دسته صوتی با ID
+async function openAudioCatById(catId) {
+    _audioCatsLoaded = false;
+    _audioNavStack = [];
+    await initAudioGallery();
+    // پیدا کردن دسته در لیست رندر شده
+    const view = document.getElementById('audio-categories-view');
+    if (!view) return;
+    const cats = await fetch('/api/audio/categories').then(r => r.json()).catch(() => []);
+    const cat = cats.find(c => c.id === catId);
+    if (!cat) return;
+    if (cat.sub_count > 0) { audioNavToSub(cat.id, cat.name); }
+    else { loadAudioPlaylist(cat.id, cat.name, cat.track_count); }
+}
+
+// باز کردن یک صوت با track ID
+async function openAudioTrackById(trackId) {
+    try {
+        const res = await fetch(`/api/audio/track/${trackId}`).catch(() => null);
+        // اگر endpoint مستقیم نداشتیم، از همه دسته‌ها جستجو کنیم
+        const cats = await fetch('/api/audio/categories').then(r => r.json()).catch(() => []);
+        for (const cat of cats) {
+            const tracks = await fetch(`/api/audio/categories/${cat.id}/tracks`).then(r => r.json()).catch(() => []);
+            const idx = tracks.findIndex(t => t.id === trackId);
+            if (idx >= 0) {
+                _audioCatsLoaded = false;
+                _audioNavStack = [];
+                await initAudioGallery();
+                loadAudioPlaylist(cat.id, cat.name, tracks.length);
+                setTimeout(() => selectAudioTrack(idx, true), 500);
+                return;
+            }
+        }
+    } catch(e) {}
+}
+
+// باز کردن یک دسته ویدیویی با ID
+async function openVideoCatById(catId) {
+    _videoCatsLoaded = false;
+    _videoNavStack = [];
+    await initVideoGallery();
+    const cats = await fetch('/api/videos/categories').then(r => r.json()).catch(() => []);
+    const cat = cats.find(c => c.id === catId);
+    if (!cat) return;
+    if (cat.sub_count > 0) { videoNavToSub(cat.id, cat.name); }
+    else { loadVideoList(cat.id, cat.name, cat.video_count); }
+}
+
+// باز کردن یک ویدیو با ID
+async function openVideoItemById(itemId) {
+    try {
+        const cats = await fetch('/api/videos/categories').then(r => r.json()).catch(() => []);
+        for (const cat of cats) {
+            const items = await fetch(`/api/videos/categories/${cat.id}/items`).then(r => r.json()).catch(() => []);
+            const item = items.find(v => v.id === itemId);
+            if (item) {
+                _videoCatsLoaded = false;
+                _videoNavStack = [];
+                await initVideoGallery();
+                await loadVideoList(cat.id, cat.name, items.length);
+                setTimeout(() => playVideoItem(itemId), 300);
+                return;
+            }
+        }
+    } catch(e) {}
+}
+
 async function shareCurrentAudio() {
     if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
     const tr = audioCurrentTracks[audioCurrentIndex];

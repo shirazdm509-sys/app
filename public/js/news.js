@@ -303,3 +303,12 @@ function renderWPSingle(post, screen) {
     if (imgUrl) { imgC.classList.remove('hidden'); imgC.querySelector('img').src = imgUrl; }
     else { imgC.classList.add('hidden'); }
 }
+
+// ناوبری مستقیم برای لینک‌های داخلی بنر
+async function openNewsCatById(catId) {
+    if (allWPCats.length === 0) {
+        try { allWPCats = await wpFetch('categories?per_page=100').then(r => r.json()); } catch(e) {}
+    }
+    const cat = allWPCats.find(c => c.id === catId);
+    if (cat) showNewsPosts(cat.id, cat.name);
+}

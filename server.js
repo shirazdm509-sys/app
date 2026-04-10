@@ -1163,6 +1163,9 @@ app.get('/api/audio/categories/:id/tracks',(req,res)=>{
 app.get('/api/admin/audio/categories',adminAuth,(req,res)=>{
     mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count, (SELECT COUNT(*) FROM audio_categories WHERE parent_id=ac.id) as sub_count FROM audio_categories ac ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
 });
+app.get('/api/admin/audio/all-tracks',adminAuth,(req,res)=>{
+    mainDb.all(`SELECT at.id,at.title,ac.name as cat_name FROM audio_tracks at LEFT JOIN audio_categories ac ON at.category_id=ac.id ORDER BY ac.sort_order ASC,at.sort_order ASC,at.title ASC`,[],(err,rows)=>res.json(rows||[]));
+});
 app.post('/api/admin/audio/categories',adminAuth,uploadImage.single('audio_cover'),(req,res)=>{
     const name=san(req.body.name||'').trim();
     if(!name) return res.status(400).json({error:'نام دسته‌بندی الزامی است'});
@@ -1340,6 +1343,9 @@ app.get('/api/videos/categories/:id/items',(req,res)=>{
 // === ADMIN VIDEO API ===
 app.get('/api/admin/video/categories',adminAuth,(req,res)=>{
     mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count, (SELECT COUNT(*) FROM video_categories WHERE parent_id=vc.id) as sub_count FROM video_categories vc ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>res.json(rows||[]));
+});
+app.get('/api/admin/video/all-items',adminAuth,(req,res)=>{
+    mainDb.all(`SELECT vi.id,vi.title,vc.name as cat_name FROM video_items vi LEFT JOIN video_categories vc ON vi.category_id=vc.id ORDER BY vc.sort_order ASC,vi.sort_order ASC,vi.title ASC`,[],(err,rows)=>res.json(rows||[]));
 });
 app.post('/api/admin/video/categories',adminAuth,uploadImage.single('gallery_image'),(req,res)=>{
     const name=san(req.body.name||'').trim();

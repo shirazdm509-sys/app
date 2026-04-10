@@ -329,7 +329,7 @@ async function loadBanners() {
             if (!container) continue;
             container.style.padding = '0 ' + padding + 'px';
             container.innerHTML = items.map(b => {
-                const onclick = b.link ? `onclick="openWebView('${b.link.replace(/'/g,"\\'")}');"` : '';
+                const onclick = b.link ? `onclick="handleBannerLink('${b.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
                 return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
                     <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
                 </div>`;
@@ -337,6 +337,51 @@ async function loadBanners() {
         }
     } catch(e) {
         console.warn('Banners load error:', e);
+    }
+}
+
+function handleBannerLink(link) {
+    if (!link) return;
+    if (!link.startsWith('app://')) { openWebView(link); return; }
+    const m = link.match(/^app:\/\/([^/]+)\/(.+)$/);
+    if (!m) return;
+    const type = m[1], id = +m[2];
+    switch (type) {
+        case 'book':
+            navToScreen('library');
+            setTimeout(() => openBook(id), 150);
+            break;
+        case 'audio_cat':
+            navToScreen('media');
+            setTimeout(() => { if (typeof switchMediaTab === 'function') switchMediaTab('audio'); setTimeout(() => { if (typeof openAudioCatById === 'function') openAudioCatById(id); }, 300); }, 150);
+            break;
+        case 'audio':
+            navToScreen('media');
+            setTimeout(() => { if (typeof switchMediaTab === 'function') switchMediaTab('audio'); setTimeout(() => { if (typeof openAudioTrackById === 'function') openAudioTrackById(id); }, 300); }, 150);
+            break;
+        case 'video_cat':
+            navToScreen('media');
+            setTimeout(() => { if (typeof switchMediaTab === 'function') switchMediaTab('video'); setTimeout(() => { if (typeof openVideoCatById === 'function') openVideoCatById(id); }, 300); }, 150);
+            break;
+        case 'video':
+            navToScreen('media');
+            setTimeout(() => { if (typeof switchMediaTab === 'function') switchMediaTab('video'); setTimeout(() => { if (typeof openVideoItemById === 'function') openVideoItemById(id); }, 300); }, 150);
+            break;
+        case 'news':
+            if (typeof openNewsPostInApp === 'function') openNewsPostInApp(id, null);
+            break;
+        case 'news_cat':
+            navToScreen('news');
+            setTimeout(() => { if (typeof openNewsCatById === 'function') openNewsCatById(id); }, 300);
+            break;
+        case 'lecture':
+            navToScreen('lectures');
+            setTimeout(() => { if (typeof openLecturePostById === 'function') openLecturePostById(id); }, 300);
+            break;
+        case 'lecture_cat':
+            navToScreen('lectures');
+            setTimeout(() => { if (typeof openLectureCatById === 'function') openLectureCatById(id); }, 300);
+            break;
     }
 }
 
