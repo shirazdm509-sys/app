@@ -979,10 +979,20 @@ function handleBackButton() {
     if (_hasClass('reader-overlay', 'open')){ closeReader();        return; }
     if (_hasClass('toc-overlay', 'open'))   { closeToc();           return; }
 
-    const singleViews = ['lectures-single-view','news-single-view','statements-single-view'];
-    for (const id of singleViews) {
-        if (_isVisible(id)) { document.getElementById(id).classList.add('hidden'); return; }
+    // سخنرانی: مسیر بازگشت تو‌در‌تو (single → posts → subcats → main)
+    const onLectures = document.getElementById('screen-lectures')?.classList.contains('active');
+    if (onLectures && typeof wpState !== 'undefined' && wpState.view !== 'main') {
+        if (typeof wpNavBack === 'function') { wpNavBack(); return; }
     }
+    // اخبار: مسیر بازگشت تو‌در‌تو
+    if (_isVisible('news-single-view')) {
+        if (typeof newsNavBack === 'function') { newsNavBack(); return; }
+    }
+    // بیانیه‌ها
+    if (_isVisible('statements-single-view')) {
+        if (typeof statementsNavBack === 'function') { statementsNavBack(); return; }
+    }
+
     if (_isVisible('qa-conversation')) { closeQAConversation(); return; }
 
     // sub-navigation رسانه (ویدیو / صوت / گالری عکس)
@@ -1003,7 +1013,7 @@ function handleBackButton() {
         return;
     }
 
-    // روی home هستیم → الگوی «دوبار بزن تا خارج شوی»
+    // روی home هستیم → نمایش دیالوگ خروج
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const h = document.getElementById('screen-home');
     if (h) h.classList.add('active');
@@ -1012,8 +1022,8 @@ function handleBackButton() {
     if (nb) nb.classList.add('active');
 
     const now = Date.now();
-    if (now - _lastBackPressTime < 2000) {
-        confirmExit();
+    if (now - _lastBackPressTime < 2500) {
+        showExitDialog();
     } else {
         _lastBackPressTime = now;
         showToast('برای خروج دوباره دکمه بازگشت را بزنید');
@@ -1059,7 +1069,7 @@ let _wantToExit = false;
         if (_busy) return;
         _busy = true;
         handleBackButton();
-        setTimeout(function() { _busy = false; }, 400);
+        setTimeout(function() { _busy = false; }, 80);
     });
 })();
 
