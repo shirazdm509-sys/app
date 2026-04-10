@@ -991,36 +991,30 @@ function confirmExit() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
     _wantToExit = true;
-    setTimeout(() => { history.go(-(history.length)); }, 50);
-    setTimeout(() => { window.close(); }, 300);
+    history.back();
+    setTimeout(function() { history.back(); window.close(); }, 150);
 }
 
-// مدیریت دکمه Back با روش popstate + بافر بزرگ
+// مدیریت دکمه Back با روش single-sentinel
 let _wantToExit = false;
 (function initBackHandler() {
-    const BASE_URL = location.href.split('#')[0];
-    const BUFFER = 15;
-    let _handling = false;
-
-    function refill() {
+    function pushSentinel() {
         if (_wantToExit) return;
-        for (let i = 0; i < BUFFER; i++) {
-            history.pushState({ pwaApp: true }, document.title, BASE_URL + '#bk');
-        }
+        try {
+            history.pushState({ pwa: true }, '', location.pathname + location.search + '#stay');
+        } catch(e) {}
     }
 
-    // بافر اولیه را فوری پر کن (و روی DOMContentLoaded هم برای اطمینان)
-    refill();
-    document.addEventListener('DOMContentLoaded', refill);
+    pushSentinel();
 
-    window.addEventListener('popstate', () => {
+    let _busy = false;
+    window.addEventListener('popstate', function() {
         if (_wantToExit) return;
-        refill();
-
-        if (_handling) return;
-        _handling = true;
+        pushSentinel(); // بلافاصله sentinel را بازگردان تا press بعدی هم گرفته شود
+        if (_busy) return;
+        _busy = true;
         handleBackButton();
-        setTimeout(() => { _handling = false; }, 350);
+        setTimeout(function() { _busy = false; }, 400);
     });
 })();
 
