@@ -420,6 +420,7 @@ function setGalleryAndOpen(photos, idx) {
 }
 
 function setAudioTracksAndPlay(tracks, idx) {
+    window._audioDirectPlay = true; // جلوگیری از loadAudioCategories race condition
     audioCurrentTracks = tracks;
     audioCurrentIndex = -1;
     const catsView = document.getElementById('audio-categories-view');
@@ -430,6 +431,7 @@ function setAudioTracksAndPlay(tracks, idx) {
     document.getElementById('audio-track-count').textContent = toFa(tracks.length) + ' صوت';
     renderAudioTrackList();
     selectAudioTrack(idx, true);
+    setTimeout(() => { window._audioDirectPlay = false; }, 1000);
 }
 
 function openGalleryImage(index) {
@@ -580,7 +582,8 @@ async function loadAudioCategories(parentId, parentName) {
     setMediaLoading(true);
     const view = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
-    if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+    // فقط اگه مستقیماً از home باز نشده (race condition با setAudioTracksAndPlay)
+    if(plView && !window._audioDirectPlay) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     if(view) view.classList.remove('hidden');
 
     // Update breadcrumb/back
@@ -889,6 +892,15 @@ function handleMediaBack() {
     // صوت: playlist → categories
     if (isVis('audio-playlist-view')) { backToAudioCategories();   return true; }
     if (_audioNavStack.length > 0)    { backToAudioCategories();   return true; }
+
+    // اگه در یکی از تب‌های غیر پیش‌فرض رسانه هستیم، برگرد به تب ویدیو (مرحله اضافه)
+    const audioTab = document.getElementById('media-content-audio');
+    const photoTab = document.getElementById('media-content-photo');
+    if ((audioTab && !audioTab.classList.contains('hidden')) ||
+        (photoTab && !photoTab.classList.contains('hidden'))) {
+        if (typeof switchMediaTab === 'function') switchMediaTab('video');
+        return true;
+    }
 
     return false;
 }

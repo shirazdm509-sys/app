@@ -946,9 +946,9 @@ function handleBackButton() {
     // برگشت به صفحه قبلی در stack (بدون push مجدد)
     if (_screenStack.length > 1) {
         _screenStack.pop();
+        _lastBackPressTime = 0; // ریست تایمر خروج هنگام ناوبری
         const prev = _screenStack[_screenStack.length - 1];
         // مستقیم DOM را آپدیت کن بدون اینکه stack دوباره رشد کنه
-        const prevActive = document.querySelector('.screen.active');
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const t = document.getElementById('screen-' + prev);
         if (t) t.classList.add('active');

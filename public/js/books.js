@@ -106,8 +106,11 @@ function openPdfBook(bookId) {
 }
 
 async function openBook(bookId) {
-    // ذخیره زمان آخرین مطالعه
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
+    // اطمینان از حضور صفحه کتابخانه در navigation stack
+    if (typeof _screenStack !== 'undefined' && _screenStack[_screenStack.length - 1] !== 'library') {
+        _screenStack.push('library');
+    }
     const ls=document.getElementById('loading-screen');
     ls.style.display='flex';
     ls.classList.remove('hidden');
