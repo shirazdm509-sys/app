@@ -676,6 +676,12 @@ app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{
         mainDb.run('DELETE FROM books WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
+app.put('/api/admin/books/sort',adminAuth,(req,res)=>{
+    const ids=req.body&&req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
+    const stmt=mainDb.prepare('UPDATE books SET sort_order=? WHERE id=?');
+    ids.forEach((id,i)=>stmt.run([i,id]));
+    stmt.finalize(()=>res.json({success:true}));
+});
 app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1},{name:'pdf_file',maxCount:1}]),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT * FROM books WHERE id=?',[id],(err,b)=>{
@@ -1426,13 +1432,6 @@ app.put('/api/admin/video/items/:id',adminAuth,uploadImage.single('gallery_image
     vals.push(id);
     mainDb.run(`UPDATE video_items SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
-app.put('/api/admin/books/sort',adminAuth,express.json(),(req,res)=>{
-    const ids=req.body.ids;if(!Array.isArray(ids)) return res.status(400).json({error:'ids required'});
-    const stmt=mainDb.prepare('UPDATE books SET sort_order=? WHERE id=?');
-    ids.forEach((id,i)=>stmt.run([i,id]));
-    stmt.finalize(()=>res.json({success:true}));
-});
-
 // === استخراج کاور از فایل‌های صوتی موجود ===
 app.post('/api/admin/audio/extract-covers',adminAuth,async(req,res)=>{
     if(!mm) return res.status(500).json({error:'music-metadata در دسترس نیست'});
