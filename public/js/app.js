@@ -940,6 +940,9 @@ function handleBackButton() {
     }
     if (_isVisible('qa-conversation')) { closeQAConversation(); return; }
 
+    // sub-navigation رسانه (ویدیو / صوت / گالری عکس)
+    if (typeof handleMediaBack === 'function' && handleMediaBack()) return;
+
     // برگشت به صفحه قبلی در stack (بدون push مجدد)
     if (_screenStack.length > 1) {
         _screenStack.pop();

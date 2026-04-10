@@ -859,6 +859,40 @@ async function downloadCurrentAudio() {
     }
 }
 
+// ====================================================
+// مدیریت دکمه Back برای sub-navigation رسانه
+// ====================================================
+function handleMediaBack() {
+    // فقط وقتی screen-media فعاله
+    const mediaScreen = document.getElementById('screen-media');
+    if (!mediaScreen || !mediaScreen.classList.contains('active')) return false;
+
+    const isVis = id => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains('hidden') && el.style.display !== 'none';
+    };
+
+    // ویدیو: player → list (اگه پر باشه) → categories
+    if (isVis('video-player-view')) {
+        const vList = document.getElementById('video-list-view');
+        if (vList && vList.children.length > 0) backToVideoList();
+        else backToVideoCategories();
+        return true;
+    }
+    if (isVis('video-list-view'))     { backToVideoCategories();   return true; }
+    if (_videoNavStack.length > 0)    { backToVideoCategories();   return true; }
+
+    // گالری عکس: photos → categories
+    if (isVis('gallery-photos-view')) { backToGalleryCategories(); return true; }
+    if (_galleryNavStack.length > 0)  { backToGalleryCategories(); return true; }
+
+    // صوت: playlist → categories
+    if (isVis('audio-playlist-view')) { backToAudioCategories();   return true; }
+    if (_audioNavStack.length > 0)    { backToAudioCategories();   return true; }
+
+    return false;
+}
+
 async function shareCurrentAudio() {
     if(audioCurrentIndex < 0 || !audioCurrentTracks[audioCurrentIndex]) return;
     const tr = audioCurrentTracks[audioCurrentIndex];
