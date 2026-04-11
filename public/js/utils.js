@@ -142,7 +142,7 @@ function injectCSSIntoPaymentWebView() {
 // موتور استخراج رسانه (مشترک بین سخنرانی، رسانه، اخبار)
 // ====================================================
 function extractMediaFromPost(post) {
-    const postString = JSON.stringify(post).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+    const postString = JSON.stringify(post).replace(/\\u002F/g, '/').replace(/\\+\//g, '/');
 
     let videos = [];
     let audioTracks = []; // [{src, title, duration, thumb}]
