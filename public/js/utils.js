@@ -145,20 +145,9 @@ function extractMediaFromPost(post) {
     const postString = JSON.stringify(post).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
 
     let videos = [];
-    let audios = [];
+    let audioTracks = []; // [{src, title, duration, thumb}]
     let iframes = [];
     let images = [];
-
-    // استخراج رسانه از regex روی JSON string (برای URLهای مستقیم)
-    const mediaRegex = /https?:\/\/[^\s"'<>\\]+\.(mp3|m4a|wav|ogg|mp4|mkv|webm)(?:\?[^\s"'<>\\]*)?/gi;
-    const matches = postString.match(mediaRegex) || [];
-    matches.forEach(url => {
-        // پاک‌سازی backslash اضافه از انتهای URL
-        const clean = url.replace(/\\+$/, '');
-        const lower = clean.toLowerCase();
-        if (lower.match(/\.(mp4|mkv|webm)/)) videos.push(clean);
-        else audios.push(clean);
-    });
 
     const aparatRegex = /aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/(?:videohash\/)?|v\/)([a-zA-Z0-9]+)/gi;
     let amatch;
@@ -170,10 +159,69 @@ function extractMediaFromPost(post) {
         }
     }
 
+    // --- regex برای ویدیوهای مستقیم (نه mp3/صوت) ---
+    const videoRegex = /https?:\/\/[^\s"'<>\\]+\.(mp4|mkv|webm)(?:\?[^\s"'<>\\]*)?/gi;
+    (postString.match(videoRegex) || []).forEach(url => videos.push(url.replace(/\\+$/, '')));
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = post.content.rendered;
 
-    // استخراج iframe‌های آپارات از DOM
+    // ۱. استخراج گالری/پلی‌لیست صوتی وردپرس (مهم‌ترین منبع)
+    const seenSrcs = new Set();
+    const addTrack = (src, title='', duration='', thumb='') => {
+        const clean = src.trim();
+        if (!clean || seenSrcs.has(clean)) return;
+        seenSrcs.add(clean);
+        audioTracks.push({ src: clean, title, duration, thumb });
+    };
+
+    tempDiv.querySelectorAll('script.wp-playlist-script').forEach(script => {
+        try {
+            const data = JSON.parse(script.textContent);
+            if (data.tracks && Array.isArray(data.tracks)) {
+                data.tracks.forEach(t => {
+                    if (t.src) addTrack(
+                        t.src,
+                        t.title || '',
+                        (t.meta && t.meta.length_formatted) || '',
+                        (t.thumb && t.thumb.src) || ''
+                    );
+                });
+            }
+        } catch(e) {}
+    });
+
+    // ۲. استخراج از ضمیمه‌های WP REST API
+    if (post._embedded && post._embedded['wp:attachment']) {
+        post._embedded['wp:attachment'].forEach(group => {
+            const items = Array.isArray(group) ? group : [group];
+            items.forEach(att => {
+                if (att.mime_type && att.mime_type.startsWith('audio/') && att.source_url) {
+                    const title = (att.title && att.title.rendered) ? att.title.rendered : '';
+                    addTrack(att.source_url, title);
+                }
+            });
+        });
+    }
+
+    // ۳. استخراج از تگ <audio> مستقیم در HTML
+    tempDiv.querySelectorAll('audio').forEach(el => {
+        const src = el.getAttribute('src');
+        if (src) addTrack(src);
+        el.querySelectorAll('source').forEach(s => { if (s.getAttribute('src')) addTrack(s.getAttribute('src')); });
+    });
+
+    // ۴. لینک‌های دانلود فایل صوتی
+    tempDiv.querySelectorAll('a[href]').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        if (href.match(/\.(mp3|m4a|wav|ogg)(\?|$)/i)) addTrack(href);
+    });
+
+    // ۵. regex روی JSON string (فال‌بک)
+    const audioRegex = /https?:\/\/[^\s"'<>\\]+\.(mp3|m4a|wav|ogg)(?:\?[^\s"'<>\\]*)?/gi;
+    (postString.match(audioRegex) || []).forEach(url => addTrack(url.replace(/\\+$/, '')));
+
+    // استخراج iframe آپارات از DOM
     tempDiv.querySelectorAll('iframe').forEach(ifr => {
         const src = ifr.getAttribute('src') || '';
         if (src.includes('aparat.com')) {
@@ -185,22 +233,6 @@ function extractMediaFromPost(post) {
         } else if (src && !src.includes('aparat.com')) {
             iframes.push(src);
         }
-    });
-
-    // استخراج صوت از DOM قبل از پاک‌سازی (مهم: JSON regex ممکنه URL شکسته بده)
-    tempDiv.querySelectorAll('audio').forEach(audioEl => {
-        const src = audioEl.getAttribute('src');
-        if (src && src.trim()) audios.push(src.trim());
-        audioEl.querySelectorAll('source').forEach(s => {
-            const ssrc = s.getAttribute('src');
-            if (ssrc && ssrc.trim()) audios.push(ssrc.trim());
-        });
-    });
-
-    // لینک‌های دانلود فایل صوتی
-    tempDiv.querySelectorAll('a[href]').forEach(a => {
-        const href = a.getAttribute('href') || '';
-        if (href.match(/\.(mp3|m4a|wav|ogg)(\?|$)/i)) audios.push(href);
     });
 
     tempDiv.querySelectorAll('img').forEach(img => {
@@ -233,10 +265,11 @@ function extractMediaFromPost(post) {
     });
 
     return {
-        iframes: [...new Set(iframes)],
-        videos: [...new Set(videos)],
-        audios: [...new Set(audios)],
-        images: [...new Set(images)],
-        cleanHtml: tempDiv.innerHTML
+        iframes:     [...new Set(iframes)],
+        videos:      [...new Set(videos)],
+        audioTracks, // [{src, title, duration, thumb}]
+        audios:      audioTracks.map(t => t.src), // backward compat
+        images:      [...new Set(images)],
+        cleanHtml:   tempDiv.innerHTML
     };
 }

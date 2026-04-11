@@ -158,12 +158,16 @@ function showWPSingleView(postId) {
     media.iframes.forEach(src => { finalHtml += `<div class="h_iframe-aparat_embed_frame mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-200"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`; });
     media.videos.forEach(src => { finalHtml += `<video controls src="${src}" class="w-full rounded-2xl mb-6 shadow-sm bg-black"></video>`; });
 
-    if (media.audios.length > 0) {
+    if (media.audioTracks && media.audioTracks.length > 0) {
+        const multi = media.audioTracks.length > 1;
         finalHtml += `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
-        finalHtml += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>فایل صوتی ضمیمه</h3>`;
-        media.audios.forEach((src) => {
-            finalHtml += `<audio controls src="${src}" class="w-full h-11 mb-3 outline-none"></audio>`;
-            finalHtml += `<a href="${src}" target="_blank" download class="inline-flex items-center justify-center bg-white text-brand-600 px-4 py-2.5 rounded-xl text-[11px] font-bold mb-2 shadow-sm border border-gray-200 hover:bg-gray-50 transition" style="text-decoration: none;"><i class="fas fa-download ml-2"></i> دانلود فایل صوتی</a><br>`;
+        finalHtml += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>${multi ? 'فایل‌های صوتی (' + media.audioTracks.length + ')' : 'فایل صوتی'}</h3>`;
+        media.audioTracks.forEach((track, i) => {
+            if (multi && track.title) {
+                finalHtml += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${i + 1}. ${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
+            }
+            finalHtml += `<audio controls src="${track.src}" class="w-full h-11 mb-2 outline-none"></audio>`;
+            finalHtml += `<a href="${track.src}" target="_blank" download class="inline-flex items-center bg-white text-brand-600 px-3 py-2 rounded-xl text-[11px] font-bold mb-3 shadow-sm border border-gray-200" style="text-decoration:none"><i class="fas fa-download ml-1.5"></i>دانلود${track.title ? ' — ' + track.title : ''}</a>`;
         });
         finalHtml += `</div>`;
     }
