@@ -128,8 +128,24 @@ function exitReadingMode() {
     if (btnSet) btnSet.classList.add('hidden');
 }
 
-function showWPSingleView(postId) {
-    const post = cachedPosts.find(p => p.id === postId);
+function _buildAudioHtml(tracks) {
+    if (!tracks || tracks.length === 0) return '';
+    const multi = tracks.length > 1;
+    let h = `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
+    h += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>${multi ? 'فایل‌های صوتی (' + tracks.length + ')' : 'فایل صوتی'}</h3>`;
+    tracks.forEach((track, i) => {
+        if (multi && track.title) {
+            h += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${i + 1}. ${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
+        }
+        h += `<audio controls src="${track.src}" class="w-full h-11 mb-2 outline-none"></audio>`;
+        h += `<a href="${track.src}" target="_blank" download class="inline-flex items-center bg-white text-brand-600 px-3 py-2 rounded-xl text-[11px] font-bold mb-3 shadow-sm border border-gray-200" style="text-decoration:none"><i class="fas fa-download ml-1.5"></i>دانلود${track.title ? ' — ' + track.title : ''}</a>`;
+    });
+    h += `</div>`;
+    return h;
+}
+
+async function showWPSingleView(postId) {
+    let post = cachedPosts.find(p => p.id === postId);
     if (!post) return;
 
     wpState.view = 'single';
@@ -152,26 +168,23 @@ function showWPSingleView(postId) {
     document.getElementById('single-post-title').innerHTML = post.title.rendered;
     document.getElementById('single-post-date').textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
 
+    // Re-fetch individual post to get complete embedded data (esp. audio attachments)
+    try {
+        const r = await wpFetch(`posts/${postId}?_embed=1`);
+        if (r.ok) {
+            const fresh = await r.json();
+            cachedPosts = cachedPosts.map(p => p.id === fresh.id ? fresh : p);
+            post = fresh;
+        }
+    } catch(e) {}
+
     const media = extractMediaFromPost(post);
     let finalHtml = '';
 
     media.iframes.forEach(src => { finalHtml += `<div class="h_iframe-aparat_embed_frame mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-200"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`; });
     media.videos.forEach(src => { finalHtml += `<video controls src="${src}" class="w-full rounded-2xl mb-6 shadow-sm bg-black"></video>`; });
 
-    if (media.audioTracks && media.audioTracks.length > 0) {
-        const multi = media.audioTracks.length > 1;
-        finalHtml += `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
-        finalHtml += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>${multi ? 'فایل‌های صوتی (' + media.audioTracks.length + ')' : 'فایل صوتی'}</h3>`;
-        media.audioTracks.forEach((track, i) => {
-            if (multi && track.title) {
-                finalHtml += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${i + 1}. ${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
-            }
-            finalHtml += `<audio controls src="${track.src}" class="w-full h-11 mb-2 outline-none"></audio>`;
-            finalHtml += `<a href="${track.src}" target="_blank" download class="inline-flex items-center bg-white text-brand-600 px-3 py-2 rounded-xl text-[11px] font-bold mb-3 shadow-sm border border-gray-200" style="text-decoration:none"><i class="fas fa-download ml-1.5"></i>دانلود${track.title ? ' — ' + track.title : ''}</a>`;
-        });
-        finalHtml += `</div>`;
-    }
-
+    finalHtml += _buildAudioHtml(media.audioTracks);
     finalHtml += media.cleanHtml;
 
     document.getElementById('single-post-content').innerHTML = finalHtml;
@@ -182,6 +195,27 @@ function showWPSingleView(postId) {
     const imgContainer = document.getElementById('single-post-image');
     if (imgUrl) { imgContainer.classList.remove('hidden'); imgContainer.querySelector('img').src = imgUrl; }
     else { imgContainer.classList.add('hidden'); }
+
+    // Fallback: if still no audio, query WP media API directly for this post's audio attachments
+    if (media.audioTracks.length === 0) {
+        try {
+            const mr = await wpFetch(`media?parent=${postId}&media_type=audio&per_page=20`);
+            if (mr.ok) {
+                const items = await mr.json();
+                if (Array.isArray(items) && items.length > 0) {
+                    const tracks = items.map(item => ({
+                        src: item.source_url || '',
+                        title: (item.title && item.title.rendered) ? item.title.rendered : '',
+                        duration: '',
+                        thumb: ''
+                    })).filter(t => t.src);
+                    if (tracks.length > 0) {
+                        document.getElementById('single-post-content').insertAdjacentHTML('afterbegin', _buildAudioHtml(tracks));
+                    }
+                }
+            }
+        } catch(e) {}
+    }
 }
 
 function wpNavBack() {
