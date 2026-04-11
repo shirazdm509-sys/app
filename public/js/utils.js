@@ -175,6 +175,28 @@ function extractMediaFromPost(post) {
         audioTracks.push({ src: clean, title, duration, thumb });
     };
 
+    // روش ۱الف: regex روی HTML خام (مطمئن‌ترین روش)
+    const rawHtml = post.content ? (post.content.rendered || '') : '';
+    const playlistRegex = /<script[^>]+class=["'][^"']*wp-playlist-script[^"']*["'][^>]*>([\s\S]*?)<\/script>/gi;
+    let plMatch;
+    while ((plMatch = playlistRegex.exec(rawHtml)) !== null) {
+        try {
+            const jsonText = plMatch[1].replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+            const data = JSON.parse(jsonText);
+            if (data.tracks && Array.isArray(data.tracks)) {
+                data.tracks.forEach(t => {
+                    if (t.src) addTrack(
+                        t.src,
+                        t.title || '',
+                        (t.meta && t.meta.length_formatted) || '',
+                        (t.thumb && t.thumb.src) || ''
+                    );
+                });
+            }
+        } catch(e) {}
+    }
+
+    // روش ۱ب: querySelectorAll (فال‌بک برای مرورگرهایی که اسکریپت را در DOM نگه می‌دارند)
     tempDiv.querySelectorAll('script.wp-playlist-script').forEach(script => {
         try {
             const data = JSON.parse(script.textContent);
