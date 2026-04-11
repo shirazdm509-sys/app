@@ -149,12 +149,15 @@ function extractMediaFromPost(post) {
     let iframes = [];
     let images = [];
 
-    const mediaRegex = /https?:\/\/[^\s"'<>]+\.(mp3|m4a|wav|ogg|mp4|mkv|webm)(?:\?[^\s"'<>]*)?/gi;
+    // استخراج رسانه از regex روی JSON string (برای URLهای مستقیم)
+    const mediaRegex = /https?:\/\/[^\s"'<>\\]+\.(mp3|m4a|wav|ogg|mp4|mkv|webm)(?:\?[^\s"'<>\\]*)?/gi;
     const matches = postString.match(mediaRegex) || [];
     matches.forEach(url => {
-        const lower = url.toLowerCase();
-        if (lower.includes('.mp4') || lower.includes('.mkv') || lower.includes('.webm')) videos.push(url);
-        else audios.push(url);
+        // پاک‌سازی backslash اضافه از انتهای URL
+        const clean = url.replace(/\\+$/, '');
+        const lower = clean.toLowerCase();
+        if (lower.match(/\.(mp4|mkv|webm)/)) videos.push(clean);
+        else audios.push(clean);
     });
 
     const aparatRegex = /aparat\.com\/(?:video\/video\/embed\/videohash\/|embed\/(?:videohash\/)?|v\/)([a-zA-Z0-9]+)/gi;
@@ -170,6 +173,7 @@ function extractMediaFromPost(post) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = post.content.rendered;
 
+    // استخراج iframe‌های آپارات از DOM
     tempDiv.querySelectorAll('iframe').forEach(ifr => {
         const src = ifr.getAttribute('src') || '';
         if (src.includes('aparat.com')) {
@@ -181,6 +185,22 @@ function extractMediaFromPost(post) {
         } else if (src && !src.includes('aparat.com')) {
             iframes.push(src);
         }
+    });
+
+    // استخراج صوت از DOM قبل از پاک‌سازی (مهم: JSON regex ممکنه URL شکسته بده)
+    tempDiv.querySelectorAll('audio').forEach(audioEl => {
+        const src = audioEl.getAttribute('src');
+        if (src && src.trim()) audios.push(src.trim());
+        audioEl.querySelectorAll('source').forEach(s => {
+            const ssrc = s.getAttribute('src');
+            if (ssrc && ssrc.trim()) audios.push(ssrc.trim());
+        });
+    });
+
+    // لینک‌های دانلود فایل صوتی
+    tempDiv.querySelectorAll('a[href]').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        if (href.match(/\.(mp3|m4a|wav|ogg)(\?|$)/i)) audios.push(href);
     });
 
     tempDiv.querySelectorAll('img').forEach(img => {
