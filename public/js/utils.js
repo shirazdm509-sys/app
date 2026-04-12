@@ -262,9 +262,16 @@ function extractMediaFromPost(post) {
     });
 
     const removeSelectors = [
-        '.wp-playlist', '.wp-playlist-script', 'audio', 'video', 'iframe', 'img',
-        '.mejs-container', '.mejs-controls', '.wp-audio-shortcode', '.wp-video-shortcode',
-        '.audio-player', 'figure.wp-block-audio', 'figure.wp-block-video', 'figure.wp-block-embed', 'figure.wp-block-image', 'figure.wp-block-gallery'
+        '.wp-playlist', '.wp-playlist-script', '.wp-playlist-current-item',
+        '.wp-playlist-tracks', '.wp-playlist-item', '.wp-playlist-caption',
+        '.wp-playlist-next', '.wp-playlist-prev', '.wp-playlist-playing',
+        'audio', 'video', 'iframe', 'img',
+        '.mejs-container', '.mejs-controls', '.mejs-time', '.mejs-layers',
+        '.mejs-captions-button', '.mejs-volume-button', '.mejs-speed-button',
+        '.wp-audio-shortcode', '.wp-video-shortcode',
+        '.audio-player', '[class*="audio-player"]', '[class*="sound-player"]',
+        'figure.wp-block-audio', 'figure.wp-block-video', 'figure.wp-block-embed',
+        'figure.wp-block-image', 'figure.wp-block-gallery'
     ];
     tempDiv.querySelectorAll(removeSelectors.join(', ')).forEach(el => el.remove());
 
@@ -278,7 +285,12 @@ function extractMediaFromPost(post) {
     cleanHtml = cleanHtml.replace(/پخش|توقف|لیست پخش|صدا/g, '');
     cleanHtml = cleanHtml.replace(/متن تفسیر/g, '');
     cleanHtml = cleanHtml.replace(/صوت جلسه[:\s]*/g, '');
+    cleanHtml = cleanHtml.replace(/فیلم جلسه[:\s]*/g, '');
     cleanHtml = cleanHtml.replace(/دریافت فایل صوتی/g, '');
+    cleanHtml = cleanHtml.replace(/در حال بارگذاری\.*/gi, '');
+    // پاک کردن نمایشگر زمان و سرعت پلیر وردپرس
+    cleanHtml = cleanHtml.replace(/\d+:\d+\s*\/\s*\d+:\d+/g, '');
+    cleanHtml = cleanHtml.replace(/\b\d+[xX]\b/g, '');
 
     tempDiv.innerHTML = cleanHtml;
 
