@@ -28,14 +28,32 @@ function _viewClasses(context) {
     return '';
 }
 
+const _viewModeIcons = { grid: 'fa-th', list: 'fa-list', large: 'fa-th-large' };
+
+function toggleViewModeDropdown() {
+    const dd = document.getElementById('view-mode-dropdown');
+    if (!dd) return;
+    dd.classList.toggle('hidden');
+}
+
+function _closeViewModeDropdown() {
+    const dd = document.getElementById('view-mode-dropdown');
+    if (dd) dd.classList.add('hidden');
+}
+
 function setMediaViewMode(mode) {
     _mediaViewMode = mode;
     localStorage.setItem('mediaViewMode', mode);
-    ['grid','list','large'].forEach(m => {
-        const btn = document.getElementById('view-btn-' + m);
-        if (!btn) return;
-        if (m === mode) { btn.classList.add('bg-white','text-brand-600'); btn.classList.remove('text-gray-400'); }
-        else { btn.classList.remove('bg-white','text-brand-600'); btn.classList.add('text-gray-400'); }
+    _closeViewModeDropdown();
+    // به‌روزرسانی آیکون دکمه trigger
+    const iconEl = document.getElementById('view-mode-icon');
+    if (iconEl) iconEl.className = 'fas ' + (_viewModeIcons[mode] || 'fa-th') + ' text-sm';
+    // به‌روزرسانی حالت فعال در dropdown
+    document.querySelectorAll('.view-mode-option').forEach(btn => {
+        const active = btn.dataset.mode === mode;
+        btn.classList.toggle('text-brand-600', active);
+        btn.classList.toggle('bg-brand-50', active);
+        btn.classList.toggle('text-gray-600', !active);
     });
     // بازرندر بخش فعال
     const videoContent = document.getElementById('media-content-video');
@@ -60,11 +78,13 @@ function setMediaViewMode(mode) {
 }
 
 function _initViewModeButtons() {
-    ['grid','list','large'].forEach(m => {
-        const btn = document.getElementById('view-btn-' + m);
-        if (!btn) return;
-        if (m === _mediaViewMode) { btn.classList.add('bg-white','text-brand-600'); btn.classList.remove('text-gray-400'); }
-        else { btn.classList.remove('bg-white','text-brand-600'); btn.classList.add('text-gray-400'); }
+    const iconEl = document.getElementById('view-mode-icon');
+    if (iconEl) iconEl.className = 'fas ' + (_viewModeIcons[_mediaViewMode] || 'fa-th') + ' text-sm';
+    document.querySelectorAll('.view-mode-option').forEach(btn => {
+        const active = btn.dataset.mode === _mediaViewMode;
+        btn.classList.toggle('text-brand-600', active);
+        btn.classList.toggle('bg-brand-50', active);
+        btn.classList.toggle('text-gray-600', !active);
     });
 }
 
@@ -107,6 +127,21 @@ function switchMediaTab(tab) {
     if (tab === 'photo') initGallery();
     if (tab === 'audio') initAudioGallery();
 }
+
+// بستن منوهای کشویی با کلیک خارج از آن‌ها
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#view-mode-trigger') && !e.target.closest('#view-mode-dropdown')) {
+        _closeViewModeDropdown();
+    }
+    if (!e.target.closest('#video-sort-btn') && !e.target.closest('#video-sort-dropdown')) {
+        const dd = document.getElementById('video-sort-dropdown');
+        if (dd) dd.classList.add('hidden');
+    }
+    if (!e.target.closest('#audio-sort-btn') && !e.target.closest('#audio-sort-dropdown')) {
+        const dd = document.getElementById('audio-sort-dropdown');
+        if (dd) dd.classList.add('hidden');
+    }
+});
 
 function setMediaLoading(show) {
     const loading = document.getElementById('media-loading');
@@ -699,18 +734,44 @@ let _audioSort = 'order'; // order | date
 let _currentVideoCatId = null;
 let _videoSort = 'order'; // order | date
 
-async function toggleAudioSort() {
-    _audioSort = _audioSort === 'order' ? 'date' : 'order';
-    const btn = document.getElementById('audio-sort-btn');
-    if(btn) btn.innerHTML = `<i class="fas fa-sort-amount-${_audioSort==='date'?'down':'up'} ml-1"></i>${_audioSort==='date'?'تاریخ':'ترتیب'}`;
-    if(_currentAudioCatId) await loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0);
+function toggleAudioSortDropdown() {
+    const dd = document.getElementById('audio-sort-dropdown');
+    if (dd) dd.classList.toggle('hidden');
 }
 
-async function toggleVideoSort() {
-    _videoSort = _videoSort === 'order' ? 'date' : 'order';
-    const btn = document.getElementById('video-sort-btn');
-    if(btn) btn.innerHTML = `<i class="fas fa-sort-amount-${_videoSort==='date'?'down':'up'} ml-1"></i>${_videoSort==='date'?'تاریخ':'ترتیب'}`;
-    if(_currentVideoCatId) await loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
+async function setAudioSort(sort) {
+    _audioSort = sort;
+    const dd = document.getElementById('audio-sort-dropdown');
+    if (dd) dd.classList.add('hidden');
+    const label = document.getElementById('audio-sort-label');
+    if (label) label.textContent = sort === 'date' ? 'تاریخ' : 'ترتیب';
+    document.querySelectorAll('.audio-sort-option').forEach(btn => {
+        const active = btn.dataset.sort === sort;
+        btn.classList.toggle('text-brand-600', active);
+        btn.classList.toggle('bg-brand-50', active);
+        btn.classList.toggle('text-gray-600', !active);
+    });
+    if (_currentAudioCatId) await loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0);
+}
+
+function toggleVideoSortDropdown() {
+    const dd = document.getElementById('video-sort-dropdown');
+    if (dd) dd.classList.toggle('hidden');
+}
+
+async function setVideoSort(sort) {
+    _videoSort = sort;
+    const dd = document.getElementById('video-sort-dropdown');
+    if (dd) dd.classList.add('hidden');
+    const label = document.getElementById('video-sort-label');
+    if (label) label.textContent = sort === 'date' ? 'تاریخ' : 'ترتیب';
+    document.querySelectorAll('.video-sort-option').forEach(btn => {
+        const active = btn.dataset.sort === sort;
+        btn.classList.toggle('text-brand-600', active);
+        btn.classList.toggle('bg-brand-50', active);
+        btn.classList.toggle('text-gray-600', !active);
+    });
+    if (_currentVideoCatId) await loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
 }
 
 async function loadAudioPlaylist(categoryId, title, count) {
