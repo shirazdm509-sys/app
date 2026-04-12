@@ -16,6 +16,69 @@ let audioEl = null;
 let _audioCatsLoaded = false;
 
 // ====================================================
+// حالت نمایش (view mode)
+// ====================================================
+let _mediaViewMode = localStorage.getItem('mediaViewMode') || 'grid';
+
+function _viewClasses(context) {
+    const m = _mediaViewMode;
+    if (context === 'cats')   return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'flex flex-col gap-3' : 'grid grid-cols-2 gap-3';
+    if (context === 'items')  return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'flex flex-col gap-3' : 'grid grid-cols-2 gap-3';
+    if (context === 'photos') return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-2';
+    return '';
+}
+
+function setMediaViewMode(mode) {
+    _mediaViewMode = mode;
+    localStorage.setItem('mediaViewMode', mode);
+    ['grid','list','large'].forEach(m => {
+        const btn = document.getElementById('view-btn-' + m);
+        if (!btn) return;
+        if (m === mode) { btn.classList.add('bg-white','text-brand-600'); btn.classList.remove('text-gray-400'); }
+        else { btn.classList.remove('bg-white','text-brand-600'); btn.classList.add('text-gray-400'); }
+    });
+    // بازرندر بخش فعال
+    const videoContent = document.getElementById('media-content-video');
+    const audioContent = document.getElementById('media-content-audio');
+    const photoContent = document.getElementById('media-content-photo');
+    if (videoContent && videoContent.style.display !== 'none') {
+        const vcv = document.getElementById('video-categories-view');
+        const vlv = document.getElementById('video-list-view');
+        if (vcv && !vcv.classList.contains('hidden')) { _videoCatsLoaded=false; const top=_videoNavStack[_videoNavStack.length-1]; loadVideoCategories(top?top.id:null,top?top.name:''); }
+        else if (vlv && !vlv.classList.contains('hidden') && _currentVideoCatId) loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
+    } else if (audioContent && audioContent.style.display !== 'none') {
+        const acv = document.getElementById('audio-categories-view');
+        const apv = document.getElementById('audio-playlist-view');
+        if (acv && !acv.classList.contains('hidden')) { _audioCatsLoaded=false; const top=_audioNavStack[_audioNavStack.length-1]; loadAudioCategories(top?top.id:null,top?top.name:''); }
+        else if (apv && !apv.classList.contains('hidden') && audioCurrentTracks.length) renderAudioTrackList();
+    } else if (photoContent && photoContent.style.display !== 'none') {
+        const gcv = document.getElementById('gallery-categories-view');
+        const gpv = document.getElementById('gallery-photos-view');
+        if (gcv && !gcv.classList.contains('hidden')) { _galleryCatsLoaded=false; const top=_galleryNavStack[_galleryNavStack.length-1]; loadGalleryCategories(top?top.id:null,top?top.name:''); }
+        else if (gpv && !gpv.classList.contains('hidden') && galleryCurrentPhotos.length) _reRenderGalleryPhotos();
+    }
+}
+
+function _initViewModeButtons() {
+    ['grid','list','large'].forEach(m => {
+        const btn = document.getElementById('view-btn-' + m);
+        if (!btn) return;
+        if (m === _mediaViewMode) { btn.classList.add('bg-white','text-brand-600'); btn.classList.remove('text-gray-400'); }
+        else { btn.classList.remove('bg-white','text-brand-600'); btn.classList.add('text-gray-400'); }
+    });
+}
+
+function _reRenderGalleryPhotos() {
+    const grid = document.getElementById('gallery-photos-grid');
+    if (!grid || !galleryCurrentPhotos.length) return;
+    grid.className = _viewClasses('photos') + ' w-full';
+    grid.innerHTML = galleryCurrentPhotos.map((ph, idx) => {
+        if (_mediaViewMode === 'list') return `<div onclick="openGalleryImage(${idx})" class="w-full rounded-2xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full object-cover"></div>`;
+        return `<div onclick="openGalleryImage(${idx})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative group shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"><div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div></div>`;
+    }).join('');
+}
+
+// ====================================================
 // تب‌های رسانه
 // ====================================================
 function switchMediaTab(tab) {
@@ -61,7 +124,7 @@ function setMediaLoading(show) {
     }
 }
 
-async function initMedia() { switchMediaTab('video'); }
+async function initMedia() { _initViewModeButtons(); switchMediaTab('video'); }
 
 // ====================================================
 // پخش زنده
@@ -134,46 +197,35 @@ async function loadVideoCategories(parentId, parentName) {
         const cats = await res.json();
         _videoCatsLoaded = true;
 
+        view.className = _viewClasses('cats') + ' w-full';
         if(cats && cats.length > 0) {
             const colors = ['from-rose-500 to-rose-700','from-blue-500 to-blue-700','from-violet-500 to-violet-700','from-amber-500 to-amber-700','from-teal-500 to-teal-700','from-emerald-500 to-emerald-700','from-pink-500 to-pink-700','from-indigo-500 to-indigo-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
-                const coverHtml = cat.cover
-                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
-                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
-                const clickFn = cat.sub_count > 0 ? `videoNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})`;
+                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
                 const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.video_count} ویدیو`;
+                const clickFn = cat.sub_count > 0 ? `videoNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})`;
+                if (_mediaViewMode === 'list') return `
+                <div onclick="${clickFn}" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-all active:scale-[0.98] flex items-center gap-3 p-3">
+                    <div class="w-20 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-900 relative">${coverHtml}</div>
+                    <div class="flex-1 min-w-0"><h3 class="font-black text-xs text-gray-800 line-clamp-1">${cat.name}</h3><p class="text-[10px] text-gray-400 mt-0.5">${badge}</p></div>
+                    <i class="fas fa-chevron-left text-gray-300 text-xs shrink-0"></i>
+                </div>`;
+                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
                 return `
                 <div onclick="${clickFn}" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
                     <div class="w-full aspect-video overflow-hidden relative">
-                        ${coverHtml}
-                        ${hasFolder}
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            ${cat.sub_count > 0
-                                ? `<div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg"><i class="fas fa-folder-open text-white text-xl"></i></div>`
-                                : `<div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg"><i class="fas fa-play text-white text-lg mr-[-2px]"></i></div>`
-                            }
-                        </div>
+                        ${coverHtml}${hasFolder}
+                        <div class="absolute inset-0 flex items-center justify-center"><div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg"><i class="fas fa-${cat.sub_count>0?'folder-open':'play'} text-white text-lg ${cat.sub_count>0?'':'mr-[-2px]'}"></i></div></div>
                     </div>
-                    <div class="px-3 py-2">
-                        <h3 class="font-black text-xs text-gray-800 line-clamp-1">${cat.name}</h3>
-                        <p class="text-[10px] text-gray-400 mt-0.5">${badge}</p>
-                    </div>
+                    <div class="px-3 py-2"><h3 class="font-black text-xs text-gray-800 line-clamp-1">${cat.name}</h3><p class="text-[10px] text-gray-400 mt-0.5">${badge}</p></div>
                 </div>`;
             }).join('');
         } else {
-            view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
-                <i class="fas fa-film text-5xl opacity-20"></i>
-                <p class="text-sm font-bold opacity-50">دسته‌بندی‌ای وجود ندارد</p>
-            </div>`;
+            view.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-400 gap-4"><i class="fas fa-film text-5xl opacity-20"></i><p class="text-sm font-bold opacity-50">دسته‌بندی‌ای وجود ندارد</p></div>`;
         }
     } catch(e) {
-        if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
-            <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
-            <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
-            <button onclick="_videoCatsLoaded=false;initVideoGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
-        </div>`;
+        if(view) view.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400"><i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i><p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p><button onclick="_videoCatsLoaded=false;initVideoGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`;
     } finally { setMediaLoading(false); }
 }
 
@@ -204,24 +256,28 @@ async function loadVideoList(categoryId, title, count) {
         const items = await res.json();
         videoCachedItems = items;
 
+        list.className = _viewClasses('items') + ' w-full';
         if(items && items.length > 0) {
-            list.innerHTML = items.map(v => `
+            const playBtn = `<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-sm mr-[-1px]"></i></div></div>`;
+            list.innerHTML = items.map(v => {
+                const thumb = v.thumbnail || v._catCover || '';
+                const thumbHtml = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+                if (_mediaViewMode === 'grid') return `
+                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                    <div class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+                    <div class="px-2 py-2"><h4 class="font-bold text-[11px] text-gray-800 line-clamp-2 leading-snug">${v.title}</h4></div>
+                </div>`;
+                if (_mediaViewMode === 'large') return `
+                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col">
+                    <div class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+                    <div class="p-3"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[11px] text-gray-400 mt-1 line-clamp-2">${v.description}</p>`:''}</div>
+                </div>`;
+                return `
                 <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                    <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">
-                        ${v.thumbnail
-                            ? `<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">`
-                            : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`}
-                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
-                            <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40">
-                                <i class="fas fa-play text-white text-sm mr-[-1px]"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
-                        ${v.description ? `<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>` : ''}
-                    </div>
-                </div>`).join('');
+                    <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}${playBtn}</div>
+                    <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>`:''}</div>
+                </div>`;
+            }).join('');
         } else {
             list.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
                 <i class="fas fa-video text-4xl opacity-20"></i>
@@ -292,24 +348,27 @@ async function initGallery() {
 }
 
 function _renderGalleryCatGrid(cats, view, onClickFn) {
+    view.className = _viewClasses('cats') + ' w-full';
     const colors = ['from-teal-400 to-teal-600','from-emerald-400 to-emerald-600','from-cyan-400 to-cyan-600','from-blue-400 to-blue-600','from-violet-400 to-violet-600','from-rose-400 to-rose-600','from-amber-400 to-amber-600','from-pink-400 to-pink-600'];
     view.innerHTML = cats.map((cat, i) => {
         const grad = colors[i % colors.length];
-        const coverHtml = cat.cover
-            ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
-            : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-images text-white text-3xl opacity-80"></i></div>`;
-        const badge = cat.sub_count > 0
-            ? `<p class="text-[10px] text-white/70 mt-0.5">${cat.sub_count} زیردسته</p>`
-            : `<p class="text-[10px] text-white/70 mt-0.5">${cat.photo_count} تصویر</p>`;
+        const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-images text-white text-3xl opacity-80"></i></div>`;
+        const badgeText = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.photo_count} تصویر`;
+        if (_mediaViewMode === 'list') return `
+        <div onclick="${onClickFn(cat)}" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-all active:scale-[0.98] flex items-center gap-3 p-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">${coverHtml}</div>
+            <div class="flex-1 min-w-0"><h3 class="font-bold text-xs text-gray-800 line-clamp-1">${cat.name}</h3><p class="text-[10px] text-gray-400 mt-0.5">${badgeText}</p></div>
+            <i class="fas fa-chevron-left text-gray-300 text-xs shrink-0"></i>
+        </div>`;
         const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+        const aspectClass = _mediaViewMode === 'large' ? 'aspect-video' : 'aspect-square';
         return `
         <div onclick="${onClickFn(cat)}" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
-            <div class="w-full aspect-square overflow-hidden relative">
-                ${coverHtml}
-                ${hasFolder}
+            <div class="w-full ${aspectClass} overflow-hidden relative">
+                ${coverHtml}${hasFolder}
                 <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
                     <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
-                    ${badge}
+                    <p class="text-[10px] text-white/70 mt-0.5">${badgeText}</p>
                 </div>
             </div>
         </div>`;
@@ -381,19 +440,13 @@ async function loadGalleryPhotos(categoryId, title, count) {
         galleryCurrentPhotos = photos;
 
         if(photos && photos.length > 0) {
-            grid.innerHTML = photos.map((ph, idx) => `
-                <div onclick="openGalleryImage(${idx})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative group shadow-sm">
-                    <img src="${ph.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div>
-                </div>`).join('');
+            _reRenderGalleryPhotos();
         } else {
-            grid.innerHTML = `<div class="col-span-3 flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
-                <i class="fas fa-image text-4xl opacity-20"></i>
-                <p class="text-xs font-bold opacity-50">هیچ تصویری در این دسته وجود ندارد</p>
-            </div>`;
+            grid.className = _viewClasses('photos') + ' w-full';
+            grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 text-gray-400 gap-3"><i class="fas fa-image text-4xl opacity-20"></i><p class="text-xs font-bold opacity-50">هیچ تصویری در این دسته وجود ندارد</p></div>`;
         }
     } catch(e) {
-        if(grid) grid.innerHTML = `<div class="col-span-3 text-center py-10 text-gray-400 text-xs">خطا در بارگذاری</div>`;
+        if(grid) { grid.className = _viewClasses('photos') + ' w-full'; grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-400 text-xs">خطا در بارگذاری</div>`; }
     } finally { setMediaLoading(false); }
 }
 
@@ -600,21 +653,26 @@ async function loadAudioCategories(parentId, parentName) {
         const cats = await res.json();
         _audioCatsLoaded = true;
 
+        view.className = _viewClasses('cats') + ' w-full';
         if(cats && cats.length > 0) {
             const colors = ['from-brand-500 to-brand-700','from-violet-500 to-violet-700','from-rose-500 to-rose-700','from-amber-500 to-amber-700','from-emerald-500 to-emerald-700','from-blue-500 to-blue-700','from-pink-500 to-pink-700','from-teal-500 to-teal-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
-                const coverHtml = cat.cover
-                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-headphones text-white text-3xl opacity-80"></i></div>`;
-                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-headphones text-white text-3xl opacity-80"></i></div>`;
                 const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.track_count} صوت`;
                 const clickFn = cat.sub_count > 0 ? `audioNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadAudioPlaylist(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.track_count})`;
+                if (_mediaViewMode === 'list') return `
+                <div onclick="${clickFn}" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 transition-all active:scale-[0.98] flex items-center gap-3 p-3">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">${coverHtml}</div>
+                    <div class="flex-1 min-w-0"><h3 class="font-bold text-xs text-gray-800 line-clamp-1">${cat.name}</h3><p class="text-[10px] text-gray-400 mt-0.5">${badge}</p></div>
+                    <i class="fas fa-chevron-left text-gray-300 text-xs shrink-0"></i>
+                </div>`;
+                const hasFolder = cat.sub_count > 0 ? `<div class="absolute top-2 right-2 bg-white/20 backdrop-blur-sm rounded-lg px-1.5 py-0.5"><i class="fas fa-folder text-white text-[10px] ml-1"></i><span class="text-white text-[9px] font-bold">${cat.sub_count}</span></div>` : '';
+                const aspectClass = _mediaViewMode === 'large' ? 'aspect-video' : 'aspect-square';
                 return `
                 <div onclick="${clickFn}" class="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
-                    <div class="w-full aspect-square overflow-hidden relative">
-                        ${coverHtml}
-                        ${hasFolder}
+                    <div class="w-full ${aspectClass} overflow-hidden relative">
+                        ${coverHtml}${hasFolder}
                         <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                             <h3 class="font-black text-xs text-white line-clamp-1">${cat.name}</h3>
                             <p class="text-[10px] text-white/70 mt-0.5">${badge}</p>
@@ -623,17 +681,10 @@ async function loadAudioCategories(parentId, parentName) {
                 </div>`;
             }).join('');
         } else {
-            view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
-                <i class="fas fa-headphones text-5xl opacity-20"></i>
-                <p class="text-sm font-bold opacity-50">دسته‌بندی صوتی وجود ندارد</p>
-            </div>`;
+            view.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-400 gap-4"><i class="fas fa-headphones text-5xl opacity-20"></i><p class="text-sm font-bold opacity-50">دسته‌بندی صوتی وجود ندارد</p></div>`;
         }
     } catch(e) {
-        if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
-            <i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i>
-            <p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p>
-            <button onclick="_audioCatsLoaded=false;initAudioGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button>
-        </div>`;
+        if(view) view.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400"><i class="fas fa-exclamation-circle text-3xl opacity-30 mb-3"></i><p class="text-sm font-bold opacity-50 mb-3">خطا در بارگذاری</p><button onclick="_audioCatsLoaded=false;initAudioGallery()" class="bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold">تلاش مجدد</button></div>`;
     } finally { setMediaLoading(false); }
 }
 
@@ -699,22 +750,28 @@ async function loadAudioPlaylist(categoryId, title, count) {
 function renderAudioTrackList() {
     const list = document.getElementById('audio-tracks-list');
     if(!list || !audioCurrentTracks.length) return;
+    list.className = _viewClasses('items') + ' w-full';
     list.innerHTML = audioCurrentTracks.map((tr, idx) => {
         const isActive = idx === audioCurrentIndex;
+        const activeCls = isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50';
+        const coverSrc = tr.cover || tr._catCover || '';
+        const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
+        const activeOverlay = isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : '';
+        if (_mediaViewMode === 'grid') return `
+        <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)" class="${activeCls} rounded-2xl cursor-pointer transition-all active:scale-95 overflow-hidden shadow-sm flex flex-col">
+            <div class="w-full aspect-square overflow-hidden relative bg-gray-100 flex items-center justify-center">${coverInner}${activeOverlay}</div>
+            <div class="p-2"><h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug">${tr.title}</h4></div>
+        </div>`;
+        const coverSize = _mediaViewMode === 'large' ? 'w-16 h-16' : 'w-11 h-11';
         return `
         <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)"
-            class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50'} shadow-sm">
-            <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">
-                ${(tr.cover||tr._catCover) ? `<img src="${tr.cover||tr._catCover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
-                ${isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : ''}
-            </div>
+            class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${activeCls} shadow-sm">
+            <div class="${coverSize} rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">${coverInner}${activeOverlay}</div>
             <div class="flex-1 min-w-0">
-                <h4 class="font-bold text-xs ${isActive ? 'text-brand-700' : 'text-gray-800'} line-clamp-1">${tr.title}</h4>
-                ${tr.artist ? `<p class="text-[10px] ${isActive ? 'text-brand-500' : 'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
+                <h4 class="font-bold text-xs ${isActive?'text-brand-700':'text-gray-800'} line-clamp-1">${tr.title}</h4>
+                ${tr.artist ? `<p class="text-[10px] ${isActive?'text-brand-500':'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
             </div>
-            <div class="shrink-0">
-                <span class="text-[10px] font-bold ${isActive ? 'text-brand-500' : 'text-gray-300'}">${idx+1}</span>
-            </div>
+            <span class="text-[10px] font-bold ${isActive?'text-brand-500':'text-gray-300'} shrink-0">${idx+1}</span>
         </div>`;
     }).join('');
 }

@@ -361,11 +361,18 @@
                     </div>
                 </div>
                 
-                <!-- تب‌های ناوبری مدیا -->
-                <div class="flex bg-gray-100 p-1 rounded-xl">
-                    <button onclick="switchMediaTab('video')" id="tab-media-video" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-brand-600 transition-all">فیلم</button>
-                    <button onclick="switchMediaTab('audio')" id="tab-media-audio" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">صوت</button>
-                    <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">عکس</button>
+                <!-- تب‌های ناوبری مدیا + دکمه‌های حالت نمایش -->
+                <div class="flex items-center gap-2">
+                    <div class="flex bg-gray-100 p-1 rounded-xl flex-1">
+                        <button onclick="switchMediaTab('video')" id="tab-media-video" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-brand-600 transition-all">فیلم</button>
+                        <button onclick="switchMediaTab('audio')" id="tab-media-audio" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">صوت</button>
+                        <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">عکس</button>
+                    </div>
+                    <div class="flex items-center gap-0.5 bg-gray-100 p-1 rounded-xl shrink-0">
+                        <button onclick="setMediaViewMode('grid')" id="view-btn-grid" title="شبکه‌ای" class="w-8 h-8 flex items-center justify-center rounded-lg transition text-gray-400"><i class="fas fa-th text-sm"></i></button>
+                        <button onclick="setMediaViewMode('list')" id="view-btn-list" title="فهرستی" class="w-8 h-8 flex items-center justify-center rounded-lg transition text-gray-400"><i class="fas fa-list text-sm"></i></button>
+                        <button onclick="setMediaViewMode('large')" id="view-btn-large" title="بزرگ" class="w-8 h-8 flex items-center justify-center rounded-lg transition text-gray-400"><i class="fas fa-th-large text-sm"></i></button>
+                    </div>
                 </div>
             </header>
 

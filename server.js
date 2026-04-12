@@ -1150,12 +1150,9 @@ app.get('/api/audio/categories',(req,res)=>{
 app.get('/api/audio/categories/:id/tracks',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     const sortBy = req.query.sort === 'date' ? 'COALESCE(at.publish_date,at.created_at) DESC' : 'at.sort_order ASC, COALESCE(at.publish_date,at.created_at) ASC';
-    mainDb.get('SELECT cover FROM audio_categories WHERE id=?',[id],(err,cat)=>{
-        const catCover=cat?cat.cover:'';
-        mainDb.all(`SELECT at.* FROM audio_tracks at WHERE at.category_id=? ORDER BY ${sortBy}`,[id],(err2,rows)=>{
-            if(err2) return res.status(500).json({error:err2.message});
-            res.json((rows||[]).map(t=>({...t,_catCover:catCover})));
-        });
+    mainDb.all(`SELECT at.*, COALESCE(NULLIF(at.cover,''), ac.cover, '') as _catCover FROM audio_tracks at LEFT JOIN audio_categories ac ON at.category_id=ac.id WHERE at.category_id=? ORDER BY ${sortBy}`,[id],(err,rows)=>{
+        if(err) return res.status(500).json({error:err.message});
+        res.json(rows||[]);
     });
 });
 
@@ -1333,8 +1330,8 @@ app.get('/api/videos/categories',(req,res)=>{
 });
 app.get('/api/videos/categories/:id/items',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    const sortBy = req.query.sort === 'date' ? 'COALESCE(publish_date,created_at) DESC' : 'sort_order ASC, COALESCE(publish_date,created_at) ASC';
-    mainDb.all(`SELECT * FROM video_items WHERE category_id=? ORDER BY ${sortBy}`,[id],(err,rows)=>{
+    const sortBy = req.query.sort === 'date' ? 'COALESCE(vi.publish_date,vi.created_at) DESC' : 'vi.sort_order ASC, COALESCE(vi.publish_date,vi.created_at) ASC';
+    mainDb.all(`SELECT vi.*, COALESCE(NULLIF(vi.thumbnail,''), vc.cover, '') as _catCover FROM video_items vi LEFT JOIN video_categories vc ON vi.category_id=vc.id WHERE vi.category_id=? ORDER BY ${sortBy}`,[id],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
