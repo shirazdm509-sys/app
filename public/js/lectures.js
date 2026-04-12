@@ -219,8 +219,12 @@ async function showWPSingleView(postId) {
 }
 
 function wpNavBack() {
-    if (wpState.view === 'single') showWPPostsView(wpState.currentCat.id, wpState.currentCat.name);
-    else if (wpState.view === 'posts') {
+    if (wpState.view === 'single') {
+        const fromHome = wpState._fromHome;
+        wpState._fromHome = false;
+        if (fromHome) { navToScreen('home'); return; }
+        showWPPostsView(wpState.currentCat.id, wpState.currentCat.name);
+    } else if (wpState.view === 'posts') {
         if (wpState.mainCat.id && wpState.mainCat.id !== wpState.currentCat.id) {
             const children = allWPCats.filter(c => c.parent === wpState.mainCat.id && c.count > 0);
             showWPSubCategories(wpState.mainCat.id, wpState.mainCat.name, children);
@@ -265,6 +269,7 @@ function openLatestPost(postId) {
         wpFetch('categories?per_page=100').then(r=>r.json()).then(cats=>{allWPCats=cats;});
     }
     cachedPosts = posts;
+    wpState._fromHome = true;
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const lecturesScreen = document.getElementById('screen-lectures');
     if (lecturesScreen) lecturesScreen.classList.add('active');
