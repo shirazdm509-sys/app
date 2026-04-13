@@ -90,7 +90,7 @@
         <!-- ============================================== -->
         <div id="screen-auth" class="screen flex-col bg-gray-50 h-full">
             <header class="shrink-0 pt-safe pt-3 pb-3 px-5 bg-white border-b border-gray-100 flex items-center gap-3 shadow-sm">
-                <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-2xl text-gray-500 hover:bg-gray-100 transition">
+                <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-2xl text-gray-500 hover:bg-gray-100 transition">
                     <i class="fas fa-arrow-right"></i>
                 </button>
                 <h1 class="font-black text-gray-800 text-base" id="auth-screen-title">ورود به حساب کاربری</h1>
@@ -327,7 +327,7 @@
         <div id="screen-library" class="screen flex-col bg-gray-50 h-full">
             <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                     <div>
@@ -354,7 +354,7 @@
             <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex flex-col gap-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                        <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
                             <i class="fas fa-arrow-right"></i>
                         </button>
                         <h1 class="font-black text-xl text-gray-800">رسانه</h1>
@@ -562,7 +562,7 @@
         <div id="screen-qa" class="screen flex-col bg-gray-50 h-full">
             <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
+                    <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
                 </div>
                 <div class="flex items-center gap-2">
@@ -609,7 +609,7 @@
             <!-- اورلی ورود / ثبت‌نام -->
             <div id="qa-auth" class="hidden absolute inset-0 bg-gray-50 flex-col z-20">
                 <header class="shrink-0 pt-3 pb-3 px-6 bg-white border-b border-gray-100 shadow-sm flex items-center gap-3">
-                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500"><i class="fas fa-arrow-right"></i></button>
+                    <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرسش و پاسخ</h1>
                 </header>
                 <div class="flex-1 overflow-y-auto p-5 flex flex-col justify-center gap-4 max-w-sm mx-auto w-full">
@@ -741,7 +741,7 @@
         <div id="screen-payment" class="screen flex-col bg-gray-50 h-full">
             <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
+                    <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition"><i class="fas fa-arrow-right"></i></button>
                     <h1 class="font-black text-xl text-gray-800">پرداخت</h1>
                 </div>
             </header>
@@ -766,7 +766,7 @@
         <div id="screen-live" class="screen flex-col bg-gray-50 h-full">
             <header class="shrink-0 pt-3 pb-3 px-6 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <button onclick="navToScreen('home')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <button onclick="handleBackButton()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition">
                         <i class="fas fa-arrow-right"></i>
                     </button>
                     <div class="flex items-center gap-2">

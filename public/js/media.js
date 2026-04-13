@@ -62,12 +62,12 @@ function setMediaViewMode(mode) {
     if (videoContent && videoContent.style.display !== 'none') {
         const vcv = document.getElementById('video-categories-view');
         const vlv = document.getElementById('video-list-view');
-        if (vcv && !vcv.classList.contains('hidden')) { _videoCatsLoaded=false; const top=_videoNavStack[_videoNavStack.length-1]; loadVideoCategories(top?top.id:null,top?top.name:''); }
-        else if (vlv && !vlv.classList.contains('hidden') && _currentVideoCatId) loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
+        if (vcv && !vcv.classList.contains('hidden')) { _videoCatsLoaded=false; const top=_videoNavStack[_videoNavStack.length-1]; withoutHistory(()=>loadVideoCategories(top?top.id:null,top?top.name:'')); }
+        else if (vlv && !vlv.classList.contains('hidden') && _currentVideoCatId) withoutHistory(()=>loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0));
     } else if (audioContent && audioContent.style.display !== 'none') {
         const acv = document.getElementById('audio-categories-view');
         const apv = document.getElementById('audio-playlist-view');
-        if (acv && !acv.classList.contains('hidden')) { _audioCatsLoaded=false; const top=_audioNavStack[_audioNavStack.length-1]; loadAudioCategories(top?top.id:null,top?top.name:''); }
+        if (acv && !acv.classList.contains('hidden')) { _audioCatsLoaded=false; const top=_audioNavStack[_audioNavStack.length-1]; withoutHistory(()=>loadAudioCategories(top?top.id:null,top?top.name:'')); }
         else if (apv && !apv.classList.contains('hidden') && audioCurrentTracks.length) renderAudioTrackList();
     } else if (photoContent && photoContent.style.display !== 'none') {
         const gcv = document.getElementById('gallery-categories-view');
@@ -102,8 +102,19 @@ function _reRenderGalleryPhotos() {
 // تب‌های رسانه
 // ====================================================
 function switchMediaTab(tab) {
-    const tabs = ['video', 'audio', 'photo'];
-    tabs.forEach(t => {
+    // تشخیص تب فعلی قبل از تغییر
+    const _tabs = ['video', 'audio', 'photo'];
+    const _prevTab = _tabs.find(t => {
+        const c = document.getElementById('media-content-' + t);
+        return c && c.style.display !== 'none';
+    }) || 'video';
+
+    if (_prevTab !== tab) {
+        const capturedPrev = _prevTab;
+        pushNavHistory(function() { withoutHistory(function() { switchMediaTab(capturedPrev); }); });
+    }
+
+    _tabs.forEach(t => {
         const btn = document.getElementById('tab-media-' + t);
         const content = document.getElementById('media-content-' + t);
         if (!btn || !content) return;
@@ -123,9 +134,11 @@ function switchMediaTab(tab) {
     const vc = document.getElementById('wp-media-player-container');
     if(tab !== 'video' && vc) vc.innerHTML = '';
 
-    if (tab === 'video') initVideoGallery();
-    if (tab === 'photo') initGallery();
-    if (tab === 'audio') initAudioGallery();
+    if (!_skipHistoryPush) {
+        if (tab === 'video') initVideoGallery();
+        if (tab === 'photo') initGallery();
+        if (tab === 'audio') initAudioGallery();
+    }
 }
 
 // بستن منوهای کشویی با کلیک خارج از آن‌ها
@@ -265,12 +278,29 @@ async function loadVideoCategories(parentId, parentName) {
 }
 
 function videoNavToSub(catId, catName) {
+    const _snapStack = [..._videoNavStack];
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            _videoNavStack = _snapStack;
+            _videoCatsLoaded = false;
+            const top = _snapStack[_snapStack.length - 1];
+            loadVideoCategories(top ? top.id : null, top ? top.name : '');
+        });
+    });
     _videoNavStack.push({id: catId, name: catName});
     _videoCatsLoaded = false;
     loadVideoCategories(catId, catName);
 }
 
 async function loadVideoList(categoryId, title, count) {
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            const listView = document.getElementById('video-list-view');
+            const catsView = document.getElementById('video-categories-view');
+            if (listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
+            if (catsView) catsView.classList.remove('hidden');
+        });
+    });
     _currentVideoCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
@@ -327,6 +357,17 @@ async function loadVideoList(categoryId, title, count) {
 function playVideoItem(itemId) {
     const item = videoCachedItems.find(v => v.id === itemId);
     if(!item) return;
+
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            const iframe = document.getElementById('video-aparat-iframe');
+            if (iframe) iframe.src = '';
+            const pv = document.getElementById('video-player-view');
+            const lv = document.getElementById('video-list-view');
+            if (pv) { pv.classList.add('hidden'); pv.classList.remove('flex'); }
+            if (lv) { lv.classList.remove('hidden'); lv.classList.add('flex'); }
+        });
+    });
 
     const listView = document.getElementById('video-list-view');
     const playerView = document.getElementById('video-player-view');
@@ -452,12 +493,29 @@ async function loadGalleryCategories(parentId, parentName) {
 }
 
 function galleryNavToSub(catId, catName) {
+    const _snapStack = [..._galleryNavStack];
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            _galleryNavStack = _snapStack;
+            _galleryCatsLoaded = false;
+            const top = _snapStack[_snapStack.length - 1];
+            loadGalleryCategories(top ? top.id : null, top ? top.name : '');
+        });
+    });
     _galleryNavStack.push({id: catId, name: catName});
     _galleryCatsLoaded = false;
     loadGalleryCategories(catId, catName);
 }
 
 async function loadGalleryPhotos(categoryId, title, count) {
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            const photosView = document.getElementById('gallery-photos-view');
+            const catsView = document.getElementById('gallery-categories-view');
+            if (photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
+            if (catsView) catsView.classList.remove('hidden');
+        });
+    });
     setMediaLoading(true);
     const catsView = document.getElementById('gallery-categories-view');
     const photosView = document.getElementById('gallery-photos-view');
@@ -724,6 +782,15 @@ async function loadAudioCategories(parentId, parentName) {
 }
 
 function audioNavToSub(catId, catName) {
+    const _snapStack = [..._audioNavStack];
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            _audioNavStack = _snapStack;
+            _audioCatsLoaded = false;
+            const top = _snapStack[_snapStack.length - 1];
+            loadAudioCategories(top ? top.id : null, top ? top.name : '');
+        });
+    });
     _audioNavStack.push({id: catId, name: catName});
     _audioCatsLoaded = false;
     loadAudioCategories(catId, catName);
@@ -751,7 +818,7 @@ async function setAudioSort(sort) {
         btn.classList.toggle('bg-brand-50', active);
         btn.classList.toggle('text-gray-600', !active);
     });
-    if (_currentAudioCatId) await loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0);
+    if (_currentAudioCatId) await withoutHistory(() => loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0));
 }
 
 function toggleVideoSortDropdown() {
@@ -771,10 +838,21 @@ async function setVideoSort(sort) {
         btn.classList.toggle('bg-brand-50', active);
         btn.classList.toggle('text-gray-600', !active);
     });
-    if (_currentVideoCatId) await loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0);
+    if (_currentVideoCatId) await withoutHistory(() => loadVideoList(_currentVideoCatId, document.getElementById('video-cat-title').textContent, 0));
 }
 
 async function loadAudioPlaylist(categoryId, title, count) {
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            if (audioEl) { try { audioEl.pause(); audioEl.src = ''; } catch(e) {} }
+            const playerCard = document.getElementById('audio-player-card');
+            if (playerCard) playerCard.classList.add('hidden');
+            const plView = document.getElementById('audio-playlist-view');
+            const catsView = document.getElementById('audio-categories-view');
+            if (plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+            if (catsView) catsView.classList.remove('hidden');
+        });
+    });
     _currentAudioCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('audio-categories-view');

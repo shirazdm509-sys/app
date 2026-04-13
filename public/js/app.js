@@ -1,11 +1,27 @@
 // ====================================================
-// ناوبری اصلی
+// ناوبری اصلی — سیستم تاریخچه یکپارچه
 // ====================================================
-let _screenStack = ['home']; // stack برای back button
+let _navHistory = []; // هر آیتم یک تابع restore است
+let _skipHistoryPush = false; // هنگام بازگشت (restore) فعال می‌شود
+
+// اجرای تابع بدون ثبت در تاریخچه
+function withoutHistory(fn) {
+    const prev = _skipHistoryPush;
+    _skipHistoryPush = true;
+    try { fn(); } finally { _skipHistoryPush = prev; }
+}
+
+// ثبت یک قدم بازگشت در تاریخچه (از سایر فایل‌های JS قابل فراخوانی)
+function pushNavHistory(restoreFn) {
+    if (!_skipHistoryPush) {
+        _navHistory.push(restoreFn);
+        if (_navHistory.length > 50) _navHistory.shift();
+    }
+}
 
 function navToScreen(name) {
     const prevActive = document.querySelector('.screen.active');
-    const prevName = prevActive ? prevActive.id.replace('screen-', '') : null;
+    const prevName = prevActive ? prevActive.id.replace('screen-', '') : 'home';
 
     if (typeof closeImageModal === 'function') closeImageModal();
 
@@ -23,34 +39,37 @@ function navToScreen(name) {
     const navBtn = document.querySelector(`[data-nav="${name}"]`);
     if (navBtn) navBtn.classList.add('active');
 
-    if (name === 'live') {
-        initLiveScreen();
-    } else {
-        const c = document.getElementById('live-embed-container');
-        if (c) c.innerHTML = '';
+    // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
+    if (!_skipHistoryPush && prevName !== name) {
+        const capturedPrev = prevName;
+        _navHistory.push(function() {
+            withoutHistory(function() { navToScreen(capturedPrev); });
+        });
+        if (_navHistory.length > 50) _navHistory.shift();
     }
 
-    if (name === 'home') loadBanners();
-    if (name === 'lectures') initWP(prevName === 'lectures');
-    if (name === 'news') initNews();
-    if (name === 'statements') initStatements();
-    if (name === 'auth') { updateAuthScreenUI(); }
-    if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
-    if (name === 'media') initMedia();
-    else {
-        const wpPlayer = document.getElementById('wp-media-player-container');
-        if (wpPlayer) wpPlayer.innerHTML = "";
-    }
-
-    if (name === 'payment') {
-        window.open('https://dastgheibqoba.info/pay/', '_blank');
-        navToScreen('home');
-    }
-
-    // --- به‌روزرسانی stack ناوبری ---
-    if (_screenStack[_screenStack.length - 1] !== name) {
-        _screenStack.push(name);
-        if (_screenStack.length > 10) _screenStack.shift();
+    // مقداردهی اولیه صفحه (فقط هنگام ناوبری رو به جلو، نه هنگام restore)
+    if (!_skipHistoryPush) {
+        if (name === 'live') initLiveScreen();
+        else {
+            const c = document.getElementById('live-embed-container');
+            if (c) c.innerHTML = '';
+        }
+        if (name === 'home') loadBanners();
+        if (name === 'lectures') initWP(prevName === 'lectures');
+        if (name === 'news') initNews();
+        if (name === 'statements') initStatements();
+        if (name === 'auth') updateAuthScreenUI();
+        if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
+        if (name === 'media') initMedia();
+        else {
+            const wpPlayer = document.getElementById('wp-media-player-container');
+            if (wpPlayer) wpPlayer.innerHTML = "";
+        }
+        if (name === 'payment') {
+            window.open('https://dastgheibqoba.info/pay/', '_blank');
+            withoutHistory(function() { navToScreen('home'); });
+        }
     }
 }
 
@@ -966,7 +985,7 @@ function _hasClass(id, cls) {
 }
 
 function handleBackButton() {
-    // لایه‌ها به ترتیب z-index از بالا به پایین
+    // Modal/overlay ها — بالاترین اولویت
     if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return; }
     if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return; }
     if (_isVisible('image-modal'))          { closeImageModal();    return; }
@@ -978,59 +997,17 @@ function handleBackButton() {
     if (_isVisible('settings-overlay'))     { closeSettings();      return; }
     if (_hasClass('reader-overlay', 'open')){ closeReader();        return; }
     if (_hasClass('toc-overlay', 'open'))   { closeToc();           return; }
+    if (_isVisible('qa-conversation'))      { closeQAConversation();return; }
 
-    // سخنرانی: مسیر بازگشت تو‌در‌تو (single → posts → subcats → main)
-    const onLectures = document.getElementById('screen-lectures')?.classList.contains('active');
-    if (onLectures && typeof wpState !== 'undefined' && wpState.view !== 'main') {
-        if (typeof wpNavBack === 'function') { wpNavBack(); return; }
-    }
-    // اخبار: مسیر بازگشت تو‌در‌تو
-    if (_isVisible('news-single-view')) {
-        if (typeof newsNavBack === 'function') { newsNavBack(); return; }
-    }
-    // بیانیه‌ها
-    if (_isVisible('statements-single-view')) {
-        if (typeof statementsNavBack === 'function') { statementsNavBack(); return; }
-    }
-
-    if (_isVisible('qa-conversation')) { closeQAConversation(); return; }
-
-    // sub-navigation رسانه (ویدیو / صوت / گالری عکس)
-    if (typeof handleMediaBack === 'function' && handleMediaBack()) return;
-
-    // برگشت به صفحه قبلی در stack (بدون push مجدد)
-    if (_screenStack.length > 1) {
-        _screenStack.pop();
-        _lastBackPressTime = 0; // ریست تایمر خروج هنگام ناوبری
-        const prev = _screenStack[_screenStack.length - 1];
-        // مستقیم DOM را آپدیت کن بدون اینکه stack دوباره رشد کنه
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const t = document.getElementById('screen-' + prev);
-        if (t) t.classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        const nb = document.querySelector(`[data-nav="${prev}"]`);
-        if (nb) nb.classList.add('active');
+    // بازیابی مرحله قبل از تاریخچه یکپارچه
+    if (_navHistory.length > 0) {
+        _navHistory.pop()();
         return;
     }
 
-    // روی home هستیم → نمایش دیالوگ خروج
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const h = document.getElementById('screen-home');
-    if (h) h.classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const nb = document.querySelector('[data-nav="home"]');
-    if (nb) nb.classList.add('active');
-
-    const now = Date.now();
-    if (now - _lastBackPressTime < 2500) {
-        showExitDialog();
-    } else {
-        _lastBackPressTime = now;
-        showToast('برای خروج دوباره دکمه بازگشت را بزنید');
-    }
+    // تاریخچه خالی = روی صفحه اصلی هستیم → دیالوگ خروج
+    showExitDialog();
 }
-
-let _lastBackPressTime = 0;
 
 function showExitDialog() {
     const modal = document.getElementById('exit-confirm-modal');

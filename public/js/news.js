@@ -111,6 +111,19 @@ async function showNewsPosts(catId, catName) {
 function showNewsSingle(postId) {
     const post = cachedNewsPosts.find(p => p.id === postId);
     if (!post) return;
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            newsState.view = 'posts';
+            const scr = document.getElementById('screen-news');
+            if (scr) scr.classList.remove('reading-mode');
+            document.getElementById('btn-news-settings').classList.add('hidden');
+            document.getElementById('news-header-title').textContent = 'اخبار';
+            const sv = document.getElementById('news-single-view');
+            const pv = document.getElementById('news-posts-view');
+            if (sv) { sv.classList.add('hidden'); sv.classList.remove('flex'); }
+            if (pv) { pv.classList.remove('hidden'); pv.classList.add('flex'); }
+        });
+    });
     newsState.view = 'single';
     const screen = document.getElementById('screen-news');
     if (screen) screen.classList.add('reading-mode');
@@ -226,6 +239,19 @@ async function showStatementsPosts(catId, catName) {
 function showStatementsSingle(postId) {
     const post = cachedStatementsPosts.find(p => p.id === postId);
     if (!post) return;
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            statementsState.view = 'posts';
+            const scr = document.getElementById('screen-statements');
+            if (scr) scr.classList.remove('reading-mode');
+            document.getElementById('btn-statements-settings').classList.add('hidden');
+            document.getElementById('statements-header-title').textContent = 'بیانیه‌ها';
+            const sv = document.getElementById('statements-single-view');
+            const pv = document.getElementById('statements-posts-view');
+            if (sv) { sv.classList.add('hidden'); sv.classList.remove('flex'); }
+            if (pv) { pv.classList.remove('hidden'); pv.classList.add('flex'); }
+        });
+    });
     statementsState.view = 'single';
     const screen = document.getElementById('screen-statements');
     if (screen) screen.classList.add('reading-mode');

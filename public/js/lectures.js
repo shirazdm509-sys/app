@@ -75,6 +75,7 @@ function handleCategoryClick(catId, catName) {
 }
 
 function showWPSubCategories(parentId, parentName, children) {
+    pushNavHistory(function() { withoutHistory(showWPMainCategories); });
     exitReadingMode();
     wpState.view = 'sub';
     document.getElementById('lectures-header-title').textContent = parentName;
@@ -88,6 +89,16 @@ function showWPSubCategories(parentId, parentName, children) {
 }
 
 async function showWPPostsView(catId, catName) {
+    const _prevView = wpState.view;
+    const _prevMainCat = { ...wpState.mainCat };
+    pushNavHistory(function() {
+        withoutHistory(function() {
+            if (_prevView === 'sub' && _prevMainCat.id) {
+                const children = allWPCats.filter(c => c.parent === _prevMainCat.id && c.count > 0);
+                showWPSubCategories(_prevMainCat.id, _prevMainCat.name, children);
+            } else { showWPMainCategories(); }
+        });
+    });
     exitReadingMode();
     wpState.view = 'posts';
     wpState.currentCat = { id: catId, name: catName };
@@ -147,6 +158,12 @@ function _buildAudioHtml(tracks) {
 async function showWPSingleView(postId) {
     let post = cachedPosts.find(p => p.id === postId);
     if (!post) return;
+
+    const _prevCatId = wpState.currentCat.id;
+    const _prevCatName = wpState.currentCat.name;
+    pushNavHistory(function() {
+        withoutHistory(function() { showWPPostsView(_prevCatId, _prevCatName); });
+    });
 
     wpState.view = 'single';
     const screen = document.getElementById('screen-lectures');
@@ -269,7 +286,9 @@ function openLatestPost(postId) {
         wpFetch('categories?per_page=100').then(r=>r.json()).then(cats=>{allWPCats=cats;});
     }
     cachedPosts = posts;
-    wpState._fromHome = true;
+    // ثبت بازگشت به صفحه اصلی
+    pushNavHistory(function() { withoutHistory(function() { navToScreen('home'); }); });
+    // سوئیچ به صفحه سخنرانی‌ها (بدون initWP)
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const lecturesScreen = document.getElementById('screen-lectures');
     if (lecturesScreen) lecturesScreen.classList.add('active');
@@ -278,7 +297,8 @@ function openLatestPost(postId) {
     if (navBtn) navBtn.classList.add('active');
     const liveEl = document.getElementById('live-embed-container');
     if (liveEl) liveEl.innerHTML = '';
-    showWPSingleView(postId);
+    // نمایش پست بدون ثبت مجدد در تاریخچه
+    withoutHistory(function() { showWPSingleView(postId); });
 }
 
 // ناوبری مستقیم برای لینک‌های داخلی بنر
