@@ -6,6 +6,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const crypto = require('crypto');
+let sharp; try { sharp = require('sharp'); } catch(e) { sharp = null; }
 const bcrypt = require('bcryptjs');
 let mm; try { mm = require('music-metadata'); } catch(e) { mm = null; }
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
@@ -51,12 +52,28 @@ app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09'
 
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
-    const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color','icon_version'];
+    const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color','icon_version','pwa_screenshots'];
     mainDb.all(`SELECT key,value FROM settings WHERE key IN (${keys.map(()=>'?').join(',')})`, keys, (err, rows) => {
         const s = {};
         if (rows) rows.forEach(r => { s[r.key] = r.value; });
         const v = s.icon_version || '1';
-        const iconSizes = [72,96,128,144,152,192,384,512];
+        // آیکون‌های any و maskable باید جدا باشند (الزام PWABuilder)
+        const anySizes = [72,96,128,144,152,192,384,512];
+        const maskableSizes = [192,512];
+        const anyIcons = anySizes.map(sz => ({
+            src: `/icons/icon-${sz}.png?v=${v}`,
+            sizes: `${sz}x${sz}`,
+            type: 'image/png',
+            purpose: 'any'
+        }));
+        const maskableIcons = maskableSizes.map(sz => ({
+            src: `/icons/icon-${sz}-maskable.png?v=${v}`,
+            sizes: `${sz}x${sz}`,
+            type: 'image/png',
+            purpose: 'maskable'
+        }));
+        let screenshots = [];
+        try { screenshots = s.pwa_screenshots ? JSON.parse(s.pwa_screenshots) : []; } catch(e) {}
         const manifest = {
             name: s.pwa_name || 'نرم افزار آیت الله دستغیب',
             short_name: s.pwa_short_name || 'آیت الله دستغیب',
@@ -70,12 +87,8 @@ app.get('/manifest.json', (req, res) => {
             lang: 'fa',
             dir: 'rtl',
             id: '/',
-            icons: iconSizes.map(sz => ({
-                src: `/icons/icon-${sz}.png?v=${v}`,
-                sizes: `${sz}x${sz}`,
-                type: 'image/png',
-                purpose: 'any maskable'
-            }))
+            icons: [...anyIcons, ...maskableIcons],
+            ...(screenshots.length > 0 ? { screenshots } : {})
         };
         res.setHeader('Content-Type', 'application/manifest+json');
         res.setHeader('Cache-Control', 'no-cache');
@@ -796,17 +809,36 @@ app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=
     if(!req.file) return res.status(400).json({error:'فایل فاوآیکون ارائه نشده'});
     const fu=`/icons/${req.file.filename}`;
     const srcPath = req.file.path;
-    // Copy uploaded file to all PWA icon sizes (browser handles scaling)
-    const sizes=[72,96,128,144,152,192,384,512];
-    sizes.forEach(s=>{
-        try{ fs.copyFileSync(srcPath, path.join(__dirname,'public','icons',`icon-${s}.png`)); }catch(e){}
-    });
+    const iconsDir = path.join(__dirname,'public','icons');
+    const anySizes=[72,96,128,144,152,192,384,512];
+    const maskableSizes=[192,512];
     const newVersion = Date.now().toString();
-    mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
-        mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion],()=>{
-            res.json({success:true,favicon_url:fu});
+
+    if (sharp) {
+        // تبدیل به PNG و resize صحیح برای هر سایز
+        const tasks = [
+            ...anySizes.map(s => sharp(srcPath).resize(s,s,{fit:'contain',background:{r:255,g:255,b:255,alpha:0}}).png().toFile(path.join(iconsDir,`icon-${s}.png`))),
+            // آیکون maskable: آیکون اصلی با پس‌زمینه سفید و padding 10%
+            ...maskableSizes.map(s => sharp(srcPath).resize(Math.round(s*0.8),Math.round(s*0.8),{fit:'contain',background:{r:255,g:255,b:255,alpha:0}}).extend({top:Math.round(s*0.1),bottom:Math.round(s*0.1),left:Math.round(s*0.1),right:Math.round(s*0.1),background:{r:255,g:255,b:255,alpha:0}}).png().toFile(path.join(iconsDir,`icon-${s}-maskable.png`)))
+        ];
+        Promise.all(tasks).then(()=>{
+            const newVersion2 = Date.now().toString();
+            mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
+                mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion2],()=>{
+                    res.json({success:true,favicon_url:fu});
+                });
+            });
+        }).catch(e=>{ console.error('icon resize error:',e); res.status(500).json({error:'خطا در پردازش آیکون: '+e.message}); });
+    } else {
+        // fallback: کپی مستقیم بدون resize (اگر sharp نصب نشده)
+        anySizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}.png`)); }catch(e){} });
+        maskableSizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}-maskable.png`)); }catch(e){} });
+        mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
+            mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion],()=>{
+                res.json({success:true,favicon_url:fu});
+            });
         });
-    });
+    }
 });
 
 // Admin Banners
