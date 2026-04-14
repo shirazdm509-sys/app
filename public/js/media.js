@@ -1,6 +1,23 @@
 // ====================================================
 // متغیرهای رسانه
 // ====================================================
+
+// هنگام خطای بارگذاری تصویر: سعی می‌کند از catCover استفاده کند، سپس gradient
+function _videoImgErr(img, catCover) {
+    img.onerror = null;
+    if (catCover && img.src !== catCover && !img.src.endsWith(catCover)) {
+        img.src = catCover;
+        img.onerror = function() {
+            img.onerror = null;
+            const p = img.parentElement;
+            if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>';
+        };
+    } else {
+        const p = img.parentElement;
+        if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>';
+    }
+}
+
 // گالری ویدیو محلی
 let _videoCatsLoaded = false;
 let videoCachedItems = [];
@@ -325,8 +342,10 @@ async function loadVideoList(categoryId, title, count) {
         if(items && items.length > 0) {
             const playBtn = `<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-sm mr-[-1px]"></i></div></div>`;
             list.innerHTML = items.map(v => {
+                const catCover = (v._catCover || '').replace(/'/g, "\\'");
                 const thumb = v.thumbnail || v._catCover || '';
-                const thumbHtml = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+                const errHandler = `_videoImgErr(this,'${catCover}')`;
+                const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
                 if (_mediaViewMode === 'grid') return `
                 <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
                     <div class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
