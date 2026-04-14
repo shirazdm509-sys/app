@@ -1,7 +1,7 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v9';
-const STATIC_CACHE = 'nashr-static-v9';
-const DYNAMIC_CACHE = 'nashr-dynamic-v9';
+const CACHE_NAME = 'nashr-asar-v10';
+const STATIC_CACHE = 'nashr-static-v10';
+const DYNAMIC_CACHE = 'nashr-dynamic-v10';
 
 // فقط فونت‌ها و فایل‌های ثابت را pre-cache می‌کنیم
 // فایل‌های JS/CSS با استراتژی network-first بارگذاری می‌شوند (همیشه به‌روز)
@@ -34,15 +34,20 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate: کش‌های قدیمی را پاک کن و فوری کنترل را بگیر
+// Activate: کش‌های قدیمی را پاک کن، کنترل را بگیر، و همه صفحات را reload کن
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
+    caches.keys()
+      .then(keys => Promise.all(
         keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
             .map(key => caches.delete(key))
-      );
-    }).then(() => self.clients.claim())
+      ))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+      .then(clients => Promise.all(
+        // وقتی SW جدید فعال می‌شود، همه صفحات باز را reload کن تا JS جدید بارگذاری شود
+        clients.map(client => client.navigate(client.url).catch(() => {}))
+      ))
   );
 });
 

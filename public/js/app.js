@@ -1001,7 +1001,8 @@ function handleBackButton() {
 
     // بازیابی مرحله قبل از تاریخچه یکپارچه
     if (_navHistory.length > 0) {
-        _navHistory.pop()();
+        const restore = _navHistory.pop();
+        try { restore(); } catch(e) { console.warn('back restore failed:', e); }
         return;
     }
 
