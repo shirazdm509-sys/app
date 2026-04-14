@@ -50,6 +50,17 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09', dir: __dirname }));
 
+// Digital Asset Links — برای TWA standalone (بدون Chrome UI)
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    mainDb.get(`SELECT value FROM settings WHERE key='assetlinks'`, (err, row) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        let content = '[]';
+        if (row && row.value) { try { JSON.parse(row.value); content = row.value; } catch(e) {} }
+        res.send(content);
+    });
+});
+
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
     const keys = ['pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color','icon_version','pwa_screenshots'];
@@ -795,6 +806,16 @@ app.post('/api/admin/settings',adminAuth,(req,res)=>{
     Object.entries(u).forEach(([k,v])=>stmt.run(san(k.toString()),san(v.toString())));
     stmt.finalize(err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
+// ذخیره assetlinks.json برای TWA Android
+app.post('/api/admin/assetlinks', adminAuth, (req, res) => {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: 'محتوا الزامی است' });
+    try { JSON.parse(content); } catch(e) { return res.status(400).json({ error: 'JSON نامعتبر است' }); }
+    mainDb.run(`INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('assetlinks',?,CURRENT_TIMESTAMP)`, [content], err =>
+        err ? res.status(500).json({ error: err.message }) : res.json({ success: true })
+    );
+});
+
 app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل لوگو ارائه نشده'});
     const lu=`/logos/${req.file.filename}`;
