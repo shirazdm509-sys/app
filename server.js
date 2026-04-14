@@ -52,9 +52,14 @@ app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09'
 
 // Digital Asset Links — برای TWA standalone (بدون Chrome UI)
 app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
+    // اول از فایل می‌خواند، اگر نبود از دیتابیس
+    const filePath = path.join(__dirname, 'public', '.well-known', 'assetlinks.json');
+    if (fs.existsSync(filePath)) {
+        return res.sendFile(filePath);
+    }
     mainDb.get(`SELECT value FROM settings WHERE key='assetlinks'`, (err, row) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Cache-Control', 'no-cache');
         let content = '[]';
         if (row && row.value) { try { JSON.parse(row.value); content = row.value; } catch(e) {} }
         res.send(content);
