@@ -1068,10 +1068,41 @@ async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     try {
         const reg = await navigator.serviceWorker.register('/sw.js');
-        console.log('SW registered');
         window._swReg = reg;
         if (qaUser) { setTimeout(() => subscribeToPush(reg), 2000); }
+
+        // وقتی SW جدید نصب می‌شود، بنر بروزرسانی نشان بده
+        function onNewSW(newWorker) {
+            newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed') {
+                    showUpdateBanner();
+                }
+            });
+        }
+        if (reg.waiting) { showUpdateBanner(); }
+        reg.addEventListener('updatefound', () => {
+            onNewSW(reg.installing);
+        });
+        // اگر SW در حال اجرا کنترل را تغییر داد، صفحه را reload کن
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
     } catch(e) { console.warn('SW registration failed:', e); }
+}
+
+function showUpdateBanner() {
+    const banner = document.getElementById('update-banner');
+    if (banner) banner.classList.remove('hidden');
+}
+
+function applyUpdate() {
+    const banner = document.getElementById('update-banner');
+    if (banner) banner.classList.add('hidden');
+    if (window._swReg && window._swReg.waiting) {
+        window._swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+        window.location.reload();
+    }
 }
 
 function urlBase64ToUint8Array(base64String) {
