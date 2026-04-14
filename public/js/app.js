@@ -1,11 +1,12 @@
 // ====================================================
 // ناوبری اصلی — سیستم تاریخچه یکپارچه
 // هر قدم ناوبری داخل اپ = یک entry واقعی در تاریخچه مرورگر
-// تا back مرورگر/گوشی قابل اعتماد کار کند (کروم، سامسونگ، فایرفاکس).
+// با URL hash متفاوت تا Samsung Internet آن‌ها را جداگانه ببیند.
 // ====================================================
 let _navHistory = []; // هر آیتم یک تابع restore است
 let _skipHistoryPush = false; // هنگام بازگشت (restore) فعال می‌شود
 let _wantToExit = false;
+let _navDepth = 0; // شمارنده برای تولید hash منحصربه‌فرد
 
 // اجرای تابع بدون ثبت در تاریخچه
 function withoutHistory(fn) {
@@ -15,16 +16,18 @@ function withoutHistory(fn) {
 }
 
 // ثبت یک قدم بازگشت در تاریخچه
-// هر بار یک رکورد واقعی در history.pushState می‌گذاریم تا back مرورگر کار کند
+// هر بار یک hash متفاوت استفاده می‌کنیم (#n1، #n2، ...) تا مرورگرهایی مثل
+// Samsung Internet آن‌ها را جداگانه ببینند و collapse نکنند.
 function pushNavHistory(restoreFn) {
     if (_skipHistoryPush) return;
     _navHistory.push(restoreFn);
     if (_navHistory.length > 50) _navHistory.shift();
+    _navDepth++;
     try {
         history.pushState(
-            { app: true, depth: _navHistory.length, ts: Date.now() },
+            { app: true, depth: _navDepth },
             '',
-            location.href
+            location.pathname + location.search + '#n' + _navDepth
         );
     } catch(e) {}
 }
@@ -1040,10 +1043,12 @@ function confirmExit() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
     _wantToExit = true;
-    // تعداد رکوردهای ما + ۲ sentinel تا به صفحه قبل از اپ برسیم
-    const steps = (_navHistory.length || 0) + 2;
-    try { history.go(-steps); } catch(e) {}
-    setTimeout(function() { try { window.close(); } catch(e) {} }, 150);
+    // URL را تمیز کنیم (hash را حذف کنیم)
+    try { history.replaceState(null, '', location.pathname + location.search); } catch(e) {}
+    // در TWA/PWA standalone مرورگر بسته می‌شود
+    try { window.close(); } catch(e) {}
+    // در مرورگر معمولی تا حد امکان برمی‌گردیم
+    setTimeout(function() { history.go(-(_navDepth + 5)); }, 100);
 }
 
 // ====================================================
@@ -1051,18 +1056,24 @@ function confirmExit() {
 // روی کروم، سامسونگ اینترنت، فایرفاکس و WebView یکسان کار می‌کند
 // ====================================================
 (function initBackHandler() {
-    // دو sentinel اضافه می‌کنیم تا حتی اگر مرورگری hash-only state را جمع کند
-    // باز یک رکورد بالاتر از صفحه اصلی داشته باشیم.
-    try { history.replaceState({ app: true, base: true }, '', location.href); } catch(e) {}
-    try { history.pushState({ app: true, sentinel: 1 }, '', location.href); } catch(e) {}
+    // پاک کردن هر hash احتمالی در URL اولیه
+    try { history.replaceState({ app: true, base: true }, '', location.pathname + location.search); } catch(e) {}
+    // یک sentinel با hash #s می‌گذاریم؛ Samsung این را به عنوان entry جداگانه می‌شناسد
+    try { history.pushState({ app: true, sentinel: true }, '', location.pathname + location.search + '#s'); } catch(e) {}
 
     let _busy = false;
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        // اگر مرورگر sentinel ما را pop کرد، فوراً یکی جدید قرار می‌دهیم
-        // تا دفعه بعد هم popstate گرفته شود.
-        try { history.pushState({ app: true, sentinel: 1 }, '', location.href); } catch(err) {}
+        // فوراً یک entry جدید اضافه می‌کنیم (با hash جدید) تا back بعدی هم گرفته شود
+        _navDepth++;
+        try {
+            history.pushState(
+                { app: true, sentinel: true, depth: _navDepth },
+                '',
+                location.pathname + location.search + '#s' + _navDepth
+            );
+        } catch(err) {}
 
         if (_busy) return;
         _busy = true;
