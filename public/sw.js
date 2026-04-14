@@ -1,7 +1,7 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v8';
-const STATIC_CACHE = 'nashr-static-v8';
-const DYNAMIC_CACHE = 'nashr-dynamic-v8';
+const CACHE_NAME = 'nashr-asar-v9';
+const STATIC_CACHE = 'nashr-static-v9';
+const DYNAMIC_CACHE = 'nashr-dynamic-v9';
 
 const STATIC_ASSETS = [
   '/',
