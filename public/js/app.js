@@ -1,23 +1,20 @@
 // ====================================================
 // ناوبری اصلی — سیستم تاریخچه یکپارچه
-// هر قدم ناوبری داخل اپ = یک entry واقعی در تاریخچه مرورگر
-// با URL hash متفاوت تا Samsung Internet آن‌ها را جداگانه ببیند.
+// هر صفحه یک URL منحصربه‌فرد دارد (#n1، #n2، ...).
+// back مرورگر را مرورگر خودش مدیریت می‌کند — ما فقط وقتی به پایه رسیدیم
+// یک re-anchor می‌زنیم تا از اپ خارج نشویم.
 // ====================================================
-let _navHistory = []; // هر آیتم یک تابع restore است
-let _skipHistoryPush = false; // هنگام بازگشت (restore) فعال می‌شود
+let _navHistory = [];
+let _skipHistoryPush = false;
 let _wantToExit = false;
-let _navDepth = 0; // شمارنده برای تولید hash منحصربه‌فرد
+let _navDepth = 0;
 
-// اجرای تابع بدون ثبت در تاریخچه
 function withoutHistory(fn) {
     const prev = _skipHistoryPush;
     _skipHistoryPush = true;
     try { fn(); } finally { _skipHistoryPush = prev; }
 }
 
-// ثبت یک قدم بازگشت در تاریخچه
-// هر بار یک hash متفاوت استفاده می‌کنیم (#n1، #n2، ...) تا مرورگرهایی مثل
-// Samsung Internet آن‌ها را جداگانه ببینند و collapse نکنند.
 function pushNavHistory(restoreFn) {
     if (_skipHistoryPush) return;
     _navHistory.push(restoreFn);
@@ -27,7 +24,7 @@ function pushNavHistory(restoreFn) {
         history.pushState(
             { app: true, depth: _navDepth },
             '',
-            location.pathname + location.search + '#n' + _navDepth
+            '#n' + _navDepth   // هر قدم URL متفاوت دارد
         );
     } catch(e) {}
 }
@@ -1043,42 +1040,34 @@ function confirmExit() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
     _wantToExit = true;
-    // URL را تمیز کنیم (hash را حذف کنیم)
-    try { history.replaceState(null, '', location.pathname + location.search); } catch(e) {}
-    // در TWA/PWA standalone مرورگر بسته می‌شود
-    try { window.close(); } catch(e) {}
-    // در مرورگر معمولی تا حد امکان برمی‌گردیم
-    setTimeout(function() { history.go(-(_navDepth + 5)); }, 100);
+    try { window.close(); } catch(e) {}   // در TWA/PWA standalone کار می‌کند
+    // در مرورگر معمولی: برگشت به قبل از باز شدن اپ
+    setTimeout(function() { history.go(-(_navDepth + 3)); }, 100);
 }
 
 // ====================================================
-// مدیریت دکمه Back — با تاریخچه واقعی مرورگر
-// روی کروم، سامسونگ اینترنت، فایرفاکس و WebView یکسان کار می‌کند
+// مدیریت دکمه Back
+// رویکرد: هر صفحه یک URL دارد (#n1, #n2...).
+// back مرورگر هر بار یک entry پاپ می‌کند → ما restore می‌کنیم.
+// وقتی به پایه (#home) رسیدیم، یک re-anchor می‌زنیم تا از اپ خارج نشویم.
 // ====================================================
 (function initBackHandler() {
-    // مهم: حتی entry پایه هم باید hash داشته باشد.
-    // Samsung Internet وقتی به URL بدون hash می‌رسد ممکن است صفحه را reload کند.
-    const base = location.pathname + location.search + '#home';
-    try { history.replaceState({ app: true, base: true }, '', base); } catch(e) {}
-    // دو sentinel تا حتی اگر Samsung یک لایه extra pop کند، یکی باقی بماند
-    try { history.pushState({ app: true, sentinel: true, n: 0 }, '', location.pathname + location.search + '#s0'); } catch(e) {}
-    try { history.pushState({ app: true, sentinel: true, n: 1 }, '', location.pathname + location.search + '#s1'); } catch(e) {}
+    // URL پایه = #home (depth=0). هیچ‌وقت به URL بدون hash نمی‌رسیم.
+    try { history.replaceState({ app: true, depth: 0 }, '', '#home'); } catch(e) {}
 
-    let _busy = false;
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        // بلافاصله دو entry جدید اضافه می‌کنیم تا برای back‌های بعدی آماده باشیم
-        // دو عدد چون بعضی نسخه‌های Samsung Internet دو entry یکجا pop می‌کند
-        _navDepth++;
-        try { history.pushState({ app: true, sentinel: true, n: _navDepth }, '', location.pathname + location.search + '#s' + _navDepth); } catch(e2) {}
-        _navDepth++;
-        try { history.pushState({ app: true, sentinel: true, n: _navDepth }, '', location.pathname + location.search + '#s' + _navDepth); } catch(e2) {}
+        const depth = (e.state && e.state.app) ? (e.state.depth || 0) : 0;
 
-        if (_busy) return;
-        _busy = true;
-        try { handleBackButton(); } catch(err) { console.warn('back handler error:', err); }
-        setTimeout(function() { _busy = false; }, 150);
+        if (depth <= 0) {
+            // به پایه رسیدیم. یک entry می‌زنیم تا back بعدی هم گرفته شود
+            // (فقط یک بار، نه در هر popstate — بنابراین محدودیت pushState زده نمی‌شود)
+            try { history.pushState({ app: true, depth: 0 }, '', '#home'); } catch(e2) {}
+        }
+
+        // بدون busy-lock: هر popstate یک handleBackButton
+        try { handleBackButton(); } catch(err) { console.warn('back err:', err); }
     });
 })();
 
