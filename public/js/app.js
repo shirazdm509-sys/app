@@ -1056,29 +1056,29 @@ function confirmExit() {
 // روی کروم، سامسونگ اینترنت، فایرفاکس و WebView یکسان کار می‌کند
 // ====================================================
 (function initBackHandler() {
-    // پاک کردن هر hash احتمالی در URL اولیه
-    try { history.replaceState({ app: true, base: true }, '', location.pathname + location.search); } catch(e) {}
-    // یک sentinel با hash #s می‌گذاریم؛ Samsung این را به عنوان entry جداگانه می‌شناسد
-    try { history.pushState({ app: true, sentinel: true }, '', location.pathname + location.search + '#s'); } catch(e) {}
+    // مهم: حتی entry پایه هم باید hash داشته باشد.
+    // Samsung Internet وقتی به URL بدون hash می‌رسد ممکن است صفحه را reload کند.
+    const base = location.pathname + location.search + '#home';
+    try { history.replaceState({ app: true, base: true }, '', base); } catch(e) {}
+    // دو sentinel تا حتی اگر Samsung یک لایه extra pop کند، یکی باقی بماند
+    try { history.pushState({ app: true, sentinel: true, n: 0 }, '', location.pathname + location.search + '#s0'); } catch(e) {}
+    try { history.pushState({ app: true, sentinel: true, n: 1 }, '', location.pathname + location.search + '#s1'); } catch(e) {}
 
     let _busy = false;
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        // فوراً یک entry جدید اضافه می‌کنیم (با hash جدید) تا back بعدی هم گرفته شود
+        // بلافاصله دو entry جدید اضافه می‌کنیم تا برای back‌های بعدی آماده باشیم
+        // دو عدد چون بعضی نسخه‌های Samsung Internet دو entry یکجا pop می‌کند
         _navDepth++;
-        try {
-            history.pushState(
-                { app: true, sentinel: true, depth: _navDepth },
-                '',
-                location.pathname + location.search + '#s' + _navDepth
-            );
-        } catch(err) {}
+        try { history.pushState({ app: true, sentinel: true, n: _navDepth }, '', location.pathname + location.search + '#s' + _navDepth); } catch(e2) {}
+        _navDepth++;
+        try { history.pushState({ app: true, sentinel: true, n: _navDepth }, '', location.pathname + location.search + '#s' + _navDepth); } catch(e2) {}
 
         if (_busy) return;
         _busy = true;
         try { handleBackButton(); } catch(err) { console.warn('back handler error:', err); }
-        setTimeout(function() { _busy = false; }, 60);
+        setTimeout(function() { _busy = false; }, 150);
     });
 })();
 
