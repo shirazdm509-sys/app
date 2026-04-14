@@ -1519,8 +1519,31 @@ app.use((err,req,res,next)=>{
     res.status(500).json({error:'خطای داخلی سرور: '+(err.message||'')});
 });
 
+// تولید خودکار آیکون‌های maskable هنگام راه‌اندازی سرور
+async function ensureMaskableIcons() {
+    if (!sharp) return;
+    const iconsDir = path.join(__dirname, 'public', 'icons');
+    const src = path.join(iconsDir, 'icon-512.png');
+    if (!fs.existsSync(src)) return;
+    const srcMtime = fs.statSync(src).mtimeMs;
+    for (const s of [192, 512]) {
+        const dest = path.join(iconsDir, `icon-${s}-maskable.png`);
+        let needsRegen = true;
+        try { needsRegen = !fs.existsSync(dest) || srcMtime > fs.statSync(dest).mtimeMs; } catch(e) {}
+        if (!needsRegen) continue;
+        try {
+            await sharp(src)
+                .resize(Math.round(s * 0.8), Math.round(s * 0.8), { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+                .extend({ top: Math.round(s * 0.1), bottom: Math.round(s * 0.1), left: Math.round(s * 0.1), right: Math.round(s * 0.1), background: { r: 255, g: 255, b: 255, alpha: 0 } })
+                .png().toFile(dest);
+            console.log(`✅ maskable icon ${s}x${s} generated`);
+        } catch(e) { console.warn(`⚠️ maskable icon ${s} failed:`, e.message); }
+    }
+}
+
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
     console.log(`🔐 ادمین: http://localhost:${PORT}/admin`);
     console.log(`🔑 رمز: ${ADMIN_PASSWORD}\n`);
+    ensureMaskableIcons();
 });
