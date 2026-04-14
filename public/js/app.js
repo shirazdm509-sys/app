@@ -1,8 +1,11 @@
 // ====================================================
 // ناوبری اصلی — سیستم تاریخچه یکپارچه
+// هر قدم ناوبری داخل اپ = یک entry واقعی در تاریخچه مرورگر
+// تا back مرورگر/گوشی قابل اعتماد کار کند (کروم، سامسونگ، فایرفاکس).
 // ====================================================
 let _navHistory = []; // هر آیتم یک تابع restore است
 let _skipHistoryPush = false; // هنگام بازگشت (restore) فعال می‌شود
+let _wantToExit = false;
 
 // اجرای تابع بدون ثبت در تاریخچه
 function withoutHistory(fn) {
@@ -11,12 +14,19 @@ function withoutHistory(fn) {
     try { fn(); } finally { _skipHistoryPush = prev; }
 }
 
-// ثبت یک قدم بازگشت در تاریخچه (از سایر فایل‌های JS قابل فراخوانی)
+// ثبت یک قدم بازگشت در تاریخچه
+// هر بار یک رکورد واقعی در history.pushState می‌گذاریم تا back مرورگر کار کند
 function pushNavHistory(restoreFn) {
-    if (!_skipHistoryPush) {
-        _navHistory.push(restoreFn);
-        if (_navHistory.length > 50) _navHistory.shift();
-    }
+    if (_skipHistoryPush) return;
+    _navHistory.push(restoreFn);
+    if (_navHistory.length > 50) _navHistory.shift();
+    try {
+        history.pushState(
+            { app: true, depth: _navHistory.length, ts: Date.now() },
+            '',
+            location.href
+        );
+    } catch(e) {}
 }
 
 function navToScreen(name) {
@@ -42,10 +52,9 @@ function navToScreen(name) {
     // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
     if (!_skipHistoryPush && prevName !== name) {
         const capturedPrev = prevName;
-        _navHistory.push(function() {
+        pushNavHistory(function() {
             withoutHistory(function() { navToScreen(capturedPrev); });
         });
-        if (_navHistory.length > 50) _navHistory.shift();
     }
 
     // مقداردهی اولیه صفحه (فقط هنگام ناوبری رو به جلو، نه هنگام restore)
@@ -1031,30 +1040,34 @@ function confirmExit() {
     const modal = document.getElementById('exit-confirm-modal');
     if (modal) modal.classList.add('hidden');
     _wantToExit = true;
-    history.back();
-    setTimeout(function() { history.back(); window.close(); }, 150);
+    // تعداد رکوردهای ما + ۲ sentinel تا به صفحه قبل از اپ برسیم
+    const steps = (_navHistory.length || 0) + 2;
+    try { history.go(-steps); } catch(e) {}
+    setTimeout(function() { try { window.close(); } catch(e) {} }, 150);
 }
 
-// مدیریت دکمه Back با روش single-sentinel
-let _wantToExit = false;
+// ====================================================
+// مدیریت دکمه Back — با تاریخچه واقعی مرورگر
+// روی کروم، سامسونگ اینترنت، فایرفاکس و WebView یکسان کار می‌کند
+// ====================================================
 (function initBackHandler() {
-    function pushSentinel() {
-        if (_wantToExit) return;
-        try {
-            history.pushState({ pwa: true }, '', location.pathname + location.search + '#stay');
-        } catch(e) {}
-    }
-
-    pushSentinel();
+    // دو sentinel اضافه می‌کنیم تا حتی اگر مرورگری hash-only state را جمع کند
+    // باز یک رکورد بالاتر از صفحه اصلی داشته باشیم.
+    try { history.replaceState({ app: true, base: true }, '', location.href); } catch(e) {}
+    try { history.pushState({ app: true, sentinel: 1 }, '', location.href); } catch(e) {}
 
     let _busy = false;
-    window.addEventListener('popstate', function() {
+    window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
-        pushSentinel(); // بلافاصله sentinel را بازگردان تا press بعدی هم گرفته شود
+
+        // اگر مرورگر sentinel ما را pop کرد، فوراً یکی جدید قرار می‌دهیم
+        // تا دفعه بعد هم popstate گرفته شود.
+        try { history.pushState({ app: true, sentinel: 1 }, '', location.href); } catch(err) {}
+
         if (_busy) return;
         _busy = true;
-        handleBackButton();
-        setTimeout(function() { _busy = false; }, 80);
+        try { handleBackButton(); } catch(err) { console.warn('back handler error:', err); }
+        setTimeout(function() { _busy = false; }, 60);
     });
 })();
 
