@@ -1,4 +1,6 @@
 // ====================================================
+// wrapper: هر pushNavHistory در این فایل section را می‌داند
+function _pnh(fn){ pushNavHistory(fn,'news'); }
 // موتور اخبار (News)
 // ====================================================
 let newsState = { view: 'main', currentCat: { id: null, name: '' } };
@@ -111,7 +113,7 @@ async function showNewsPosts(catId, catName) {
 function showNewsSingle(postId) {
     const post = cachedNewsPosts.find(p => p.id === postId);
     if (!post) return;
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             newsState.view = 'posts';
             const scr = document.getElementById('screen-news');
@@ -239,7 +241,7 @@ async function showStatementsPosts(catId, catName) {
 function showStatementsSingle(postId) {
     const post = cachedStatementsPosts.find(p => p.id === postId);
     if (!post) return;
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             statementsState.view = 'posts';
             const scr = document.getElementById('screen-statements');

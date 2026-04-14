@@ -1,4 +1,6 @@
 // ====================================================
+// wrapper: هر pushNavHistory در این فایل section را می‌داند
+function _pnh(fn){ pushNavHistory(fn,'media'); }
 // متغیرهای رسانه
 // ====================================================
 
@@ -128,7 +130,7 @@ function switchMediaTab(tab) {
 
     if (_prevTab !== tab) {
         const capturedPrev = _prevTab;
-        pushNavHistory(function() { withoutHistory(function() { switchMediaTab(capturedPrev); }); });
+        _pnh(function() { withoutHistory(function() { switchMediaTab(capturedPrev); }); });
     }
 
     _tabs.forEach(t => {
@@ -296,7 +298,7 @@ async function loadVideoCategories(parentId, parentName) {
 
 function videoNavToSub(catId, catName) {
     const _snapStack = [..._videoNavStack];
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             _videoNavStack = _snapStack;
             _videoCatsLoaded = false;
@@ -310,7 +312,7 @@ function videoNavToSub(catId, catName) {
 }
 
 async function loadVideoList(categoryId, title, count) {
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             const listView = document.getElementById('video-list-view');
             const catsView = document.getElementById('video-categories-view');
@@ -377,7 +379,7 @@ function playVideoItem(itemId) {
     const item = videoCachedItems.find(v => v.id === itemId);
     if(!item) return;
 
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             const iframe = document.getElementById('video-aparat-iframe');
             if (iframe) iframe.src = '';
@@ -513,7 +515,7 @@ async function loadGalleryCategories(parentId, parentName) {
 
 function galleryNavToSub(catId, catName) {
     const _snapStack = [..._galleryNavStack];
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             _galleryNavStack = _snapStack;
             _galleryCatsLoaded = false;
@@ -527,7 +529,7 @@ function galleryNavToSub(catId, catName) {
 }
 
 async function loadGalleryPhotos(categoryId, title, count) {
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             const photosView = document.getElementById('gallery-photos-view');
             const catsView = document.getElementById('gallery-categories-view');
@@ -802,7 +804,7 @@ async function loadAudioCategories(parentId, parentName) {
 
 function audioNavToSub(catId, catName) {
     const _snapStack = [..._audioNavStack];
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             _audioNavStack = _snapStack;
             _audioCatsLoaded = false;
@@ -861,7 +863,7 @@ async function setVideoSort(sort) {
 }
 
 async function loadAudioPlaylist(categoryId, title, count) {
-    pushNavHistory(function() {
+    _pnh(function() {
         withoutHistory(function() {
             if (audioEl) { try { audioEl.pause(); audioEl.src = ''; } catch(e) {} }
             const playerCard = document.getElementById('audio-player-card');

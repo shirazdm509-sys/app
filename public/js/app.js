@@ -1,13 +1,18 @@
 // ====================================================
-// ناوبری اصلی — سیستم تاریخچه یکپارچه
-// هر صفحه یک URL منحصربه‌فرد دارد (#n1، #n2، ...).
-// back مرورگر را مرورگر خودش مدیریت می‌کند — ما فقط وقتی به پایه رسیدیم
-// یک re-anchor می‌زنیم تا از اپ خارج نشویم.
+// ناوبری — هر صفحه URL منحصربه‌فرد دارد
+// نام‌های URL: #ketab-N، #resane-N، #sokhan-N، ...
 // ====================================================
 let _navHistory = [];
 let _skipHistoryPush = false;
 let _wantToExit = false;
 let _navDepth = 0;
+
+// نگاشت نام صفحه → prefix URL
+const _URL_PREFIX = {
+    home:'home', library:'ketab', media:'resane',
+    news:'khabar', lectures:'sokhan', statements:'bayaniye',
+    live:'zende', auth:'hesab', qa:'soal'
+};
 
 function withoutHistory(fn) {
     const prev = _skipHistoryPush;
@@ -15,16 +20,18 @@ function withoutHistory(fn) {
     try { fn(); } finally { _skipHistoryPush = prev; }
 }
 
-function pushNavHistory(restoreFn) {
+// section: بخشی که کاربر در آن است (اختیاری)
+function pushNavHistory(restoreFn, section) {
     if (_skipHistoryPush) return;
     _navHistory.push(restoreFn);
     if (_navHistory.length > 50) _navHistory.shift();
     _navDepth++;
+    const prefix = (section && _URL_PREFIX[section]) || (section) || 'n';
     try {
         history.pushState(
             { app: true, depth: _navDepth },
             '',
-            '#n' + _navDepth   // هر قدم URL متفاوت دارد
+            location.pathname + location.search + '#' + prefix + '-' + _navDepth
         );
     } catch(e) {}
 }
@@ -54,7 +61,7 @@ function navToScreen(name) {
         const capturedPrev = prevName;
         pushNavHistory(function() {
             withoutHistory(function() { navToScreen(capturedPrev); });
-        });
+        }, name);  // section = صفحه‌ای که رفتیم → prefix URL آن
     }
 
     // مقداردهی اولیه صفحه (فقط هنگام ناوبری رو به جلو، نه هنگام restore)
