@@ -293,13 +293,20 @@ async function loadHomeLatestMedia() {
         const vidSec = document.getElementById('home-media-videos-section');
         const vidEl = document.getElementById('home-latest-videos');
         if (vidEl && _homeLatestVideos.length > 0) {
-            vidEl.innerHTML = _homeLatestVideos.map((v, i) => `<div onclick="openHomeVideo(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
+            vidEl.innerHTML = _homeLatestVideos.map((v, i) => {
+                const catCover = (v._catCover || '').replace(/'/g, "\\'");
+                const thumb = v.thumbnail || v._catCover || '';
+                const thumbHtml = thumb
+                    ? `<img src="${thumb}" onerror="_videoImgErr(this,'${catCover}')" class="w-full h-full object-cover opacity-90">`
+                    : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+                return `<div onclick="openHomeVideo(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
                 <div class="w-24 h-14 bg-gray-900 rounded-xl overflow-hidden relative shrink-0 shadow-sm">
-                    ${v.thumbnail ? `<img src="${v.thumbnail}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`}
+                    ${thumbHtml}
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div>
                 </div>
                 <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4></div>
-            </div>`).join('');
+            </div>`;
+            }).join('');
             if (vidSec) vidSec.classList.remove('hidden');
         }
 

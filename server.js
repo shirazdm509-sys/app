@@ -1499,7 +1499,7 @@ app.get('/api/gallery/latest',(req,res)=>{
 });
 app.get('/api/videos/latest',(req,res)=>{
     const limit=Math.min(parseInt(req.query.limit||'5'),20);
-    mainDb.all(`SELECT vi.*, COALESCE(NULLIF(vi.thumbnail,''), vc.cover) as thumbnail FROM video_items vi LEFT JOIN video_categories vc ON vi.category_id=vc.id ORDER BY COALESCE(vi.publish_date, vi.created_at) DESC LIMIT ?`,[limit],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT vi.*, COALESCE(NULLIF(vi.thumbnail,''), vc.cover) as thumbnail, COALESCE(vc.cover,'') as _catCover FROM video_items vi LEFT JOIN video_categories vc ON vi.category_id=vc.id ORDER BY COALESCE(vi.publish_date, vi.created_at) DESC LIMIT ?`,[limit],(err,rows)=>res.json(rows||[]));
 });
 app.get('/api/audio/latest',(req,res)=>{
     const limit=Math.min(parseInt(req.query.limit||'5'),20);
