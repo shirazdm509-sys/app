@@ -2833,7 +2833,7 @@ function _renderJalaliPicker(jy,jm,jd){
           ${Array.from({length:12},(_,i)=>`<option value="${jy}-${i+1}"${i+1===jm?' selected':''}>${monthNames[i]}</option>`).join('')}
         </select>
         <select onchange="_renderJalaliPicker(+this.value,${jm},1)" class="text-sm font-bold bg-transparent outline-none cursor-pointer">
-          ${Array.from({length:20},(_,i)=>`<option value="${1395+i}"${1395+i===jy?' selected':''}>${(1395+i).toLocaleString('fa-IR')}</option>`).join('')}
+          ${Array.from({length:60},(_,i)=>`<option value="${1350+i}"${1350+i===jy?' selected':''}>${(1350+i).toLocaleString('fa-IR')}</option>`).join('')}
         </select>
       </div>
       <button type="button" onclick="_renderJalaliPicker(${jm===12?jy+1:jy},${jm===12?1:jm+1},1)" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"><i class="fas fa-chevron-left text-xs"></i></button>
