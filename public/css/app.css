@@ -122,32 +122,79 @@ body.global-dark .notif-panel > div:last-child { background: #1e293b !important;
 .book-card:hover .book-cover-wrap { box-shadow: 0 12px 28px rgba(0,0,0,0.18); }
 .book-card:hover .book-title { color: #059669; }
 
-/* Desktop Layout */
+/* Desktop / Windows PWA Layout — constrain to phone width */
 @media (min-width: 640px) {
-    body { background: #e2e8f0; }
-    #reader-header, #reader-footer {
-        width: 1000px !important;
-        max-width: 100vw !important;
-        left: 50% !important;
-        right: auto !important;
-        transform: translateX(-50%) !important;
-    }
+    html { background: #0f172a; }
+    body { background: #0f172a; }
+
+    /* Main app wrapper */
     #app-wrapper {
         position: fixed !important;
-        top: 0 !important;
-        bottom: 0 !important;
-        left: 50% !important;
+        top: 0 !important; bottom: 0 !important;
+        left: calc(50vw - 215px) !important;
         right: auto !important;
-        transform: translateX(-50%) !important;
-        width: 1000px !important;
-        max-width: 100vw !important;
-        box-shadow: 0 0 60px rgba(0,0,0,0.2) !important;
+        width: 430px !important;
+        max-width: 430px !important;
+        transform: none !important;
+        box-shadow: 0 0 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06) !important;
     }
+
+    /* Loading screen */
+    #loading-screen {
+        left: calc(50vw - 215px) !important;
+        right: auto !important;
+        width: 430px !important;
+        max-width: 430px !important;
+    }
+
+    /* Full-screen overlays */
+    #image-modal, #note-modal, #search-modal,
+    #settings-overlay, #notif-panel,
+    #pdf-viewer-overlay, #content-page-overlay,
+    #webview-modal, #global-search-modal,
+    #pwa-install-modal, #exit-confirm-modal,
+    #share-image-modal {
+        left: calc(50vw - 215px) !important;
+        right: auto !important;
+        width: 430px !important;
+        max-width: 430px !important;
+    }
+
+    /* Reader overlay & TOC */
     #reader-overlay, #toc-overlay {
-        width: 1000px !important;
-        max-width: 100vw !important;
-        left: 50% !important;
+        left: calc(50vw - 215px) !important;
         right: auto !important;
-        transform: translateX(-50%) !important;
+        width: 430px !important;
+        max-width: 430px !important;
+        transform: none !important;
     }
+
+    /* Reader fixed header/footer */
+    #reader-header, #reader-footer {
+        left: calc(50vw - 215px) !important;
+        right: auto !important;
+        width: 430px !important;
+        max-width: 430px !important;
+        transform: none !important;
+    }
+
+    /* Settings bottom sheet */
+    #settings-modal {
+        left: calc(50vw - 215px) !important;
+        right: auto !important;
+        width: 430px !important;
+        max-width: 430px !important;
+    }
+
+    /* Floating FAB */
+    #pwa-fab { left: calc(50vw - 199px) !important; }
+
+    /* Update banner */
+    #update-banner {
+        left: calc(50vw - 199px) !important;
+        right: calc(50vw - 199px) !important;
+    }
+
+    /* Exit confirm modal (centered inside phone frame) */
+    #exit-confirm-modal { justify-content: center; }
 }
