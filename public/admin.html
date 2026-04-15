@@ -870,6 +870,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
   </div>
 
+  <!-- PAGE CONTENT TAB -->
+  <div id="tab-pagecontent" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-2 border-b pb-4"><i class="fas fa-file-alt text-teal-600 ml-2"></i>ویرایش صفحات محتوا</h2>
+      <p class="text-xs text-gray-400 mt-3 mb-5">محتوای هر صفحه را ویرایش کرده و ذخیره کنید. از ویرایشگر می‌توانید تصویر، لینک، لیست، عنوان و ... اضافه کنید.</p>
+      <div class="flex bg-gray-100 p-1 rounded-xl mb-6 gap-1 flex-wrap">
+        <button onclick="switchPageContentTab('social')" id="pctab-social" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition min-w-[80px]"><i class="fab fa-instagram ml-1"></i>شبکه‌های اجتماعی</button>
+        <button onclick="switchPageContentTab('biography')" id="pctab-biography" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-user-graduate ml-1"></i>زندگی‌نامه</button>
+        <button onclick="switchPageContentTab('mosque')" id="pctab-mosque" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-mosque ml-1"></i>مسجد قبا</button>
+        <button onclick="switchPageContentTab('contact')" id="pctab-contact" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-headset ml-1"></i>ارتباط با ما</button>
+      </div>
+      <div id="pc-panels">
+        <div id="pc-panel-social" class="pc-panel">
+          <div id="quill-social" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('social')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره شبکه‌های اجتماعی</button>
+        </div>
+        <div id="pc-panel-biography" class="pc-panel hidden">
+          <div id="quill-biography" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('biography')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره زندگی‌نامه</button>
+        </div>
+        <div id="pc-panel-mosque" class="pc-panel hidden">
+          <div id="quill-mosque" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('mosque')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره مسجد قبا</button>
+        </div>
+        <div id="pc-panel-contact" class="pc-panel hidden">
+          <div id="quill-contact" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('contact')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره ارتباط با ما</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold transition-all duration-300 opacity-0 pointer-events-none z-[9999]">پیام</div>
@@ -896,40 +928,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
     </div>
     <button onclick="saveBookEdit()" id="btn-save-book-edit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
-  </div>
-
-  <!-- PAGE CONTENT TAB -->
-  <div id="tab-pagecontent" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-      <h2 class="text-lg font-black mb-2 border-b pb-4"><i class="fas fa-file-alt text-teal-600 ml-2"></i>ویرایش صفحات محتوا</h2>
-      <p class="text-xs text-gray-400 mt-3 mb-5">محتوای هر صفحه را ویرایش کرده و ذخیره کنید. از ویرایشگر می‌توانید تصویر، لینک، لیست، عنوان و ... اضافه کنید.</p>
-      <!-- sub-tabs -->
-      <div class="flex bg-gray-100 p-1 rounded-xl mb-6 gap-1 flex-wrap">
-        <button onclick="switchPageContentTab('social')" id="pctab-social" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition min-w-[80px]"><i class="fab fa-instagram ml-1"></i>شبکه‌های اجتماعی</button>
-        <button onclick="switchPageContentTab('biography')" id="pctab-biography" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-user-graduate ml-1"></i>زندگی‌نامه</button>
-        <button onclick="switchPageContentTab('mosque')" id="pctab-mosque" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-mosque ml-1"></i>مسجد قبا</button>
-        <button onclick="switchPageContentTab('contact')" id="pctab-contact" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-headset ml-1"></i>ارتباط با ما</button>
-      </div>
-      <!-- editors -->
-      <div id="pc-panels">
-        <div id="pc-panel-social" class="pc-panel">
-          <div id="quill-social" style="min-height:300px;font-size:14px;direction:rtl;"></div>
-          <button onclick="savePageContent('social')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره شبکه‌های اجتماعی</button>
-        </div>
-        <div id="pc-panel-biography" class="pc-panel hidden">
-          <div id="quill-biography" style="min-height:300px;font-size:14px;direction:rtl;"></div>
-          <button onclick="savePageContent('biography')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره زندگی‌نامه</button>
-        </div>
-        <div id="pc-panel-mosque" class="pc-panel hidden">
-          <div id="quill-mosque" style="min-height:300px;font-size:14px;direction:rtl;"></div>
-          <button onclick="savePageContent('mosque')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره مسجد قبا</button>
-        </div>
-        <div id="pc-panel-contact" class="pc-panel hidden">
-          <div id="quill-contact" style="min-height:300px;font-size:14px;direction:rtl;"></div>
-          <button onclick="savePageContent('contact')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره ارتباط با ما</button>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
