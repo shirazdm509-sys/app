@@ -883,19 +883,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       </div>
       <div id="pc-panels">
         <div id="pc-panel-social" class="pc-panel">
+          <div class="flex justify-end mb-2">
+            <button onclick="toggleHtmlMode('social')" id="htmlbtn-social" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-teal-600 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-code"></i>ویرایش HTML</button>
+          </div>
           <div id="quill-social" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <textarea id="html-source-social" style="display:none;min-height:300px;width:100%;font-family:monospace;font-size:12px;background:#1e293b;color:#86efac;padding:16px;border-radius:12px;border:1px solid #334155;resize:vertical;outline:none;direction:ltr;" spellcheck="false" placeholder="کد HTML را اینجا وارد کنید..."></textarea>
           <button onclick="savePageContent('social')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره شبکه‌های اجتماعی</button>
         </div>
         <div id="pc-panel-biography" class="pc-panel hidden">
+          <div class="flex justify-end mb-2">
+            <button onclick="toggleHtmlMode('biography')" id="htmlbtn-biography" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-teal-600 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-code"></i>ویرایش HTML</button>
+          </div>
           <div id="quill-biography" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <textarea id="html-source-biography" style="display:none;min-height:300px;width:100%;font-family:monospace;font-size:12px;background:#1e293b;color:#86efac;padding:16px;border-radius:12px;border:1px solid #334155;resize:vertical;outline:none;direction:ltr;" spellcheck="false" placeholder="کد HTML را اینجا وارد کنید..."></textarea>
           <button onclick="savePageContent('biography')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره زندگی‌نامه</button>
         </div>
         <div id="pc-panel-mosque" class="pc-panel hidden">
+          <div class="flex justify-end mb-2">
+            <button onclick="toggleHtmlMode('mosque')" id="htmlbtn-mosque" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-teal-600 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-code"></i>ویرایش HTML</button>
+          </div>
           <div id="quill-mosque" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <textarea id="html-source-mosque" style="display:none;min-height:300px;width:100%;font-family:monospace;font-size:12px;background:#1e293b;color:#86efac;padding:16px;border-radius:12px;border:1px solid #334155;resize:vertical;outline:none;direction:ltr;" spellcheck="false" placeholder="کد HTML را اینجا وارد کنید..."></textarea>
           <button onclick="savePageContent('mosque')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره مسجد قبا</button>
         </div>
         <div id="pc-panel-contact" class="pc-panel hidden">
+          <div class="flex justify-end mb-2">
+            <button onclick="toggleHtmlMode('contact')" id="htmlbtn-contact" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-teal-600 hover:text-white transition flex items-center gap-1.5"><i class="fas fa-code"></i>ویرایش HTML</button>
+          </div>
           <div id="quill-contact" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <textarea id="html-source-contact" style="display:none;min-height:300px;width:100%;font-family:monospace;font-size:12px;background:#1e293b;color:#86efac;padding:16px;border-radius:12px;border:1px solid #334155;resize:vertical;outline:none;direction:ltr;" spellcheck="false" placeholder="کد HTML را اینجا وارد کنید..."></textarea>
           <button onclick="savePageContent('contact')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره ارتباط با ما</button>
         </div>
       </div>
@@ -1687,12 +1703,18 @@ async function saveBannerSettings(){
 
 // PAGE CONTENT EDITORS
 let _quillInstances={}, _pageContentLoaded=false, _activePageContentTab='social';
+const _PC_IDS=['social','biography','mosque','contact'];
+
 function initPageContentTab(){
   if(!_pageContentLoaded){
     _pageContentLoaded=true;
+    // Register numeric font sizes (inline style-based)
+    const SizeStyle=Quill.import('attributors/style/size');
+    SizeStyle.whitelist=['9px','10px','11px','12px','13px','14px','16px','18px','20px','22px','24px','28px','32px','36px','48px','72px'];
+    Quill.register(SizeStyle,true);
     const toolbarOpts=[
       [{header:[1,2,3,4,false]}],
-      [{size:['small',false,'large','huge']}],
+      [{size:['9px','10px','11px','12px','13px','14px','16px','18px','20px','22px','24px','28px','32px','36px','48px','72px']}],
       ['bold','italic','underline','strike'],
       ['blockquote','code-block'],
       [{list:'ordered'},{list:'bullet'}],
@@ -1702,10 +1724,9 @@ function initPageContentTab(){
       [{color:[]},{background:[]}],
       ['clean']
     ];
-    ['social','biography','mosque','contact'].forEach(id=>{
+    _PC_IDS.forEach(id=>{
       if(!_quillInstances[id]){
         _quillInstances[id]=new Quill('#quill-'+id,{theme:'snow',modules:{toolbar:toolbarOpts}});
-        // RTL support
         _quillInstances[id].root.setAttribute('dir','rtl');
         _quillInstances[id].root.style.textAlign='right';
       }
@@ -1721,25 +1742,50 @@ async function loadPageContents(){
     if(!Array.isArray(pages)) return;
     pages.forEach(p=>{
       const q=_quillInstances[p.id];
-      if(q && p.content){
-        q.clipboard.dangerouslyPasteHTML(p.content);
-      }
+      if(q && p.content) q.clipboard.dangerouslyPasteHTML(p.content);
     });
   }catch(e){}
 }
 function switchPageContentTab(id){
   _activePageContentTab=id;
-  ['social','biography','mosque','contact'].forEach(t=>{
+  _PC_IDS.forEach(t=>{
     document.getElementById('pc-panel-'+t).classList.toggle('hidden',t!==id);
     const btn=document.getElementById('pctab-'+t);
     if(t===id){ btn.classList.add('bg-white','shadow-sm','text-teal-600'); btn.classList.remove('text-gray-500'); }
     else{ btn.classList.remove('bg-white','shadow-sm','text-teal-600'); btn.classList.add('text-gray-500'); }
   });
 }
+function toggleHtmlMode(id){
+  const q=_quillInstances[id];
+  const quillEl=document.getElementById('quill-'+id);
+  const srcEl=document.getElementById('html-source-'+id);
+  const btn=document.getElementById('htmlbtn-'+id);
+  if(!srcEl) return;
+  const inHtmlMode=srcEl.style.display!=='none';
+  if(inHtmlMode){
+    // Switch back to visual — parse HTML into Quill
+    q.clipboard.dangerouslyPasteHTML(srcEl.value);
+    srcEl.style.display='none';
+    quillEl.style.display='';
+    btn.classList.remove('bg-teal-600','text-white');
+    btn.classList.add('bg-gray-100','text-gray-600');
+    btn.innerHTML='<i class="fas fa-code"></i>ویرایش HTML';
+  } else {
+    // Switch to HTML mode — dump Quill HTML into textarea
+    srcEl.value=q.root.innerHTML;
+    quillEl.style.display='none';
+    srcEl.style.display='block';
+    btn.classList.add('bg-teal-600','text-white');
+    btn.classList.remove('bg-gray-100','text-gray-600');
+    btn.innerHTML='<i class="fas fa-eye"></i>ویرایش بصری';
+  }
+}
 async function savePageContent(id){
   const q=_quillInstances[id];
   if(!q) return;
-  const html=q.root.innerHTML;
+  const srcEl=document.getElementById('html-source-'+id);
+  // If currently in HTML mode, save directly from textarea; else from Quill
+  const html=(srcEl && srcEl.style.display!=='none') ? srcEl.value : q.root.innerHTML;
   try{
     const r=await adminFetch('/api/admin/page-content/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:html})});
     const d=await r.json();
