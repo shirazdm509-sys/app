@@ -208,7 +208,7 @@ async function loadSliders() {
         if (sl.isNews && sl.postId) {
             onclick = `onclick="openNewsPostInApp(${sl.postId},'${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
         } else if (sl.link) {
-            onclick = `onclick="openWebView('${sl.link.replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
+            onclick = `onclick="handleBannerLink('${sl.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
         }
         const titleOverlay = (sl.isNews && sl.title) ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.75));color:#fff;font-size:16px;font-weight:800;line-height:1.4;direction:rtl;text-align:right;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${sl.title}</div>` : '';
         return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;position:relative;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}">${titleOverlay}</div>`;

@@ -108,7 +108,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-plus-circle text-teal-600 ml-2"></i>افزودن اسلاید جدید (حداکثر ۱۰)</h2>
       <form id="slider-form" onsubmit="addSlider(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان (اختیاری)</label><input type="text" id="slider-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="عنوان اسلاید"></div>
-        <div><label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label><input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://..."></div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">لینک (اختیاری)</label>
+          <select id="slider-link-type" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 mb-2" onchange="onSliderLinkTypeChange()">
+            <option value="external">لینک خارجی (URL)</option>
+            <option value="book">کتاب</option>
+            <option value="audio">صوت</option>
+            <option value="audio_cat">دسته بندی صوت</option>
+            <option value="video">ویدیو</option>
+            <option value="video_cat">دسته بندی ویدیو</option>
+            <option value="news">خبر</option>
+            <option value="news_cat">دسته بندی خبر</option>
+            <option value="lecture">سخنرانی</option>
+            <option value="lecture_cat">دسته بندی سخنرانی</option>
+          </select>
+          <div id="slider-link-ext">
+            <input type="url" id="slider-link" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="https://...">
+          </div>
+          <div id="slider-link-int" style="display:none">
+            <select id="slider-internal-id" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500">
+              <option value="">انتخاب کنید</option>
+            </select>
+          </div>
+        </div>
         <div class="md:col-span-2">
           <label class="block text-xs font-bold text-gray-500 mb-2">تصویر اسلاید <span class="text-gray-400 font-normal">(فایل یا لینک URL)</span></label>
           <div class="flex flex-col gap-2">
@@ -1151,6 +1173,61 @@ async function saveBookEdit(){
   finally{btn.innerHTML='<i class="fas fa-save ml-2"></i>ذخیره تغییرات';btn.disabled=false;}
 }
 
+// SLIDER LINK HELPERS
+async function onSliderLinkTypeChange(){
+  const type=document.getElementById('slider-link-type').value;
+  const extDiv=document.getElementById('slider-link-ext');
+  const intDiv=document.getElementById('slider-link-int');
+  if(type==='external'){
+    extDiv.style.display='';
+    intDiv.style.display='none';
+  } else {
+    extDiv.style.display='none';
+    intDiv.style.display='';
+    await loadSliderContentOptions(type,'');
+  }
+}
+async function loadSliderContentOptions(type,selectedId){
+  const sel=document.getElementById('slider-internal-id');
+  if(!sel) return;
+  sel.innerHTML='<option value="">در حال بارگذاری...</option>';
+  try{
+    let items=[];
+    if(type==='book'){
+      const r=await adminFetch('/api/books');
+      items=(await r.json()).map(x=>({id:x.id,label:x.title}));
+    } else if(type==='audio_cat'){
+      const r=await adminFetch('/api/admin/audio/categories');
+      items=(await r.json()).map(x=>({id:x.id,label:x.name}));
+    } else if(type==='audio'){
+      const r=await adminFetch('/api/admin/audio/all-tracks');
+      items=(await r.json()).map(x=>({id:x.id,label:(x.cat_name?x.cat_name+' / ':'')+x.title}));
+    } else if(type==='video_cat'){
+      const r=await adminFetch('/api/admin/video/categories');
+      items=(await r.json()).map(x=>({id:x.id,label:x.name}));
+    } else if(type==='video'){
+      const r=await adminFetch('/api/admin/video/all-items');
+      items=(await r.json()).map(x=>({id:x.id,label:(x.cat_name?x.cat_name+' / ':'')+x.title}));
+    } else if(type==='news'||type==='lecture'){
+      const r=await fetch('/api/wp?path='+encodeURIComponent('posts?per_page=50&_fields=id,title&orderby=date&order=desc'));
+      const posts=await r.json();
+      items=Array.isArray(posts)?posts.map(x=>({id:x.id,label:x.title&&x.title.rendered?x.title.rendered:String(x.id)})):[];
+    } else if(type==='news_cat'||type==='lecture_cat'){
+      const r=await fetch('/api/wp?path='+encodeURIComponent('categories?per_page=100&_fields=id,name'));
+      const cats=await r.json();
+      items=Array.isArray(cats)?cats.map(x=>({id:x.id,label:x.name})):[];
+    }
+    sel.innerHTML='<option value="">انتخاب کنید</option>'+items.map(x=>`<option value="${x.id}" ${String(x.id)===String(selectedId)?'selected':''}>${x.label}</option>`).join('');
+  }catch(e){sel.innerHTML='<option value="">خطا در بارگذاری</option>';}
+}
+function getSliderLinkValue(){
+  const type=document.getElementById('slider-link-type')?.value||'external';
+  if(type==='external') return document.getElementById('slider-link')?.value||'';
+  const id=document.getElementById('slider-internal-id')?.value||'';
+  if(!id) return '';
+  return 'app://'+type+'/'+id;
+}
+
 // SLIDER
 async function addSlider(e){
   e.preventDefault();
@@ -1162,7 +1239,7 @@ async function addSlider(e){
   if(img) fd.append('slider_image',img);
   else fd.append('image_url',imgUrl);
   fd.append('title',document.getElementById('slider-title').value);
-  fd.append('link',document.getElementById('slider-link').value);
+  fd.append('link',getSliderLinkValue());
   fd.append('display_section',document.getElementById('slider-section')?document.getElementById('slider-section').value||'main':'main');
   const btn=document.getElementById('btn-add-slider');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
@@ -1170,7 +1247,7 @@ async function addSlider(e){
     const r=await adminFetch('/api/admin/sliders',{method:'POST',body:fd});
     let d;
     try{ d=await r.json(); }catch(je){ d={}; }
-    if(r.ok&&d.success){showToast('اسلاید اضافه شد');document.getElementById('slider-form').reset();loadSliders();}
+    if(r.ok&&d.success){showToast('اسلاید اضافه شد');document.getElementById('slider-form').reset();document.getElementById('slider-link-type').value='external';document.getElementById('slider-link-ext').style.display='';document.getElementById('slider-link-int').style.display='none';loadSliders();}
     else if(r.status===413) showToast('حجم تصویر بیش از ۱۰ مگابایت است',false);
     else showToast(d.error||'خطا در آپلود تصویر',false);
   }catch(e){if(e.message!=='401 Unauthorized')showToast('خطا در اتصال',false);}
