@@ -1045,15 +1045,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     // پرچم: آیا selection فعال در یک container مجاز داریم؟
     let _selInContainer = false;
 
-    // selectionchange فقط برای ردیابی وجود selection استفاده میشه
+    // selectionchange — هم برای ردیابی selection، هم تریگر اصلی موبایل
+    // در موبایل touchend از روی selection handles به document نمی‌رسه،
+    // پس از selectionchange با debounce استفاده می‌کنیم.
+    let _mobileSelTimer = null;
     document.addEventListener('selectionchange', () => {
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
             _selInContainer = false;
+            if (_mobileSelTimer) { clearTimeout(_mobileSelTimer); _mobileSelTimer = null; }
             return;
         }
         if (typeof getHighlightContainer !== 'function') return;
         _selInContainer = !!getHighlightContainer(sel.anchorNode);
+
+        // موبایل: debounced — پس از نهایی شدن selection، toolbar ظاهر میشه
+        if (_isMobile && _selInContainer) {
+            if (_mobileSelTimer) clearTimeout(_mobileSelTimer);
+            _mobileSelTimer = setTimeout(() => {
+                _mobileSelTimer = null;
+                const s = window.getSelection();
+                if (!s || s.isCollapsed || s.rangeCount === 0) return;
+                if (typeof getHighlightContainer !== 'function') return;
+                if (!getHighlightContainer(s.anchorNode)) return;
+                const r = s.getRangeAt(0).getBoundingClientRect();
+                if (r.width === 0 && r.height === 0) return;
+                if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
+                _selInContainer = false;
+                showHighlightToolbar(window.innerWidth / 2, window.innerHeight * 0.35, true);
+            }, 450);
+        }
     });
 
     function _handleSelectionEnd() {
@@ -1065,24 +1086,10 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (!container) return;
         const r = sel.getRangeAt(0).getBoundingClientRect();
         if (r.width === 0 && r.height === 0) return;
-        // ذخیره و پاک کردن → منوی native اندروید ناپدید میشه
         if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
         _selInContainer = false;
         showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
     }
-
-    // موبایل: touchend — بعد از رها کردن انگشت، selection نهایی شده
-    document.addEventListener('touchend', () => {
-        // تأخیر ۲۰۰ms تا selectionchange فرصت بده و selection نهایی ثبت بشه
-        setTimeout(() => {
-            const sel = window.getSelection();
-            if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-            if (typeof getHighlightContainer !== 'function') return;
-            if (!getHighlightContainer(sel.anchorNode)) return;
-            if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
-            showHighlightToolbar(window.innerWidth / 2, window.innerHeight * 0.35, true);
-        }, 200);
-    });
 
     // دسکتاپ: mouseup
     document.addEventListener('mouseup', () => {
