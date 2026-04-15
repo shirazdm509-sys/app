@@ -139,6 +139,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
             <input type="url" id="slider-image-url" placeholder="https://example.com/image.jpg" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm" oninput="if(this.value.trim())document.getElementById('slider-image').value=''">
           </div>
         </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-gray-500 mb-2">نمایش در صفحات</label>
+          <div class="flex flex-wrap gap-4 bg-gray-50 border border-gray-200 p-3 rounded-xl">
+            <label class="flex items-center gap-2 text-sm font-bold cursor-pointer"><input type="checkbox" id="slider-pages-home" checked class="rounded"> صفحه اصلی</label>
+            <label class="flex items-center gap-2 text-sm font-bold cursor-pointer"><input type="checkbox" id="slider-pages-media" class="rounded"> رسانه</label>
+            <label class="flex items-center gap-2 text-sm font-bold cursor-pointer"><input type="checkbox" id="slider-pages-lectures" class="rounded"> سخنرانی</label>
+            <label class="flex items-center gap-2 text-sm font-bold cursor-pointer"><input type="checkbox" id="slider-pages-library" class="rounded"> کتابخانه</label>
+          </div>
+        </div>
         <div class="md:col-span-2"><button type="submit" id="btn-add-slider" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-plus"></i>افزودن اسلاید</button></div>
       </form>
     </div>
@@ -1241,6 +1250,8 @@ async function addSlider(e){
   fd.append('title',document.getElementById('slider-title').value);
   fd.append('link',getSliderLinkValue());
   fd.append('display_section',document.getElementById('slider-section')?document.getElementById('slider-section').value||'main':'main');
+  const sliderPages=['home','media','lectures','library'].filter(p=>document.getElementById('slider-pages-'+p)?.checked).join(',')||'home';
+  fd.append('pages',sliderPages);
   const btn=document.getElementById('btn-add-slider');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال آپلود...';btn.disabled=true;
   try{
@@ -1268,6 +1279,7 @@ async function loadSliders(){
           <p class="text-xs font-bold truncate">${s.title||'بدون عنوان'}</p>
           ${s.link?`<p class="text-[10px] text-teal-600 truncate">${s.link}</p>`:''}
           <p class="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded mt-1 inline-block">${sectionLabel[s.display_section]||'بالای صفحه'}</p>
+          ${s.pages&&s.pages!=='home'?`<p class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded mt-1 inline-block mr-1">${(s.pages||'home').split(',').map(p=>({home:'اصلی',media:'رسانه',lectures:'سخنرانی',library:'کتابخانه'}[p]||p)).join('، ')}</p>`:''}
         </div>
       </div>
     `).join('');
@@ -1491,6 +1503,15 @@ function renderBannerCards(bns){
           <option value="after_lectures" ${curSec==='after_lectures'?'selected':''}>بعد از سخنرانی‌ها</option>
         </select>
       </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1.5">نمایش در صفحات</label>
+        <div class="flex flex-wrap gap-3">
+          ${[['home','صفحه اصلی'],['media','رسانه'],['lectures','سخنرانی'],['library','کتابخانه']].map(([p,l])=>{
+            const checked=(b.pages||'home').split(',').includes(p);
+            return `<label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer"><input type="checkbox" id="banner-pages-${p}-${pos}" ${checked?'checked':''} class="rounded"> ${l}</label>`;
+          }).join('')}
+        </div>
+      </div>
       <label class="flex items-center gap-2 text-sm font-bold cursor-pointer">
         <input type="checkbox" id="banner-active-${pos}" ${b.active?'checked':''} class="rounded"> فعال
       </label>
@@ -1583,11 +1604,13 @@ async function saveBanners(){
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
     const section=document.getElementById('banner-section-'+pos)?.value||'after_books';
+    const pages=['home','media','lectures','library'].filter(p=>document.getElementById('banner-pages-'+p+'-'+pos)?.checked).join(',')||'home';
     const fd=new FormData();
     fd.append('link',link);
     fd.append('title',title);
     fd.append('active',active?'1':'0');
     fd.append('page_section',section);
+    fd.append('pages',pages);
     if(img) fd.append('banner_image',img);
     else if(imageUrl) fd.append('image_url',imageUrl);
     try{

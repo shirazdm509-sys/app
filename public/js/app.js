@@ -72,12 +72,13 @@ function navToScreen(name) {
             if (c) c.innerHTML = '';
         }
         if (name === 'home') loadBanners();
-        if (name === 'lectures') initWP(prevName === 'lectures');
+        if (name === 'lectures') { initWP(prevName === 'lectures'); loadSectionContent('lectures'); }
         if (name === 'news') initNews();
         if (name === 'statements') initStatements();
         if (name === 'auth') updateAuthScreenUI();
         if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
-        if (name === 'media') initMedia();
+        if (name === 'media') { initMedia(); loadSectionContent('media'); }
+        if (name === 'library') loadSectionContent('library');
         else {
             const wpPlayer = document.getElementById('wp-media-player-container');
             if (wpPlayer) wpPlayer.innerHTML = "";
@@ -380,6 +381,106 @@ async function loadBanners() {
     } catch(e) {
         console.warn('Banners load error:', e);
     }
+}
+
+// ====================================================
+// بنر و اسلایدر برای صفحات غیر صفحه اصلی
+// ====================================================
+const _secSlider = {}; // {page: {data, index, timer, w}}
+
+async function loadSectionContent(page) {
+    const s = window._siteSettings || {};
+    const padding = parseInt(s.banner_padding ?? '4');
+    const radius = parseInt(s.banner_radius ?? '16');
+    const height = parseInt(s.banner_height ?? '120');
+
+    // --- banners ---
+    const bannerEl = document.getElementById(page + '-banner-top');
+    if (bannerEl) {
+        bannerEl.innerHTML = '';
+        try {
+            const res = await fetch('/api/banners?page=' + page, { cache: 'no-store' });
+            if (res.ok) {
+                const banners = await res.json();
+                const active = Array.isArray(banners) ? banners.filter(b => +b.active === 1 && b.image && b.image.trim().length > 2) : [];
+                if (active.length) {
+                    bannerEl.style.padding = '0 ' + padding + 'px';
+                    bannerEl.innerHTML = active.map(b => {
+                        const onclick = b.link ? `onclick="handleBannerLink('${b.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
+                        return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform mb-2" style="border-radius:${radius}px;" ${onclick}>
+                            <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
+                        </div>`;
+                    }).join('');
+                }
+            }
+        } catch(e) {}
+    }
+
+    // --- slider ---
+    const wrap = document.getElementById(page + '-slider-wrap');
+    const track = document.getElementById(page + '-slider-track');
+    const dots = document.getElementById(page + '-slider-dots');
+    if (!wrap || !track || !dots) return;
+    wrap.style.display = 'none';
+    try {
+        const res = await fetch('/api/sliders?page=' + page, { cache: 'no-store' });
+        if (!res.ok) return;
+        const raw = await res.json();
+        if (!Array.isArray(raw) || !raw.length) return;
+        const valid = await Promise.all(raw.map(sl => new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(img.naturalWidth > 9 ? sl : null);
+            img.onerror = () => resolve(null);
+            img.src = sl.image;
+        })));
+        const data = valid.filter(Boolean);
+        if (!data.length) return;
+        const vw = window.innerWidth;
+        const mH = parseInt(s.slider_height_mobile || s.slider_height || '160');
+        const tH = parseInt(s.slider_height_tablet || s.slider_height || '280');
+        const dH = parseInt(s.slider_height_desktop || s.slider_height || '400');
+        const slH = vw >= 1024 ? dH : vw >= 640 ? tH : mH;
+        const slR = parseInt(s.slider_radius || '0');
+        wrap.style.display = 'block';
+        wrap.style.height = slH + 'px';
+        wrap.style.overflow = 'hidden';
+        wrap.getBoundingClientRect();
+        const slW = wrap.clientWidth || wrap.offsetWidth || window.innerWidth;
+        track.style.width = (data.length * slW) + 'px';
+        track.innerHTML = data.map(sl => {
+            const onclick = sl.link ? `onclick="handleBannerLink('${sl.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
+            return `<div style="flex-shrink:0;width:${slW}px;height:${slH}px;cursor:pointer;overflow:hidden;border-radius:${slR}px;position:relative;" ${onclick}>
+                <img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}">
+            </div>`;
+        }).join('');
+        dots.innerHTML = data.map((_,i) =>
+            `<button onclick="_secSliderGo('${page}',${i})" style="pointer-events:auto;" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
+        ).join('');
+        _secSlider[page] = { data, index: 0, timer: null, w: slW };
+        _secSliderStart(page);
+        // touch swipe
+        wrap.addEventListener('touchstart', e => { _secSlider[page]._tx = e.touches[0].clientX; if (_secSlider[page].timer) clearInterval(_secSlider[page].timer); }, { passive: true });
+        wrap.addEventListener('touchend', e => {
+            if (!_secSlider[page]) return;
+            const dx = e.changedTouches[0].clientX - (_secSlider[page]._tx || 0);
+            if (Math.abs(dx) > 40) { dx < 0 ? _secSliderGo(page, _secSlider[page].index + 1) : _secSliderGo(page, _secSlider[page].index - 1); }
+            _secSliderStart(page);
+        }, { passive: true });
+    } catch(e) {}
+}
+function _secSliderGo(page, i) {
+    const st = _secSlider[page]; if (!st) return;
+    st.index = (i + st.data.length) % st.data.length;
+    const track = document.getElementById(page + '-slider-track');
+    if (track) track.style.transform = `translateX(-${st.index * st.w}px)`;
+    document.querySelectorAll('#' + page + '-slider-dots button').forEach((b, idx) => {
+        b.className = `w-2 h-2 rounded-full transition-all ${idx === st.index ? 'bg-white w-4' : 'bg-white/50'}`;
+    });
+}
+function _secSliderStart(page) {
+    const st = _secSlider[page]; if (!st) return;
+    if (st.timer) clearInterval(st.timer);
+    st.timer = setInterval(() => _secSliderGo(page, st.index + 1), 4000);
 }
 
 function handleBannerLink(link) {

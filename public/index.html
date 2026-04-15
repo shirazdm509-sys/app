@@ -339,6 +339,11 @@
             </header>
 
             <div class="flex-1 overflow-y-auto px-3 pb-20 pt-4">
+                <div id="library-slider-wrap" class="relative w-full overflow-hidden mb-3 rounded-2xl" style="display:none;">
+                    <div id="library-slider-track" class="flex transition-transform duration-500 ease-out" style="height:100%;"></div>
+                    <div id="library-slider-dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none"></div>
+                </div>
+                <div id="library-banner-top" class="mb-2"></div>
                 <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3"></div>
                 <div id="lib-empty" class="hidden flex-col items-center justify-center py-32 opacity-60">
                     <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
@@ -388,6 +393,12 @@
             </header>
 
             <div class="flex-1 overflow-y-auto relative p-6">
+                <!-- اسلایدر و بنر رسانه -->
+                <div id="media-slider-wrap" class="relative w-full overflow-hidden mb-4 rounded-2xl" style="display:none;">
+                    <div id="media-slider-track" class="flex transition-transform duration-500 ease-out" style="height:100%;"></div>
+                    <div id="media-slider-dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none"></div>
+                </div>
+                <div id="media-banner-top" class="mb-2"></div>
                 <!-- وضعیت بارگذاری -->
                 <div id="media-loading" class="hidden flex-col items-center justify-center py-20 opacity-70">
                     <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>
@@ -658,6 +669,12 @@
             </header>
             
             <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6 relative">
+                <!-- اسلایدر و بنر سخنرانی -->
+                <div id="lectures-slider-wrap" class="relative w-full overflow-hidden mb-4 rounded-2xl" style="display:none;">
+                    <div id="lectures-slider-track" class="flex transition-transform duration-500 ease-out" style="height:100%;"></div>
+                    <div id="lectures-slider-dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none"></div>
+                </div>
+                <div id="lectures-banner-top" class="mb-2"></div>
                 <div id="lectures-loading" class="hidden flex-col items-center justify-center py-20 opacity-70">
                     <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>
                     <p class="text-xs font-bold text-gray-500 tracking-wide">در حال دریافت اطلاعات...</p>
