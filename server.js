@@ -892,7 +892,7 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
         const link=san(req.body.link||'');
         const validSections=['after_slider','after_shortcuts','after_books','after_lectures'];
         const pageSec=validSections.includes(req.body.page_section)?req.body.page_section:(bn&&bn.page_section||'after_books');
-        const validPages=['home','media','lectures','library'];
+        const validPages=['home','media_video','media_audio','media_photo','lectures','library'];
         const pages=(req.body.pages||'home').split(',').filter(p=>validPages.includes(p)).join(',') || 'home';
         mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,page_section,pages,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
             [pos,title,img,link,act,pageSec,pages],()=>res.json({success:true,image:img}));
@@ -910,7 +910,7 @@ app.post('/api/admin/sliders',adminAuth,uploadImage.single('slider_image'),(req,
         if(r&&r.c>=10) return res.status(400).json({error:'حداکثر ۱۰ اسلاید مجاز است'});
         const img = req.file ? `/sliders/${req.file.filename}` : imageUrl;
         const section = ['main','after_books','after_shortcuts','after_lectures','after_banners'].includes(req.body.display_section) ? req.body.display_section : 'main';
-        const validSliderPages=['home','media','lectures','library'];
+        const validSliderPages=['home','media_video','media_audio','media_photo','lectures','library'];
         const sliderPages=(req.body.pages||'home').split(',').filter(p=>validSliderPages.includes(p)).join(',') || 'home';
         mainDb.run('INSERT INTO sliders (title,image,link,sort_order,display_section,pages) VALUES (?,?,?,?,?,?)',[san(req.body.title||''),img,san(req.body.link||''),r?r.c:0,section,sliderPages],function(err){
             if(err) return res.status(500).json({error:err.message});

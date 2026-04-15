@@ -77,7 +77,7 @@ function navToScreen(name) {
         if (name === 'statements') initStatements();
         if (name === 'auth') updateAuthScreenUI();
         if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
-        if (name === 'media') { initMedia(); loadSectionContent('media'); }
+        if (name === 'media') initMedia(); // banner/slider loaded by switchMediaTab → loadVideoCategories etc.
         if (name === 'library') loadSectionContent('library');
         else {
             const wpPlayer = document.getElementById('wp-media-player-container');
@@ -387,6 +387,19 @@ async function loadBanners() {
 // بنر و اسلایدر برای صفحات غیر صفحه اصلی
 // ====================================================
 const _secSlider = {}; // {page: {data, index, timer, w}}
+
+function _loadMediaTabBanner(tab) {
+    loadSectionContent('media_' + tab);
+}
+function _clearMediaBanner() {
+    const bannerEl = document.getElementById('media-banner-top');
+    if (bannerEl) bannerEl.innerHTML = '';
+    const wrapEl = document.getElementById('media-slider-wrap');
+    if (wrapEl) wrapEl.style.display = 'none';
+    ['media_video','media_audio','media_photo'].forEach(k => {
+        if (_secSlider[k] && _secSlider[k].timer) { clearInterval(_secSlider[k].timer); _secSlider[k].timer = null; }
+    });
+}
 
 async function loadSectionContent(page) {
     const s = window._siteSettings || {};

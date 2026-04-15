@@ -242,6 +242,11 @@ async function initVideoGallery() {
 }
 
 async function loadVideoCategories(parentId, parentName) {
+    if (parentId === null && _videoNavStack.length === 0) {
+        if (typeof _loadMediaTabBanner === 'function') _loadMediaTabBanner('video');
+    } else {
+        if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
+    }
     setMediaLoading(true);
     const view = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
@@ -312,6 +317,7 @@ function videoNavToSub(catId, catName) {
 }
 
 async function loadVideoList(categoryId, title, count) {
+    if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
     _pnh(function() {
         withoutHistory(function() {
             const listView = document.getElementById('video-list-view');
@@ -439,6 +445,7 @@ let _galleryCatsLoaded = false;
 let _galleryNavStack = []; // stack for breadcrumb navigation
 
 async function initGallery() {
+    if (typeof _loadMediaTabBanner === 'function') _loadMediaTabBanner('photo');
     if (_galleryCatsLoaded) return;
     _galleryNavStack = [];
     await loadGalleryCategories(null, '');
@@ -473,6 +480,11 @@ function _renderGalleryCatGrid(cats, view, onClickFn) {
 }
 
 async function loadGalleryCategories(parentId, parentName) {
+    if (parentId === null && _galleryNavStack.length === 0) {
+        if (typeof _loadMediaTabBanner === 'function') _loadMediaTabBanner('photo');
+    } else {
+        if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
+    }
     setMediaLoading(true);
     const view = document.getElementById('gallery-categories-view');
     const photosView = document.getElementById('gallery-photos-view');
@@ -746,6 +758,11 @@ async function initAudioGallery() {
 }
 
 async function loadAudioCategories(parentId, parentName) {
+    if (parentId === null && _audioNavStack.length === 0) {
+        if (typeof _loadMediaTabBanner === 'function') _loadMediaTabBanner('audio');
+    } else {
+        if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
+    }
     setMediaLoading(true);
     const view = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
@@ -863,6 +880,7 @@ async function setVideoSort(sort) {
 }
 
 async function loadAudioPlaylist(categoryId, title, count) {
+    if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
     _pnh(function() {
         withoutHistory(function() {
             if (audioEl) { try { audioEl.pause(); audioEl.src = ''; } catch(e) {} }
