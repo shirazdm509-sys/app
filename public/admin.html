@@ -7,6 +7,8 @@
 <link href="/vendor/fonts/vazir/font-face-local.css" rel="stylesheet">
 <link rel="stylesheet" href="/vendor/fa/all.local.min.css">
 <script src="/vendor/tailwind.js"></script>
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <style>
 body{font-family:'Vazir',Tahoma,sans-serif;}
 .tab-active{background:#0d9488;color:white;}
@@ -69,6 +71,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('broadcast')" id="tab-btn-broadcast" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-bullhorn w-5"></i>پیام همگانی</button>
     <button onclick="switchTab('users')" id="tab-btn-users" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-users w-5"></i>کاربران</button>
     <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-palette w-5"></i>تنظیمات</button>
+    <button onclick="switchTab('pagecontent')" id="tab-btn-pagecontent" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-file-alt w-5"></i>صفحات محتوا</button>
   </nav>
   <button onclick="logoutAdmin()" class="m-3 p-3 text-rose-400 hover:bg-slate-800 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i>خروج</button>
 </aside>
@@ -894,6 +897,40 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
     <button onclick="saveBookEdit()" id="btn-save-book-edit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
   </div>
+
+  <!-- PAGE CONTENT TAB -->
+  <div id="tab-pagecontent" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-2 border-b pb-4"><i class="fas fa-file-alt text-teal-600 ml-2"></i>ویرایش صفحات محتوا</h2>
+      <p class="text-xs text-gray-400 mt-3 mb-5">محتوای هر صفحه را ویرایش کرده و ذخیره کنید. از ویرایشگر می‌توانید تصویر، لینک، لیست، عنوان و ... اضافه کنید.</p>
+      <!-- sub-tabs -->
+      <div class="flex bg-gray-100 p-1 rounded-xl mb-6 gap-1 flex-wrap">
+        <button onclick="switchPageContentTab('social')" id="pctab-social" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition min-w-[80px]"><i class="fab fa-instagram ml-1"></i>شبکه‌های اجتماعی</button>
+        <button onclick="switchPageContentTab('biography')" id="pctab-biography" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-user-graduate ml-1"></i>زندگی‌نامه</button>
+        <button onclick="switchPageContentTab('mosque')" id="pctab-mosque" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-mosque ml-1"></i>مسجد قبا</button>
+        <button onclick="switchPageContentTab('contact')" id="pctab-contact" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition min-w-[80px]"><i class="fas fa-headset ml-1"></i>ارتباط با ما</button>
+      </div>
+      <!-- editors -->
+      <div id="pc-panels">
+        <div id="pc-panel-social" class="pc-panel">
+          <div id="quill-social" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('social')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره شبکه‌های اجتماعی</button>
+        </div>
+        <div id="pc-panel-biography" class="pc-panel hidden">
+          <div id="quill-biography" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('biography')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره زندگی‌نامه</button>
+        </div>
+        <div id="pc-panel-mosque" class="pc-panel hidden">
+          <div id="quill-mosque" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('mosque')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره مسجد قبا</button>
+        </div>
+        <div id="pc-panel-contact" class="pc-panel hidden">
+          <div id="quill-contact" style="min-height:300px;font-size:14px;direction:rtl;"></div>
+          <button onclick="savePageContent('contact')" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition flex items-center gap-2"><i class="fas fa-save"></i>ذخیره ارتباط با ما</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -971,8 +1008,8 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات'};
-  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings'];
+  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا'};
+  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings','pagecontent'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -998,6 +1035,7 @@ function switchTab(tab) {
   if(tab==='broadcast') loadBroadcasts();
   if(tab==='users') loadUsers();
   if(tab==='settings') loadSettings();
+  if(tab==='pagecontent') initPageContentTab();
 }
 
 function switchSupportTab(mode) {
@@ -1647,6 +1685,67 @@ async function saveBannerSettings(){
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     if(r.ok)showToast('تنظیمات بنر ذخیره شد');else showToast('خطا',false);
   }catch(e){}
+}
+
+// PAGE CONTENT EDITORS
+let _quillInstances={}, _pageContentLoaded=false, _activePageContentTab='social';
+function initPageContentTab(){
+  if(!_pageContentLoaded){
+    _pageContentLoaded=true;
+    const toolbarOpts=[
+      [{header:[1,2,3,false]}],
+      ['bold','italic','underline','strike'],
+      ['blockquote'],
+      [{list:'ordered'},{list:'bullet'}],
+      [{align:[]}],
+      ['link','image'],
+      [{color:[]},{background:[]}],
+      ['clean']
+    ];
+    ['social','biography','mosque','contact'].forEach(id=>{
+      if(!_quillInstances[id]){
+        _quillInstances[id]=new Quill('#quill-'+id,{theme:'snow',modules:{toolbar:toolbarOpts}});
+        // RTL support
+        _quillInstances[id].root.setAttribute('dir','rtl');
+        _quillInstances[id].root.style.textAlign='right';
+      }
+    });
+    loadPageContents();
+  }
+  switchPageContentTab(_activePageContentTab);
+}
+async function loadPageContents(){
+  try{
+    const r=await adminFetch('/api/admin/page-contents');
+    const pages=await r.json();
+    if(!Array.isArray(pages)) return;
+    pages.forEach(p=>{
+      const q=_quillInstances[p.id];
+      if(q && p.content){
+        q.clipboard.dangerouslyPasteHTML(p.content);
+      }
+    });
+  }catch(e){}
+}
+function switchPageContentTab(id){
+  _activePageContentTab=id;
+  ['social','biography','mosque','contact'].forEach(t=>{
+    document.getElementById('pc-panel-'+t).classList.toggle('hidden',t!==id);
+    const btn=document.getElementById('pctab-'+t);
+    if(t===id){ btn.classList.add('bg-white','shadow-sm','text-teal-600'); btn.classList.remove('text-gray-500'); }
+    else{ btn.classList.remove('bg-white','shadow-sm','text-teal-600'); btn.classList.add('text-gray-500'); }
+  });
+}
+async function savePageContent(id){
+  const q=_quillInstances[id];
+  if(!q) return;
+  const html=q.root.innerHTML;
+  try{
+    const r=await adminFetch('/api/admin/page-content/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:html})});
+    const d=await r.json();
+    if(r.ok&&d.success) showToast('ذخیره شد');
+    else showToast(d.error||'خطا',false);
+  }catch(e){showToast('خطا در ذخیره',false);}
 }
 
 // SUPPORT (Tickets + QA combined)

@@ -148,6 +148,10 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS page_contents (id TEXT PRIMARY KEY, title TEXT DEFAULT '', content TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        [['social','شبکه‌های اجتماعی'],['biography','زندگی‌نامه'],['mosque','مسجد قبا'],['contact','ارتباط با ما']].forEach(([id,title])=>{
+            mainDb.run(`INSERT OR IGNORE INTO page_contents (id,title,content) VALUES (?,?,'')`,[id,title]);
+        });
         mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS gallery_photos (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT DEFAULT '', image TEXT NOT NULL, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES gallery_categories(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS audio_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', cover TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
@@ -514,6 +518,15 @@ app.get('/api/sliders',(req,res)=>{
     const page = (req.query.page || 'home').replace(/[^a-z]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM sliders WHERE active=1 AND ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY sort_order ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
+});
+
+// === API PAGE CONTENTS (PUBLIC) ===
+app.get('/api/page-content/:id',(req,res)=>{
+    const id = req.params.id.replace(/[^a-z_]/g,'');
+    mainDb.get('SELECT * FROM page_contents WHERE id=?',[id],(err,row)=>{
+        if(err||!row) return res.json({id,title:'',content:''});
+        res.json(row);
+    });
 });
 
 // === API NEWS SLIDERS (PUBLIC) ===
@@ -973,6 +986,20 @@ app.delete('/api/admin/news-sliders/:id', adminAuth, (req, res) => {
     const id = +req.params.id;
     if (isNaN(id)) return res.status(400).json({error: 'شناسه نامعتبر'});
     mainDb.run('DELETE FROM news_sliders WHERE id=?', [id], () => res.json({success: true}));
+});
+
+// Admin Page Contents
+app.get('/api/admin/page-contents',adminAuth,(req,res)=>{
+    mainDb.all('SELECT * FROM page_contents ORDER BY id',[],( err,rows)=>res.json(rows||[]));
+});
+app.put('/api/admin/page-content/:id',adminAuth,(req,res)=>{
+    const validIds=['social','biography','mosque','contact'];
+    const id=req.params.id;
+    if(!validIds.includes(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const content=req.body.content||'';
+    const title=req.body.title||'';
+    mainDb.run('INSERT OR REPLACE INTO page_contents (id,title,content,updated_at) VALUES (?,?,?,CURRENT_TIMESTAMP)',
+        [id,title,content],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
 
 // Admin Users

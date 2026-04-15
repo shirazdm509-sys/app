@@ -1121,12 +1121,43 @@ function _hasClass(id, cls) {
     return el ? el.classList.contains(cls) : false;
 }
 
+// ====================================================
+// صفحات محتوای ثابت (شبکه‌های اجتماعی، زندگی‌نامه، مسجد قبا، ارتباط با ما)
+// ====================================================
+async function openContentPage(pageId, title) {
+    const overlay = document.getElementById('content-page-overlay');
+    const titleEl = document.getElementById('content-page-title');
+    const body = document.getElementById('content-page-body');
+    if (!overlay) return;
+    titleEl.textContent = title;
+    body.innerHTML = '<div class="text-center py-16 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-3"></i><p class="text-sm">در حال بارگذاری...</p></div>';
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    pushNavHistory(() => closeContentPage());
+    try {
+        const r = await fetch('/api/page-content/' + pageId);
+        const d = await r.json();
+        body.innerHTML = d.content && d.content.trim()
+            ? d.content
+            : '<p class="text-center text-gray-400 py-16 text-sm">محتوایی ثبت نشده است.</p>';
+    } catch(e) {
+        body.innerHTML = '<p class="text-center text-red-400 py-16 text-sm">خطا در بارگذاری محتوا</p>';
+    }
+}
+function closeContentPage() {
+    const overlay = document.getElementById('content-page-overlay');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    overlay.classList.remove('flex');
+}
+
 function handleBackButton() {
     // Modal/overlay ها — بالاترین اولویت
     if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return; }
     if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return; }
     if (_isVisible('image-modal'))          { closeImageModal();    return; }
     if (_isVisible('webview-modal'))        { closeWebView();       return; }
+    if (_isVisible('content-page-overlay')) { closeContentPage();   return; }
     if (_isVisible('notif-panel'))          { closeNotifications(); return; }
     if (_isVisible('global-search-modal'))  { closeGlobalSearch();  return; }
     if (_isVisible('note-modal'))           { closeNoteModal();     return; }
