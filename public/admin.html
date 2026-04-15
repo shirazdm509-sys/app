@@ -1016,7 +1016,7 @@ function switchTab(tab) {
     document.getElementById('tab-btn-'+t).className='tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative';
   });
   document.getElementById('tab-'+tab).classList.remove('hidden');
-  if(['support'].includes(tab)) document.getElementById('tab-'+tab).classList.add('flex');
+  if(['support','pagecontent'].includes(tab)) document.getElementById('tab-'+tab).classList.add('flex');
   document.getElementById('tab-btn-'+tab).className='tab-active w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative';
   const titleEl=document.getElementById('mobile-tab-title');
   if(titleEl) titleEl.textContent=tabNames[tab]||tab;
