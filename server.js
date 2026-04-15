@@ -172,8 +172,8 @@ function initDb() {
         mainDb.run(`ALTER TABLE books ADD COLUMN pdf_filename TEXT DEFAULT ''`, () => {});
 
         const defaults = [
-            ['site_name','مرکز نشر آثار آیت الله دستغیب'],
-            ['site_subtitle','آیت الله دستغیب'],
+            ['site_name','نرم افزار آیت الله دستغیب'],
+            ['site_subtitle','DastgheibQoba.info'],
             ['primary_color','#0d9488'],
             ['secondary_color','#0f766e'],
             ['logo_url',''],
@@ -203,6 +203,9 @@ function initDb() {
             ['splash_icon_url',''],
         ];
         defaults.forEach(([k,v]) => mainDb.run(`INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)`, [k,v]));
+        // Migration: update branding texts
+        mainDb.run(`UPDATE settings SET value='نرم افزار آیت الله دستغیب' WHERE key='site_name' AND value='مرکز نشر آثار آیت الله دستغیب'`);
+        mainDb.run(`UPDATE settings SET value='DastgheibQoba.info' WHERE key='site_subtitle' AND value='آیت الله دستغیب'`);
         for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
