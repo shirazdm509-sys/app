@@ -349,6 +349,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
   </div>
 
+    <!-- مودال ویرایش عکس (عنوان + دسته) -->
+    <div id="gallery-edit-photo-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-black text-base"><i class="fas fa-edit text-blue-600 ml-2"></i>ویرایش تصویر</h3>
+          <button onclick="closeEditPhotoModal()" class="w-8 h-8 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 flex items-center justify-center"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="gedit-photo-id">
+        <input type="hidden" id="gedit-photo-orig-cat">
+        <div class="flex flex-col gap-4">
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">عنوان تصویر</label><input type="text" id="gedit-photo-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500" placeholder="اختیاری"></div>
+          <div><label class="block text-xs font-bold text-gray-500 mb-2">دسته‌بندی</label><select id="gedit-photo-cat" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"><option value="">در حال بارگذاری...</option></select></div>
+          <button onclick="saveGalleryPhotoEdit()" id="btn-save-gphoto-edit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition flex items-center justify-center gap-2"><i class="fas fa-save"></i>ذخیره تغییرات</button>
+        </div>
+      </div>
+    </div>
+
   <!-- VIDEO GALLERY TAB -->
   <div id="tab-videogallery" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
     <!-- افزودن دسته‌بندی -->
@@ -2375,14 +2392,49 @@ async function deleteGalleryPhoto(id,catId){
   }catch(e){showToast('خطا',false);}
 }
 async function editGalleryPhotoTitle(id,catId,currentTitle){
-  const title=prompt('عنوان تصویر را وارد کنید:',currentTitle||'');
-  if(title===null) return; // cancelled
+  document.getElementById('gedit-photo-id').value=id;
+  document.getElementById('gedit-photo-orig-cat').value=catId;
+  document.getElementById('gedit-photo-title').value=currentTitle||'';
+  // بارگذاری همه دسته‌بندی‌ها در dropdown
+  const sel=document.getElementById('gedit-photo-cat');
+  sel.innerHTML='<option value="">در حال بارگذاری...</option>';
   try{
-    const r=await adminFetch('/api/admin/gallery/photos/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title})});
+    const r=await adminFetch('/api/admin/gallery/categories');
+    const cats=await r.json();
+    if(Array.isArray(cats)){
+      sel.innerHTML=cats.map(c=>`<option value="${c.id}"${c.id==catId?' selected':''}>${c.parent_id?'↳ ':''}${c.name}</option>`).join('');
+    }
+  }catch(e){sel.innerHTML=`<option value="${catId}">دسته فعلی</option>`;}
+  const modal=document.getElementById('gallery-edit-photo-modal');
+  modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeEditPhotoModal(){
+  document.getElementById('gallery-edit-photo-modal').classList.add('hidden');
+  document.getElementById('gallery-edit-photo-modal').classList.remove('flex');
+}
+document.addEventListener('click',function(e){
+  const modal=document.getElementById('gallery-edit-photo-modal');
+  if(modal&&e.target===modal) closeEditPhotoModal();
+});
+async function saveGalleryPhotoEdit(){
+  const id=document.getElementById('gedit-photo-id').value;
+  const origCat=document.getElementById('gedit-photo-orig-cat').value;
+  const title=document.getElementById('gedit-photo-title').value;
+  const catId=document.getElementById('gedit-photo-cat').value;
+  const btn=document.getElementById('btn-save-gphoto-edit');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin ml-1"></i>در حال ذخیره...'; btn.disabled=true;
+  try{
+    const r=await adminFetch('/api/admin/gallery/photos/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,category_id:catId})});
     const d=await r.json();
-    if(r.ok&&d.success){showToast('عنوان ذخیره شد');loadCategoryPhotosAdmin(catId);}
-    else showToast(d.error||'خطا',false);
+    if(r.ok&&d.success){
+      showToast('ذخیره شد');
+      closeEditPhotoModal();
+      // اگر دسته عوض شد هر دو دسته را reload کن
+      if(catId!=origCat) loadCategoryPhotosAdmin(+catId);
+      loadCategoryPhotosAdmin(+origCat);
+    } else showToast(d.error||'خطا',false);
   }catch(e){showToast('خطا',false);}
+  finally{btn.innerHTML='<i class="fas fa-save ml-1"></i>ذخیره تغییرات'; btn.disabled=false;}
 }
 function openEditCatModal(id,name,desc,cover,parentId){
   document.getElementById('gedit-cat-id').value=id;

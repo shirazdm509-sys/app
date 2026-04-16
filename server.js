@@ -1232,10 +1232,18 @@ app.post('/api/admin/gallery/photos',adminAuth,uploadImage.single('gallery_image
 app.put('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     const title=san(req.body.title||'');
-    mainDb.run('UPDATE gallery_photos SET title=? WHERE id=?',[title,id],function(err){
-        if(err) return res.status(500).json({error:err.message});
-        res.json({success:true});
-    });
+    const catId=req.body.category_id?+req.body.category_id:null;
+    if(catId){
+        mainDb.run('UPDATE gallery_photos SET title=?,category_id=? WHERE id=?',[title,catId,id],function(err){
+            if(err) return res.status(500).json({error:err.message});
+            res.json({success:true});
+        });
+    } else {
+        mainDb.run('UPDATE gallery_photos SET title=? WHERE id=?',[title,id],function(err){
+            if(err) return res.status(500).json({error:err.message});
+            res.json({success:true});
+        });
+    }
 });
 app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
