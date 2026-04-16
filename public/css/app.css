@@ -124,8 +124,8 @@ body.global-dark .notif-panel > div:last-child { background: #1e293b !important;
 
 /* Desktop / Windows PWA Layout — 1200px centered */
 @media (min-width: 640px) {
-    html { background: #0f172a; }
-    body { background: #0f172a; }
+    html { background: #FBFFFF; }
+    body { background: #FBFFFF; }
 
     /* Main app wrapper */
     #app-wrapper {
