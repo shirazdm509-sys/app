@@ -1045,10 +1045,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     // پرچم: آیا selection فعال در یک container مجاز داریم؟
     let _selInContainer = false;
 
-    // selectionchange — هم برای ردیابی selection، هم تریگر اصلی موبایل
-    // در موبایل touchend از روی selection handles به document نمی‌رسه،
-    // پس از selectionchange با debounce استفاده می‌کنیم.
+    // selectionchange — فقط برای ردیابی وجود selection
+    // موبایل: نوار فقط بعد از برداشتن انگشت (touchend) ظاهر میشه،
+    // تا کاربر فرصت داشته باشه selection رو با drag گسترش بده.
+    let _touchActive = false;
     let _mobileSelTimer = null;
+
     document.addEventListener('selectionchange', () => {
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
@@ -1059,23 +1061,29 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (typeof getHighlightContainer !== 'function') return;
         _selInContainer = !!getHighlightContainer(sel.anchorNode);
 
-        // موبایل: debounced — پس از نهایی شدن selection، toolbar ظاهر میشه
-        if (_isMobile && _selInContainer) {
+        // موبایل: اگه هیچ انگشتی روی صفحه نیست (مثلاً دستگیره selection رها شده)،
+        // با debounce نوار رو نشون بده — fallback برای زمانی که touchend نرسیده
+        if (_isMobile && _selInContainer && !_touchActive) {
             if (_mobileSelTimer) clearTimeout(_mobileSelTimer);
             _mobileSelTimer = setTimeout(() => {
                 _mobileSelTimer = null;
-                const s = window.getSelection();
-                if (!s || s.isCollapsed || s.rangeCount === 0) return;
-                if (typeof getHighlightContainer !== 'function') return;
-                if (!getHighlightContainer(s.anchorNode)) return;
-                const r = s.getRangeAt(0).getBoundingClientRect();
-                if (r.width === 0 && r.height === 0) return;
-                if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
-                _selInContainer = false;
-                showHighlightToolbar(window.innerWidth / 2, window.innerHeight * 0.35, true);
-            }, 450);
+                if (_touchActive) return;
+                _tryShowMobileToolbar();
+            }, 700);
         }
     });
+
+    function _tryShowMobileToolbar() {
+        const s = window.getSelection();
+        if (!s || s.isCollapsed || s.rangeCount === 0) return;
+        if (typeof getHighlightContainer !== 'function') return;
+        if (!getHighlightContainer(s.anchorNode)) return;
+        const r = s.getRangeAt(0).getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return;
+        if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
+        _selInContainer = false;
+        showHighlightToolbar(window.innerWidth / 2, window.innerHeight * 0.35, true);
+    }
 
     function _handleSelectionEnd() {
         if (!_selInContainer) return;
@@ -1089,6 +1097,24 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (typeof saveAndClearSelection === 'function') saveAndClearSelection();
         _selInContainer = false;
         showHighlightToolbar(r.left + r.width / 2, r.top, _isMobile);
+    }
+
+    // موبایل: ردیابی انگشت روی صفحه
+    if (_isMobile) {
+        document.addEventListener('touchstart', () => {
+            _touchActive = true;
+            // انگشت روی صفحه اومده — نوار رو cancel کن (کاربر شاید داره دستگیره رو می‌کشه)
+            if (_mobileSelTimer) { clearTimeout(_mobileSelTimer); _mobileSelTimer = null; }
+        }, { passive: true });
+        document.addEventListener('touchend', () => {
+            _touchActive = false;
+            // بعد از برداشتن انگشت، ۲۵۰ms صبر کن تا selection نهایی بشه
+            setTimeout(() => {
+                if (_touchActive) return;
+                _tryShowMobileToolbar();
+            }, 250);
+        });
+        document.addEventListener('touchcancel', () => { _touchActive = false; });
     }
 
     // دسکتاپ: mouseup
