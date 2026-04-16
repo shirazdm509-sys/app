@@ -510,11 +510,38 @@ async function loadGalleryCategories(parentId, parentName) {
                 if(cat.sub_count > 0) return `galleryNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')`;
                 return `loadGalleryPhotos(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.photo_count})`;
             });
-        } else {
+        } else if(parentId == null) {
             view.innerHTML = `<div class="col-span-2 flex flex-col items-center justify-center py-20 text-gray-400 gap-4">
                 <i class="fas fa-images text-5xl opacity-20"></i>
                 <p class="text-sm font-bold opacity-50">دسته‌بندی‌ای وجود ندارد</p>
             </div>`;
+        }
+
+        // اگر در داخل یک دسته هستیم، عکس‌های مستقیم آن دسته را هم نشان بده
+        if(parentId != null) {
+            const photosRes = await fetch(`/api/gallery/categories/${parentId}/photos`);
+            const parentPhotos = await photosRes.json();
+            if(parentPhotos && parentPhotos.length > 0) {
+                const photosSection = document.createElement('div');
+                photosSection.className = 'col-span-full';
+                if(cats && cats.length > 0) {
+                    const lbl = document.createElement('div');
+                    lbl.className = 'text-xs font-bold text-gray-500 px-1 mb-2 mt-3';
+                    lbl.textContent = 'تصاویر این دسته';
+                    photosSection.appendChild(lbl);
+                }
+                const grid = document.createElement('div');
+                grid.className = _viewClasses('photos') + ' w-full';
+                galleryCurrentPhotos = parentPhotos;
+                grid.innerHTML = parentPhotos.map((ph, idx) =>
+                    `<div onclick="openGalleryImage(${idx})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative group shadow-sm">
+                        <img src="${ph.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div>
+                    </div>`
+                ).join('');
+                photosSection.appendChild(grid);
+                if(view) view.appendChild(photosSection);
+            }
         }
     } catch(e) {
         if(view) view.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400">
