@@ -265,26 +265,32 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
     #app-wrapper { flex-direction: row !important; }
     #desktop-sidebar { display: flex !important; }
     #bottom-nav { display: none !important; }
-    #screens-wrapper { flex: 1 !important; min-width: 0 !important; overflow: hidden !important; position: relative !important; display: flex !important; flex-direction: column !important; }
+    #screens-wrapper { flex: 1 !important; min-width: 0 !important; overflow: hidden !important; position: relative !important; display: flex !important; flex-direction: column !important; max-width: calc(100% - 240px) !important; }
+
+    /* Prevent any screen content from bleeding into sidebar */
+    .screen.active { overflow-x: hidden !important; max-width: 100% !important; }
+    #home-scroll-content { overflow-x: hidden !important; }
+    #home-scroll-content > * { max-width: 100% !important; box-sizing: border-box !important; }
 
     /* ── Home screen desktop tweaks ── */
     #screen-home > header { display: none !important; }
-    #home-slider { min-height: 220px; }
     #home-scroll-content { padding-top: 0 !important; }
 
-    /* Books: wide grid instead of horizontal scroll */
+    /* Books: auto-fill grid instead of horizontal scroll */
     #home-books-container {
         display: grid !important;
-        grid-template-columns: repeat(5, 1fr) !important;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
         overflow-x: visible !important;
         gap: 12px 10px !important;
         padding-bottom: 4px !important;
     }
-    #home-books-container > * { width: auto !important; flex: none !important; }
+    #home-books-container > * { width: auto !important; flex: none !important; max-width: 100% !important; }
+    #home-books-container .book-cover-wrap { width: 100% !important; }
+    #home-books-container img { width: 100% !important; max-width: 100% !important; height: auto !important; }
 
     /* Lectures: 2-col grid on desktop */
     #home-lectures-container { grid-template-columns: repeat(2, 1fr) !important; display: grid !important; gap: 8px !important; }
 
     /* Library books grid: more cols on desktop */
-    #books-grid { grid-template-columns: repeat(7, 1fr) !important; }
+    #books-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; }
 }
