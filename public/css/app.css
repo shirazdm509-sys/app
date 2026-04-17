@@ -194,7 +194,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
     #app-wrapper {
         position: fixed !important;
         top: 0 !important; bottom: 0 !important;
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 100vw !important;
@@ -204,7 +204,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
 
     /* Loading screen */
     #loading-screen {
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 100vw !important;
@@ -217,7 +217,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
     #webview-modal, #global-search-modal,
     #pwa-install-modal, #exit-confirm-modal,
     #share-image-modal {
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 100vw !important;
@@ -225,7 +225,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
 
     /* Reader overlay & TOC */
     #reader-overlay, #toc-overlay {
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 100vw !important;
@@ -234,7 +234,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
 
     /* Reader fixed header/footer */
     #reader-header, #reader-footer {
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 100vw !important;
@@ -243,19 +243,19 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
 
     /* Settings bottom sheet */
     #settings-modal {
-        left: calc(50vw - 600px) !important;
+        left: max(0px, calc(50vw - 600px)) !important;
         right: auto !important;
         width: 1200px !important;
         max-width: 1200px !important;
     }
 
     /* Floating FAB */
-    #pwa-fab { left: calc(50vw - 584px) !important; }
+    #pwa-fab { left: max(16px, calc(50vw - 584px)) !important; }
 
     /* Update banner */
     #update-banner {
-        left: calc(50vw - 584px) !important;
-        right: calc(50vw - 584px) !important;
+        left: max(0px, calc(50vw - 584px)) !important;
+        right: max(0px, calc(50vw - 584px)) !important;
     }
 
     /* Exit confirm modal (centered inside phone frame) */
