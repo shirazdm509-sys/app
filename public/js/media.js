@@ -37,7 +37,7 @@ let _audioCatsLoaded = false;
 // ====================================================
 // حالت نمایش (view mode)
 // ====================================================
-let _mediaViewMode = localStorage.getItem('mediaViewMode') || 'grid';
+let _mediaViewMode = localStorage.getItem('mediaViewMode') || 'list';
 
 function _viewClasses(context) {
     const m = _mediaViewMode;
