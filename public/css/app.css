@@ -269,7 +269,7 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
 
     /* ── Home screen desktop tweaks ── */
     #screen-home > header { display: none !important; }
-    #home-slider { height: 260px !important; }
+    #home-slider { min-height: 220px; }
     #home-scroll-content { padding-top: 0 !important; }
 
     /* Books: wide grid instead of horizontal scroll */
