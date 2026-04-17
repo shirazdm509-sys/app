@@ -303,15 +303,16 @@ const upload = multer({ storage, limits:{fileSize:400*1024*1024, files:10}, file
 // Auth middleware
 function adminAuth(req,res,next) {
     const tok = req.headers['x-admin-token'];
-    if (typeof tok !== 'string' || tok.length !== ADMIN_PASSWORD.length) {
+    if (!tok || typeof tok !== 'string' || tok.trim() === '') {
         return res.status(401).json({error:'دسترسی غیرمجاز'});
     }
+    // Constant-time comparison: pad both to 128 bytes to avoid timing oracle
     try {
-        const a = Buffer.from(tok, 'utf8');
-        const b = Buffer.from(ADMIN_PASSWORD, 'utf8');
-        if (a.length === b.length && crypto.timingSafeEqual(a, b)) return next();
+        const a = Buffer.alloc(128); Buffer.from(tok, 'utf8').copy(a);
+        const b = Buffer.alloc(128); Buffer.from(ADMIN_PASSWORD, 'utf8').copy(b);
+        if (tok === ADMIN_PASSWORD && crypto.timingSafeEqual(a, b)) return next();
     } catch(e) {}
-    res.status(401).json({error:'دسترسی غیرمجاز'});
+    return res.status(401).json({error:'دسترسی غیرمجاز'});
 }
 function userAuth(req,res,next) {
     const uid = req.headers['x-user-id'];

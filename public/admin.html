@@ -1003,7 +1003,8 @@ let bannerData = [{},{},{}];
 let currentSupportMode = 'tickets'; // 'tickets' or 'qa'
 
 async function adminFetch(url, options={}) {
-  options.headers = Object.assign({'x-admin-token': adminToken}, options.headers||{});
+  if(!adminToken) { showToast('لطفاً دوباره وارد شوید',false); setTimeout(()=>window.location.reload(),1000); throw new Error('no token'); }
+  options.headers = Object.assign({'x-admin-token': String(adminToken)}, options.headers||{});
   const r = await fetch(url, options);
   if(r.status === 401) {
     localStorage.removeItem('adminToken');
@@ -2762,14 +2763,15 @@ async function extractAllCovers(){
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال استخراج...';btn.disabled=true;
   try{
     const r=await adminFetch('/api/admin/audio/extract-covers',{method:'POST'});
-    const d=await r.json();
+    let d;
+    try{d=await r.json();}catch(e){d={};}
     if(r.ok&&d.success){
       let msg=`از ${d.total} فایل: ${d.fromFile||0} کاور از فایل، ${d.fromCategory||0} از دسته`;
       if(d.total===0) msg='همه فایل‌ها کاور دارند';
       showToast(msg);
     } else showToast(d.error||'خطا در استخراج',false);
-    loadAudioTracks&&loadAudioTracks();
-  }catch(e){showToast('خطا در ارتباط با سرور',false);}
+    if(typeof loadAudioGalleryAdmin==='function') loadAudioGalleryAdmin();
+  }catch(e){showToast(e.message==='no token'?'لطفاً دوباره وارد شوید':'خطا در ارتباط با سرور',false);}
   finally{btn.innerHTML='<i class="fas fa-magic ml-2"></i>استخراج';btn.disabled=false;}
 }
 async function addAudioTrack(e){
