@@ -30,17 +30,49 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@secure2024';
 if (helmet) {
     app.use(helmet({
         contentSecurityPolicy: false,
-        crossOriginEmbedderPolicy: false
+        crossOriginEmbedderPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+        referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+        frameguard: { action: 'sameorigin' },
     }));
 }
+// فول‌بک اگر helmet نصب نباشد
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (!res.getHeader('X-Frame-Options')) res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    if (!res.getHeader('Strict-Transport-Security')) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    if (!res.getHeader('Referrer-Policy')) res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-XSS-Protection', '0');
+    next();
+});
 
-app.use(cors());
+// CORS — محدود به همان origin و لیست مجاز
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
+app.use(cors({
+    origin: (origin, cb) => {
+        // درخواست‌های هم‌origin (بدون Origin header) مجاز
+        if (!origin) return cb(null, true);
+        if (ALLOWED_ORIGINS.length === 0) return cb(null, true); // اگر تنظیم نشده، same-origin
+        if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+        return cb(new Error('CORS: origin not allowed'));
+    },
+    credentials: false,
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','x-admin-token','x-user-id','Authorization']
+}));
 
 // Rate limiting
+let adminLoginLimiter = (req, res, next) => next();
+let proxyLimiter = (req, res, next) => next();
+let searchLimiter = (req, res, next) => next();
 if (rateLimit) {
     // فقط روی API اعمال میشه نه فایل‌های استاتیک
-    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500 });
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, message: { error: 'تعداد تلاش بیش از حد است' } });
+    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500, standardHeaders: true, legacyHeaders: false });
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'تعداد تلاش بیش از حد است' } });
+    adminLoginLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, standardHeaders: true, legacyHeaders: false, skipSuccessfulRequests: true, message: { error: 'تعداد تلاش‌های ورود بیش از حد است. بعداً تلاش کنید.' } });
+    proxyLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false });
+    searchLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false });
     app.use('/api/auth', authLimiter);
     app.use('/api/', apiLimiter);
 }
@@ -228,23 +260,84 @@ const storage = multer.diskStorage({
         const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
-    filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
+    filename: (req, file, cb) => {
+        // محدود کردن extension به لیست سفید و استفاده از نام تصادفی
+        const origExt = (path.extname(file.originalname || '') || '').toLowerCase().replace(/[^a-z0-9.]/g,'').slice(0,8);
+        const safeExt = /^\.[a-z0-9]{1,6}$/.test(origExt) ? origExt : '';
+        cb(null, crypto.randomBytes(12).toString('hex') + safeExt);
+    }
 });
-const uploadImage = multer({ storage, limits:{fileSize:50*1024*1024} });
-const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024} });
-const upload = multer({ storage, limits:{fileSize:400*1024*1024} });
+const ALLOWED_MIME = {
+    image: ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml','image/x-icon','image/vnd.microsoft.icon'],
+    audio: ['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg','audio/aac','audio/mp4','audio/x-m4a','audio/webm','audio/flac','audio/x-flac'],
+    pdf:   ['application/pdf','application/x-pdf'],
+    db:    ['application/octet-stream','application/x-sqlite3','application/vnd.sqlite3','application/x-sqlite','application/sqlite3']
+};
+const ALLOWED_EXT = {
+    image: ['.jpg','.jpeg','.png','.gif','.webp','.svg','.ico'],
+    audio: ['.mp3','.wav','.ogg','.aac','.m4a','.webm','.flac'],
+    pdf:   ['.pdf'],
+    db:    ['.db','.sqlite','.sqlite3']
+};
+function _makeFilter(types){
+    return (req,file,cb) => {
+        const ext = (path.extname(file.originalname||'')||'').toLowerCase();
+        const mime = (file.mimetype||'').toLowerCase();
+        for (const t of types) {
+            if (ALLOWED_EXT[t].includes(ext) && ALLOWED_MIME[t].includes(mime)) return cb(null, true);
+        }
+        cb(Object.assign(new Error('نوع فایل مجاز نیست'), { code: 'LIMIT_UNEXPECTED_FILE' }));
+    };
+}
+const uploadImage = multer({ storage, limits:{fileSize:50*1024*1024, files:10}, fileFilter: _makeFilter(['image']) });
+const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024, files:5}, fileFilter: _makeFilter(['audio','image']) });
+// آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf
+const upload = multer({ storage, limits:{fileSize:400*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
 
 // Auth middleware
 function adminAuth(req,res,next) {
-    if(req.headers['x-admin-token']===ADMIN_PASSWORD) return next();
+    const tok = req.headers['x-admin-token'];
+    if (typeof tok !== 'string' || tok.length !== ADMIN_PASSWORD.length) {
+        return res.status(401).json({error:'دسترسی غیرمجاز'});
+    }
+    try {
+        const a = Buffer.from(tok, 'utf8');
+        const b = Buffer.from(ADMIN_PASSWORD, 'utf8');
+        if (a.length === b.length && crypto.timingSafeEqual(a, b)) return next();
+    } catch(e) {}
     res.status(401).json({error:'دسترسی غیرمجاز'});
 }
 function userAuth(req,res,next) {
     const uid = req.headers['x-user-id'];
-    if(!uid||isNaN(+uid)) return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
-    req.userId=+uid; next();
+    const n = parseInt(uid, 10);
+    if(!uid || isNaN(n) || n <= 0 || n > 2147483647) return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
+    req.userId = n; next();
 }
-function san(s){ return typeof s==='string'?s.replace(/<script[^>]*>.*?<\/script>/gi,'').replace(/javascript:/gi,'').trim():s; }
+// path helper: ensure resolved path stays within base (prevents traversal/symlink escape)
+function safePath(base, userFile) {
+    const baseAbs = path.resolve(base);
+    const safe = path.basename(String(userFile || ''));
+    const full = path.resolve(baseAbs, safe);
+    if (!full.startsWith(baseAbs + path.sep) && full !== baseAbs) return null;
+    return full;
+}
+// sanitize رشته ورودی: حذف tag های خطرناک و event handlerها
+function san(s){
+    if (typeof s !== 'string') return s;
+    return s
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+        .replace(/<object[\s\S]*?<\/object>/gi, '')
+        .replace(/<embed[\s\S]*?>/gi, '')
+        .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '')
+        .replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '')
+        .replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, '')
+        .replace(/javascript\s*:/gi, '')
+        .replace(/data\s*:\s*text\/html/gi, '')
+        .replace(/vbscript\s*:/gi, '')
+        .trim();
+}
 
 // DB helper
 function findBestTable(bookDb) {
@@ -324,9 +417,13 @@ app.get('/api/books/:id/pages',(req,res)=>{
 });
 
 // === API SEARCH ===
-app.get('/api/search', async (req, res) => {
-    const q = (req.query.q || '').trim().toLowerCase();
+app.get('/api/search', searchLimiter, async (req, res) => {
+    let q = (req.query.q || '').trim().toLowerCase();
     if (!q || q.length < 2) return res.json({ books: [], pages: [] });
+    if (q.length > 80) q = q.slice(0, 80);
+    // حذف کاراکترهای خطرناک (کنترل، html, null byte)
+    q = q.replace(/[\x00-\x1f\x7f<>]/g, '').trim();
+    if (!q) return res.json({ books: [], pages: [] });
 
     // Search in book titles/authors
     mainDb.all(
@@ -409,9 +506,54 @@ app.get('/api/settings',(req,res)=>{
 
 // === PROXY برای مرورگر داخلی (حذف X-Frame-Options + redirect + gzip) ===
 const zlib = require('zlib');
-function _proxyFetch(url, res, redirectCount) {
+const dns = require('dns');
+const net = require('net');
+// بررسی private/reserved IP برای جلوگیری از SSRF
+function _isPrivateIp(ip) {
+    if (!ip) return true;
+    if (net.isIPv4(ip)) {
+        const parts = ip.split('.').map(n => parseInt(n, 10));
+        if (parts[0] === 10) return true;
+        if (parts[0] === 127) return true;
+        if (parts[0] === 0) return true;
+        if (parts[0] === 169 && parts[1] === 254) return true; // link-local / cloud metadata
+        if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+        if (parts[0] === 192 && parts[1] === 168) return true;
+        if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // CGNAT
+        if (parts[0] >= 224) return true; // multicast + reserved
+        return false;
+    }
+    if (net.isIPv6(ip)) {
+        const l = ip.toLowerCase();
+        if (l === '::1' || l === '::') return true;
+        if (l.startsWith('fc') || l.startsWith('fd')) return true; // ULA
+        if (l.startsWith('fe80')) return true; // link-local
+        if (l.startsWith('ff')) return true; // multicast
+        if (l.startsWith('::ffff:')) return _isPrivateIp(l.slice(7));
+        return false;
+    }
+    return true;
+}
+function _validateProxyHost(hostname) {
+    return new Promise((resolve) => {
+        if (!hostname) return resolve(false);
+        // بلاک hostname هایی که مستقیم به IP اشاره می‌کنند در محدوده private
+        if (net.isIP(hostname)) return resolve(!_isPrivateIp(hostname));
+        dns.lookup(hostname, { all: true }, (err, addrs) => {
+            if (err || !addrs || !addrs.length) return resolve(false);
+            for (const a of addrs) if (_isPrivateIp(a.address)) return resolve(false);
+            resolve(true);
+        });
+    });
+}
+async function _proxyFetch(url, res, redirectCount) {
     if (redirectCount > 10) return res.status(502).send('Too many redirects');
     if (!/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
+    let parsed;
+    try { parsed = new URL(url); } catch(e) { return res.status(400).send('Invalid URL'); }
+    if (!['http:','https:'].includes(parsed.protocol)) return res.status(400).send('Invalid protocol');
+    const okHost = await _validateProxyHost(parsed.hostname);
+    if (!okHost) return res.status(403).send('Host not allowed');
     const { request: httpReq } = url.startsWith('https') ? require('https') : require('http');
     const proxyReq = httpReq(url, {
         headers: {
@@ -473,9 +615,10 @@ function _proxyFetch(url, res, redirectCount) {
     proxyReq.on('timeout', () => { proxyReq.destroy(); if (!res.headersSent) res.status(504).send('Timeout'); });
     proxyReq.end();
 }
-app.get('/api/proxy', (req, res) => {
+app.get('/api/proxy', proxyLimiter, (req, res) => {
     const url = req.query.url;
-    if (!url || !/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
+    if (!url || typeof url !== 'string' || url.length > 2048) return res.status(400).send('Invalid URL');
+    if (!/^https?:\/\/.+/i.test(url)) return res.status(400).send('Invalid URL');
     try { _proxyFetch(url, res, 0); } catch(e) { res.status(500).send('Server error'); }
 });
 
@@ -684,9 +827,17 @@ app.post('/api/notifications/read-all',userAuth,(req,res)=>{
 });
 
 // === ADMIN APIS ===
-app.post('/api/admin/login',(req,res)=>{
-    if(req.body.password===ADMIN_PASSWORD) res.json({success:true,token:ADMIN_PASSWORD});
-    else res.status(401).json({error:'رمز عبور اشتباه است'});
+app.post('/api/admin/login', adminLoginLimiter, (req,res)=>{
+    const pw = (req.body && typeof req.body.password === 'string') ? req.body.password : '';
+    // Constant-time comparison to prevent timing attacks
+    const a = Buffer.from(pw.padEnd(64, '\0').slice(0, 64), 'utf8');
+    const b = Buffer.from(ADMIN_PASSWORD.padEnd(64, '\0').slice(0, 64), 'utf8');
+    const ok = pw.length === ADMIN_PASSWORD.length && crypto.timingSafeEqual(a, b);
+    if (ok) res.json({success:true,token:ADMIN_PASSWORD});
+    else {
+        // تاخیر رندوم برای جلوگیری از timing oracle
+        setTimeout(()=>res.status(401).json({error:'رمز عبور اشتباه است'}), 300 + Math.floor(Math.random()*300));
+    }
 });
 
 app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1},{name:'pdf_file',maxCount:1},{name:'cover',maxCount:1}]),async(req,res)=>{
@@ -751,41 +902,43 @@ app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1
 });
 // سرویس‌دهی فایل‌های PDF کتاب‌ها
 app.get('/api/books/:id/pdf',(req,res)=>{
-    const id=+req.params.id;if(isNaN(id)) return res.status(400).end();
+    const id=parseInt(req.params.id,10);
+    if(isNaN(id)||id<1||id>2147483647) return res.status(400).end();
     mainDb.get('SELECT book_type,pdf_filename,title FROM books WHERE id=?',[id],(err,b)=>{
         if(err||!b||b.book_type!=='pdf'||!b.pdf_filename) return res.status(404).end();
-        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
-        if(!fs.existsSync(fp)) return res.status(404).end();
+        const fp=safePath(path.join(__dirname,'books'), b.pdf_filename);
+        if(!fp||!fs.existsSync(fp)) return res.status(404).end();
         res.setHeader('Content-Type','application/pdf');
-        res.setHeader('Content-Disposition',`inline; filename="${b.id}.pdf"`);
+        res.setHeader('Content-Disposition',`inline; filename="${id}.pdf"`);
         fs.createReadStream(fp).pipe(res);
     });
 });
 
 // تعداد صفحات PDF
 app.get('/api/books/:id/pdf-info',(req,res)=>{
-    const id=+req.params.id;if(isNaN(id)) return res.status(400).end();
+    const id=parseInt(req.params.id,10);
+    if(isNaN(id)||id<1||id>2147483647) return res.status(400).end();
     mainDb.get('SELECT pdf_filename FROM books WHERE id=? AND book_type="pdf"',[id],(err,b)=>{
-        if(err||!b) return res.status(404).json({error:'not found'});
-        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
-        if(!fs.existsSync(fp)) return res.status(404).json({error:'file missing'});
+        if(err||!b||!b.pdf_filename) return res.status(404).json({error:'not found'});
+        const fp=safePath(path.join(__dirname,'books'), b.pdf_filename);
+        if(!fp||!fs.existsSync(fp)) return res.status(404).json({error:'file missing'});
         const {execFile}=require('child_process');
-        execFile('pdfinfo',[fp],(e,stdout)=>{
+        execFile('pdfinfo',[fp],{timeout:10000},(e,stdout)=>{
             if(e) return res.json({pages:0});
-            const m=stdout.match(/Pages:\s*(\d+)/);
-            res.json({pages:m?+m[1]:0});
+            const m=String(stdout||'').match(/Pages:\s*(\d+)/);
+            res.json({pages:m?parseInt(m[1],10):0});
         });
     });
 });
 
 // رندر صفحه PDF به تصویر PNG
 app.get('/api/books/:id/pdf-page/:page',(req,res)=>{
-    const id=+req.params.id, page=+req.params.page;
-    if(isNaN(id)||isNaN(page)||page<1) return res.status(400).end();
+    const id=parseInt(req.params.id,10), page=parseInt(req.params.page,10);
+    if(isNaN(id)||isNaN(page)||page<1||page>99999||id<1||id>2147483647) return res.status(400).end();
     mainDb.get('SELECT pdf_filename FROM books WHERE id=? AND book_type="pdf"',[id],(err,b)=>{
-        if(err||!b) return res.status(404).end();
-        const fp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));
-        if(!fs.existsSync(fp)) return res.status(404).end();
+        if(err||!b||!b.pdf_filename) return res.status(404).end();
+        const fp=safePath(path.join(__dirname,'books'), b.pdf_filename);
+        if(!fp||!fs.existsSync(fp)) return res.status(404).end();
         const cacheDir=path.join(__dirname,'tmp','pdf-pages');
         if(!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir,{recursive:true});
         const cacheFile=path.join(cacheDir,`b${id}_p${page}.png`);
@@ -1160,10 +1313,12 @@ function sendPushToAll(payload) {
 
 // === PUBLIC GALLERY API ===
 app.get('/api/gallery/categories',(req,res)=>{
-    const parentId = req.query.parent_id !== undefined ? (+req.query.parent_id || null) : null;
-    const whereClause = req.query.parent_id !== undefined ? `WHERE gc.parent_id=${parentId===null?'IS NULL':`=${parentId}`}` : 'WHERE gc.parent_id IS NULL';
-    mainDb.all(`SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count, (SELECT COUNT(*) FROM gallery_categories WHERE parent_id=gc.id) as sub_count FROM gallery_categories gc ${whereClause} ORDER BY gc.sort_order ASC, gc.created_at DESC`,[],(err,rows)=>{
-        if(err) return res.status(500).json({error:err.message});
+    const hasParent = req.query.parent_id !== undefined && req.query.parent_id !== 'null' && req.query.parent_id !== '';
+    const parentId = hasParent ? parseInt(req.query.parent_id, 10) : null;
+    if (hasParent && (isNaN(parentId) || parentId < 0)) return res.status(400).json({error:'parent_id نامعتبر'});
+    const sql = `SELECT gc.*, (SELECT COUNT(*) FROM gallery_photos WHERE category_id=gc.id) as photo_count, (SELECT COUNT(*) FROM gallery_categories WHERE parent_id=gc.id) as sub_count FROM gallery_categories gc WHERE ${hasParent?'gc.parent_id=?':'gc.parent_id IS NULL'} ORDER BY gc.sort_order ASC, gc.created_at DESC`;
+    mainDb.all(sql, hasParent?[parentId]:[], (err,rows)=>{
+        if(err) return res.status(500).json({error:'خطای داخلی'});
         res.json(rows||[]);
     });
 });
@@ -1271,9 +1426,12 @@ app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
 
 // === PUBLIC AUDIO API ===
 app.get('/api/audio/categories',(req,res)=>{
-    const whereClause = req.query.parent_id !== undefined ? (req.query.parent_id==='null'||req.query.parent_id===''?'WHERE ac.parent_id IS NULL':`WHERE ac.parent_id=${+req.query.parent_id}`) : 'WHERE ac.parent_id IS NULL';
-    mainDb.all(`SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count, (SELECT COUNT(*) FROM audio_categories WHERE parent_id=ac.id) as sub_count FROM audio_categories ac ${whereClause} ORDER BY ac.sort_order ASC, ac.created_at DESC`,[],(err,rows)=>{
-        if(err) return res.status(500).json({error:err.message});
+    const hasParent = req.query.parent_id !== undefined && req.query.parent_id !== 'null' && req.query.parent_id !== '';
+    const parentId = hasParent ? parseInt(req.query.parent_id, 10) : null;
+    if (hasParent && (isNaN(parentId) || parentId < 0)) return res.status(400).json({error:'parent_id نامعتبر'});
+    const sql = `SELECT ac.*, (SELECT COUNT(*) FROM audio_tracks WHERE category_id=ac.id) as track_count, (SELECT COUNT(*) FROM audio_categories WHERE parent_id=ac.id) as sub_count FROM audio_categories ac WHERE ${hasParent?'ac.parent_id=?':'ac.parent_id IS NULL'} ORDER BY ac.sort_order ASC, ac.created_at DESC`;
+    mainDb.all(sql, hasParent?[parentId]:[], (err,rows)=>{
+        if(err) return res.status(500).json({error:'خطای داخلی'});
         res.json(rows||[]);
     });
 });
@@ -1452,9 +1610,12 @@ function extractAparatThumb(embedUrl) {
 
 // === PUBLIC VIDEO API ===
 app.get('/api/videos/categories',(req,res)=>{
-    const whereClause = req.query.parent_id !== undefined ? (req.query.parent_id==='null'||req.query.parent_id===''?'WHERE vc.parent_id IS NULL':`WHERE vc.parent_id=${+req.query.parent_id}`) : 'WHERE vc.parent_id IS NULL';
-    mainDb.all(`SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count, (SELECT COUNT(*) FROM video_categories WHERE parent_id=vc.id) as sub_count FROM video_categories vc ${whereClause} ORDER BY vc.sort_order ASC, vc.created_at DESC`,[],(err,rows)=>{
-        if(err) return res.status(500).json({error:err.message});
+    const hasParent = req.query.parent_id !== undefined && req.query.parent_id !== 'null' && req.query.parent_id !== '';
+    const parentId = hasParent ? parseInt(req.query.parent_id, 10) : null;
+    if (hasParent && (isNaN(parentId) || parentId < 0)) return res.status(400).json({error:'parent_id نامعتبر'});
+    const sql = `SELECT vc.*, (SELECT COUNT(*) FROM video_items WHERE category_id=vc.id) as video_count, (SELECT COUNT(*) FROM video_categories WHERE parent_id=vc.id) as sub_count FROM video_categories vc WHERE ${hasParent?'vc.parent_id=?':'vc.parent_id IS NULL'} ORDER BY vc.sort_order ASC, vc.created_at DESC`;
+    mainDb.all(sql, hasParent?[parentId]:[], (err,rows)=>{
+        if(err) return res.status(500).json({error:'خطای داخلی'});
         res.json(rows||[]);
     });
 });
@@ -1610,11 +1771,15 @@ app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'public','index.html')))
 app.get('/sw.js',(req,res)=>{res.setHeader('Content-Type','application/javascript');res.sendFile(path.join(__dirname,'public','sw.js'));});
 app.use((req,res)=>{if(req.path.startsWith('/api/')) return res.status(404).json({error:'مسیر یافت نشد'});res.sendFile(path.join(__dirname,'public','index.html'));});
 app.use((err,req,res,next)=>{
-    console.error('Error:',err.code, err.message);
+    console.error('Error:', err.code, err.message, err.stack);
+    if(err && err.message && err.message.startsWith('CORS')) return res.status(403).json({error:'CORS blocked'});
     if(err.code==='LIMIT_FILE_SIZE') return res.status(413).json({error:'حجم فایل بیش از حد مجاز است (تصاویر حداکثر ۵۰ مگابایت، صوت حداکثر ۱۰۰ مگابایت)'});
-    if(err.code==='LIMIT_UNEXPECTED_FILE') return res.status(400).json({error:'فیلد ناشناخته: '+err.field+' — لطفاً سرور را ری‌استارت کنید'});
+    if(err.code==='LIMIT_UNEXPECTED_FILE') return res.status(400).json({error:'فیلد آپلود نامعتبر'});
     if(err.code==='ENOENT') return res.status(500).json({error:'خطا در ذخیره فایل - لطفاً با مدیر تماس بگیرید'});
-    res.status(500).json({error:'خطای داخلی سرور: '+(err.message||'')});
+    if(err.type==='entity.too.large') return res.status(413).json({error:'حجم درخواست بیش از حد مجاز'});
+    // در production هیچ جزییاتی لو نرود
+    const showDetails = process.env.NODE_ENV !== 'production';
+    res.status(500).json({ error: showDetails ? ('خطای داخلی سرور: '+(err.message||'')) : 'خطای داخلی سرور' });
 });
 
 // تولید خودکار آیکون‌های maskable هنگام راه‌اندازی سرور
@@ -1642,6 +1807,9 @@ async function ensureMaskableIcons() {
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
     console.log(`🔐 ادمین: http://localhost:${PORT}/admin`);
-    console.log(`🔑 رمز: ${ADMIN_PASSWORD}\n`);
+    if (!process.env.ADMIN_PASSWORD) {
+        console.warn('⚠️  WARNING: ADMIN_PASSWORD env var is not set — using default. Change it in production!');
+    }
+    console.log('');
     ensureMaskableIcons();
 });
