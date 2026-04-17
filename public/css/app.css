@@ -276,17 +276,19 @@ body.global-dark #desktop-sidebar { background: #060c18; border-left-color: rgba
     #screen-home > header { display: none !important; }
     #home-scroll-content { padding-top: 0 !important; }
 
-    /* Books: auto-fill grid instead of horizontal scroll */
+    /* Books: library-style grid instead of horizontal scroll */
     #home-books-container {
         display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
         overflow-x: visible !important;
-        gap: 12px 10px !important;
-        padding-bottom: 4px !important;
+        gap: 14px 12px !important;
+        padding: 4px 24px 8px !important;
     }
     #home-books-container > * { width: auto !important; flex: none !important; max-width: 100% !important; }
-    #home-books-container .book-cover-wrap { width: 100% !important; }
-    #home-books-container img { width: 100% !important; max-width: 100% !important; height: auto !important; }
+    #home-books-container .book-cover-wrap { width: 100% !important; max-height: 210px !important; }
+    #home-books-container img { width: 100% !important; max-width: 100% !important; height: 100% !important; object-fit: cover !important; }
+    #home-books-container .book-title { font-size: 11px !important; }
+    #home-books-container .book-card { padding: 0 !important; }
 
     /* Lectures: 2-col grid on desktop */
     #home-lectures-container { grid-template-columns: repeat(2, 1fr) !important; display: grid !important; gap: 8px !important; }
