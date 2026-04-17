@@ -2763,10 +2763,13 @@ async function extractAllCovers(){
   try{
     const r=await adminFetch('/api/admin/audio/extract-covers',{method:'POST'});
     const d=await r.json();
-    if(r.ok&&d.success) showToast(`${d.updated} کاور از ${d.total} فایل استخراج شد`);
-    else showToast(d.error||'خطا',false);
-    loadAudioCategories();
-  }catch(e){showToast('خطا',false);}
+    if(r.ok&&d.success){
+      let msg=`از ${d.total} فایل: ${d.fromFile||0} کاور از فایل، ${d.fromCategory||0} از دسته`;
+      if(d.total===0) msg='همه فایل‌ها کاور دارند';
+      showToast(msg);
+    } else showToast(d.error||'خطا در استخراج',false);
+    loadAudioTracks&&loadAudioTracks();
+  }catch(e){showToast('خطا در ارتباط با سرور',false);}
   finally{btn.innerHTML='<i class="fas fa-magic ml-2"></i>استخراج';btn.disabled=false;}
 }
 async function addAudioTrack(e){

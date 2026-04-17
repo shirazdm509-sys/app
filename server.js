@@ -9,6 +9,12 @@ const crypto = require('crypto');
 let sharp; try { sharp = require('sharp'); } catch(e) { sharp = null; }
 const bcrypt = require('bcryptjs');
 let mm; try { mm = require('music-metadata'); } catch(e) { mm = null; }
+// برای Node.js < 22 که require() برای ESM کار نمی‌کند از dynamic import استفاده می‌شود
+async function getMusicMeta() {
+    if (mm) return mm;
+    try { mm = await import('music-metadata'); } catch(e) {}
+    return mm;
+}
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
 
 // VAPID keys (stored in env or defaults generated once)
@@ -1728,26 +1734,95 @@ app.put('/api/admin/video/items/:id',adminAuth,uploadImage.single('gallery_image
     mainDb.run(`UPDATE video_items SET ${sets.join(',')} WHERE id=?`,vals,err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
 // === استخراج کاور از فایل‌های صوتی موجود ===
-app.post('/api/admin/audio/extract-covers',adminAuth,async(req,res)=>{
-    if(!mm) return res.status(500).json({error:'music-metadata در دسترس نیست'});
-    mainDb.all('SELECT id,audio_url FROM audio_tracks WHERE (cover IS NULL OR cover="") AND audio_url LIKE "/audio/%"',[],async(err,tracks)=>{
-        if(err) return res.status(500).json({error:err.message});
-        let updated=0;
-        for(const tr of (tracks||[])){
-            try{
-                const fp=path.resolve(__dirname,'public',tr.audio_url.replace(/^\//,''));
-                if(!fs.existsSync(fp)) continue;
-                const meta=await mm.parseFile(fp,{skipCovers:false});
-                const pic=mm.selectCover?mm.selectCover(meta.common.picture):(meta.common.picture&&meta.common.picture[0]);
-                if(!pic||!pic.data) continue;
-                const ext=(pic.format||'image/jpeg').replace('image/','').replace('jpg','jpeg')||'jpeg';
-                const coverName=path.basename(fp).replace(/\.[^.]+$/,'')+'-cover.'+ext;
-                fs.writeFileSync(path.resolve(__dirname,'public','gallery',coverName),Buffer.from(pic.data));
-                await new Promise(r=>mainDb.run('UPDATE audio_tracks SET cover=? WHERE id=?',['/gallery/'+coverName,tr.id],r));
-                updated++;
-            }catch(e){}
+// استخراج کاور از فایل صوتی با music-metadata
+async function _extractAudioCover(fp) {
+    const lib = await getMusicMeta();
+    if (!lib) return null;
+    try {
+        const meta = await lib.parseFile(fp, { skipCovers: false, duration: false });
+        const pic = lib.selectCover ? lib.selectCover(meta.common.picture) : (meta.common.picture && meta.common.picture[0]);
+        if (!pic || !pic.data) return null;
+        const ext = ((pic.format || 'image/jpeg').replace('image/','').replace('jpeg','jpg')) || 'jpg';
+        return { data: Buffer.from(pic.data), ext: ext === 'jpg' ? 'jpg' : ext };
+    } catch(e) { return null; }
+}
+// استخراج thumbnail از فایل ویدیویی با ffmpeg
+function _extractVideoCover(fp) {
+    return new Promise(resolve => {
+        const {execFile} = require('child_process');
+        const outFile = fp + '__thumb__.jpg';
+        execFile('ffmpeg', ['-y', '-i', fp, '-ss', '00:00:02', '-vframes', '1', '-q:v', '3', '-vf', 'scale=320:-2', outFile], { timeout: 20000 }, (e) => {
+            if (e || !fs.existsSync(outFile)) return resolve(null);
+            const data = fs.readFileSync(outFile);
+            try { fs.unlinkSync(outFile); } catch(e2) {}
+            resolve({ data, ext: 'jpg' });
+        });
+    });
+}
+
+app.post('/api/admin/audio/extract-covers', adminAuth, async(req, res) => {
+    const galleryDir = path.join(__dirname, 'public', 'gallery');
+    if (!fs.existsSync(galleryDir)) fs.mkdirSync(galleryDir, { recursive: true });
+    // فایل‌های صوتی بدون کاور را پیدا کن
+    mainDb.all(`SELECT at.id, at.audio_url, at.cover, COALESCE(ac.cover,'') as cat_cover
+                FROM audio_tracks at LEFT JOIN audio_categories ac ON at.category_id=ac.id
+                WHERE (at.cover IS NULL OR at.cover='') AND at.audio_url LIKE '/audio/%'`,
+    [], async (err, tracks) => {
+        if (err) return res.status(500).json({ error: err.message });
+        let updated = 0, fromFile = 0, fromCategory = 0;
+        for (const tr of (tracks || [])) {
+            try {
+                const fp = path.resolve(__dirname, 'public', tr.audio_url.replace(/^\//, ''));
+                let coverImg = null;
+                if (fs.existsSync(fp)) {
+                    coverImg = await _extractAudioCover(fp);
+                }
+                if (coverImg) {
+                    // ذخیره کاور استخراج‌شده از فایل
+                    const coverName = crypto.randomBytes(8).toString('hex') + '-cover.' + coverImg.ext;
+                    const coverPath = path.join(galleryDir, coverName);
+                    fs.writeFileSync(coverPath, coverImg.data);
+                    await new Promise(r => mainDb.run('UPDATE audio_tracks SET cover=? WHERE id=?', ['/gallery/' + coverName, tr.id], r));
+                    updated++; fromFile++;
+                } else if (tr.cat_cover) {
+                    // fallback: کاور دسته‌بندی
+                    await new Promise(r => mainDb.run('UPDATE audio_tracks SET cover=? WHERE id=?', [tr.cat_cover, tr.id], r));
+                    updated++; fromCategory++;
+                }
+            } catch(e) {}
         }
-        res.json({success:true,updated,total:(tracks||[]).length});
+        res.json({ success: true, updated, fromFile, fromCategory, total: (tracks || []).length });
+    });
+});
+
+app.post('/api/admin/video/extract-covers', adminAuth, async(req, res) => {
+    const galleryDir = path.join(__dirname, 'public', 'gallery');
+    if (!fs.existsSync(galleryDir)) fs.mkdirSync(galleryDir, { recursive: true });
+    mainDb.all(`SELECT vi.id, vi.video_url, vi.thumbnail, COALESCE(vc.cover,'') as cat_cover
+                FROM video_items vi LEFT JOIN video_categories vc ON vi.category_id=vc.id
+                WHERE (vi.thumbnail IS NULL OR vi.thumbnail='') AND vi.video_url LIKE '/audio/%'`,
+    [], async (err, items) => {
+        if (err) return res.status(500).json({ error: err.message });
+        let updated = 0, fromFile = 0, fromCategory = 0;
+        for (const vi of (items || [])) {
+            try {
+                const fp = path.resolve(__dirname, 'public', vi.video_url.replace(/^\//, ''));
+                let coverImg = null;
+                if (fs.existsSync(fp)) {
+                    coverImg = await _extractVideoCover(fp);
+                }
+                if (coverImg) {
+                    const coverName = crypto.randomBytes(8).toString('hex') + '-thumb.jpg';
+                    fs.writeFileSync(path.join(galleryDir, coverName), coverImg.data);
+                    await new Promise(r => mainDb.run('UPDATE video_items SET thumbnail=? WHERE id=?', ['/gallery/' + coverName, vi.id], r));
+                    updated++; fromFile++;
+                } else if (vi.cat_cover) {
+                    await new Promise(r => mainDb.run('UPDATE video_items SET thumbnail=? WHERE id=?', [vi.cat_cover, vi.id], r));
+                    updated++; fromCategory++;
+                }
+            } catch(e) {}
+        }
+        res.json({ success: true, updated, fromFile, fromCategory, total: (items || []).length });
     });
 });
 
