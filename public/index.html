@@ -82,8 +82,32 @@
 <!-- APP WRAPPER -->
 <div id="app-wrapper" class="absolute inset-0 flex flex-col w-full bg-gray-50 overflow-hidden hidden">
 
+    <!-- DESKTOP SIDEBAR — فقط در حالت دسکتاپ نمایش داده می‌شه -->
+    <aside id="desktop-sidebar">
+        <div id="sd-brand">
+            <div id="sd-logo"><i class="fas fa-user text-teal-400 text-xl" id="sd-logo-icon"></i></div>
+            <div id="sd-brand-name">نرم افزار آیت الله دستغیب</div>
+            <div id="sd-brand-sub">DastgheibQoba.info</div>
+        </div>
+        <nav id="sd-nav">
+            <button class="nav-item sdi" data-nav="home" onclick="navToScreen('home')"><i class="fas fa-home"></i><span>خانه</span></button>
+            <button class="nav-item sdi" data-nav="library" onclick="navToScreen('library')"><i class="fas fa-book"></i><span>کتابخانه</span></button>
+            <button class="nav-item sdi" data-nav="media" onclick="navToScreen('media')"><i class="fas fa-photo-film"></i><span>رسانه</span></button>
+            <button class="nav-item sdi" data-nav="lectures" onclick="navToScreen('lectures')"><i class="fas fa-microphone-alt"></i><span>سخنرانی</span></button>
+            <button class="nav-item sdi" data-nav="news" onclick="navToScreen('news')"><i class="fas fa-newspaper"></i><span>اخبار</span></button>
+            <button class="nav-item sdi" data-nav="statements" onclick="navToScreen('statements')"><i class="fas fa-scroll"></i><span>بیانیه‌ها</span></button>
+            <button class="nav-item sdi" data-nav="qa" onclick="navToScreen('qa')"><i class="fas fa-question-circle"></i><span>سوال و جواب</span></button>
+        </nav>
+        <div id="sd-footer">
+            <button class="sdi" onclick="openGlobalSearch()"><i class="fas fa-search"></i><span>جستجو</span></button>
+            <button class="sdi" onclick="openNotifications()"><i class="fas fa-bell"></i><span>اطلاعیه‌ها</span></button>
+            <button class="sdi" onclick="toggleGlobalTheme()"><i class="fas fa-adjust"></i><span>حالت تاریک</span></button>
+            <button class="sdi" onclick="navToScreen('auth')"><i class="fas fa-user"></i><span>حساب کاربری</span></button>
+        </div>
+    </aside>
+
     <!-- SCREENS WRAPPER -->
-    <div class="flex-1 overflow-hidden relative flex flex-col">
+    <div id="screens-wrapper" class="flex-1 overflow-hidden relative flex flex-col">
 
         <!-- ============================================== -->
         <!-- 0. صفحه ورود / ثبت‌نام -->
@@ -228,7 +252,7 @@
                 </div>
 
                 <!-- SHORTCUTS GRID (8 items, responsive) -->
-                <div class="grid grid-cols-4 sm:grid-cols-8 gap-x-1 gap-y-3 px-4 mb-6">
+                <div id="home-shortcuts-section" class="grid grid-cols-4 sm:grid-cols-8 gap-x-1 gap-y-3 px-4 mb-6">
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('social','شبکه‌های اجتماعی')">
                         <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><i class="fab fa-instagram"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">شبکه‌های اجتماعی</span>
@@ -267,7 +291,7 @@
                 <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LATEST BOOKS -->
-                <div class="mb-4">
+                <div id="home-books-section" class="mb-4">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 id="home-books-title" class="text-sm font-black text-gray-800">آخرین کتاب‌ها</h3>
                         <button onclick="navToScreen('library')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">ورود به کتابخانه</button>
@@ -279,7 +303,7 @@
                 <div id="home-banner-after_books" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LATEST LECTURES -->
-                <div class="mb-4">
+                <div id="home-lectures-section" class="mb-4">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین مطالب</h3>
                         <button onclick="navToScreen('lectures')" class="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">مشاهده همه</button>
