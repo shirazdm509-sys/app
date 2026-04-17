@@ -160,6 +160,9 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS video_items (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER NOT NULL, title TEXT NOT NULL, embed_url TEXT NOT NULL, thumbnail TEXT DEFAULT '', description TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (category_id) REFERENCES video_categories(id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS news_sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL UNIQUE, post_title TEXT NOT NULL, post_url TEXT NOT NULL, post_image TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 
+        // Migration: add show_title to news_sliders
+        mainDb.run(`ALTER TABLE news_sliders ADD COLUMN show_title INTEGER DEFAULT 1`, () => {});
+
         // Migration: add parent_id to category tables for nested categories
         mainDb.run(`ALTER TABLE gallery_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE audio_categories ADD COLUMN parent_id INTEGER DEFAULT NULL`, () => {});
@@ -214,7 +217,7 @@ function initDb() {
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','public/content','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -222,7 +225,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
@@ -970,13 +973,14 @@ app.get('/api/admin/news-sliders', adminAuth, (req, res) => {
 });
 
 app.post('/api/admin/news-sliders', adminAuth, (req, res) => {
-    const { post_id, post_title, post_url, post_image } = req.body;
+    const { post_id, post_title, post_url, post_image, show_title } = req.body;
     if (!post_id || !post_title || !post_url) return res.status(400).json({error: 'اطلاعات ناقص است'});
     mainDb.get('SELECT COUNT(*) as c FROM news_sliders', [], (err, r) => {
         const order = r ? r.c : 0;
+        const showT = show_title === false || show_title === 0 || show_title === '0' ? 0 : 1;
         mainDb.run(
-            'INSERT OR REPLACE INTO news_sliders (post_id, post_title, post_url, post_image, sort_order) VALUES (?,?,?,?,?)',
-            [+post_id, san(post_title), san(post_url), san(post_image || ''), order],
+            'INSERT OR REPLACE INTO news_sliders (post_id, post_title, post_url, post_image, sort_order, show_title) VALUES (?,?,?,?,?,?)',
+            [+post_id, san(post_title), san(post_url), san(post_image || ''), order, showT],
             function(err) {
                 if (err) return res.status(500).json({error: err.message});
                 res.json({success: true, id: this.lastID});
@@ -985,10 +989,22 @@ app.post('/api/admin/news-sliders', adminAuth, (req, res) => {
     });
 });
 
+app.put('/api/admin/news-sliders/:id', adminAuth, (req, res) => {
+    const id = +req.params.id;
+    if (isNaN(id)) return res.status(400).json({error: 'شناسه نامعتبر'});
+    const showT = req.body.show_title === false || req.body.show_title === 0 || req.body.show_title === '0' ? 0 : 1;
+    mainDb.run('UPDATE news_sliders SET show_title=? WHERE id=?', [showT, id], () => res.json({success: true}));
+});
+
 app.delete('/api/admin/news-sliders/:id', adminAuth, (req, res) => {
     const id = +req.params.id;
     if (isNaN(id)) return res.status(400).json({error: 'شناسه نامعتبر'});
     mainDb.run('DELETE FROM news_sliders WHERE id=?', [id], () => res.json({success: true}));
+});
+
+app.post('/api/admin/upload-content-image', adminAuth, uploadImage.single('content_image'), (req, res) => {
+    if (!req.file) return res.status(400).json({error: 'فایلی آپلود نشد'});
+    res.json({success: true, url: '/content/' + req.file.filename});
 });
 
 // Admin Page Contents

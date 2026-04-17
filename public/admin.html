@@ -19,6 +19,12 @@ body{font-family:'Vazir',Tahoma,sans-serif;}
 input[type=color]{width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;}
 input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:#e2e8f0;outline:none;}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#0d9488;cursor:pointer;}
+/* Quill: show actual size values in size picker */
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value]::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item[data-value]::before { content: attr(data-value) !important; }
+.ql-snow .ql-picker.ql-size { width: 80px !important; }
+/* Default RTL for editor — lower specificity so ql-align-* classes can override */
+.ql-editor { direction: rtl; text-align: right; min-height: 200px; }
 /* Mobile responsive */
 #admin-mobile-header{display:none;}
 @media(max-width:767px){
@@ -1437,13 +1443,21 @@ async function loadWPPostsForSlider() {
     const saved = await r2.json();
     const savedIds = new Set((saved || []).map(s => s.post_id));
 
+    // دریافت show_title فعلی هر اسلاید
+    const showTitleMap = {};
+    (saved||[]).forEach(s=>{ showTitleMap[s.post_id] = s.show_title !== 0; });
+
     list.innerHTML = _wpPostsCache.map(p => `
-      <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-teal-50 cursor-pointer transition group">
+      <div class="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-teal-50 transition">
         <input type="checkbox" value="${p.id}" data-title="${(p.title||'').replace(/"/g,'&quot;')}" data-url="${(p.url||'').replace(/"/g,'&quot;')}" data-image="${(p.image||'').replace(/"/g,'&quot;')}"
           ${savedIds.has(p.id) ? 'checked' : ''} class="w-4 h-4 accent-teal-600 shrink-0">
         ${p.image ? `<img src="${p.image}" class="w-14 h-10 rounded-lg object-cover shrink-0 border border-gray-200">` : '<div class="w-14 h-10 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center"><i class="fas fa-image text-gray-300 text-sm"></i></div>'}
         <span class="text-sm font-medium text-gray-800 flex-1 leading-snug line-clamp-2">${p.title || 'بدون عنوان'}</span>
-      </label>
+        <label class="flex items-center gap-1.5 shrink-0 text-xs text-gray-500 cursor-pointer">
+          <input type="checkbox" class="show-title-cb w-3.5 h-3.5 accent-teal-600" data-pid="${p.id}" ${showTitleMap[p.id]!==false?'checked':''}>
+          عنوان
+        </label>
+      </div>
     `).join('');
 
     list.classList.remove('hidden');
@@ -1473,6 +1487,9 @@ async function saveNewsSliders() {
   // حالا موارد انتخاب‌شده رو ذخیره کن
   let ok = 0;
   for (const cb of checked) {
+    // خواندن وضعیت تیک «عنوان» برای همین پست
+    const showTitleCb = document.querySelector(`.show-title-cb[data-pid="${cb.value}"]`);
+    const showTitle = showTitleCb ? showTitleCb.checked : true;
     try {
       const r = await adminFetch('/api/admin/news-sliders', {
         method: 'POST',
@@ -1481,7 +1498,8 @@ async function saveNewsSliders() {
           post_id: +cb.value,
           post_title: cb.dataset.title,
           post_url: cb.dataset.url,
-          post_image: cb.dataset.image
+          post_image: cb.dataset.image,
+          show_title: showTitle
         })
       });
       if (r.ok) ok++;
@@ -1508,6 +1526,11 @@ async function loadNewsSliders() {
           <p class="text-sm font-bold text-gray-800 truncate">${item.post_title}</p>
           <p class="text-xs text-teal-600 truncate">${item.post_url}</p>
         </div>
+        <button onclick="toggleNewsSliderTitle(${item.id},${item.show_title!==0?0:1},this)"
+          class="w-8 h-8 rounded-lg flex items-center justify-center transition shrink-0 text-xs ${item.show_title!==0?'bg-teal-50 text-teal-600':'bg-gray-100 text-gray-400'}"
+          title="${item.show_title!==0?'پنهان کردن عنوان':'نمایش عنوان'}">
+          <i class="fas ${item.show_title!==0?'fa-eye':'fa-eye-slash'}"></i>
+        </button>
         <button onclick="deleteNewsSlider(${item.id})" class="w-8 h-8 bg-rose-50 text-rose-500 hover:bg-rose-100 rounded-lg flex items-center justify-center transition shrink-0 text-xs"><i class="fas fa-trash"></i></button>
       </div>
     `).join('');
@@ -1523,6 +1546,20 @@ async function deleteNewsSlider(id) {
     if (r.ok) { showToast('حذف شد'); loadNewsSliders(); }
     else showToast('خطا', false);
   } catch(e) {}
+}
+async function toggleNewsSliderTitle(id, newVal, btn) {
+  try {
+    const r = await adminFetch('/api/admin/news-sliders/' + id, {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({show_title: newVal})
+    });
+    if (r.ok) {
+      btn.setAttribute('onclick', `toggleNewsSliderTitle(${id},${newVal?0:1},this)`);
+      btn.title = newVal ? 'پنهان کردن عنوان' : 'نمایش عنوان';
+      btn.className = btn.className.replace(newVal?'bg-gray-100 text-gray-400':'bg-teal-50 text-teal-600', newVal?'bg-teal-50 text-teal-600':'bg-gray-100 text-gray-400');
+      btn.innerHTML = `<i class="fas ${newVal?'fa-eye':'fa-eye-slash'}"></i>`;
+    } else showToast('خطا',false);
+  } catch(e) { showToast('خطا',false); }
 }
 
 // BANNERS
@@ -1768,9 +1805,13 @@ function initPageContentTab(){
     ];
     _PC_IDS.forEach(id=>{
       if(!_quillInstances[id]){
-        _quillInstances[id]=new Quill('#quill-'+id,{theme:'snow',modules:{toolbar:toolbarOpts}});
-        _quillInstances[id].root.setAttribute('dir','rtl');
-        _quillInstances[id].root.style.textAlign='right';
+        const q=new Quill('#quill-'+id,{theme:'snow',modules:{toolbar:toolbarOpts}});
+        q.root.setAttribute('dir','rtl');
+        // Override image button: URL or upload
+        q.getModule('toolbar').addHandler('image',()=>_showImageInsertDialog(q));
+        // Image resize on click
+        q.root.addEventListener('click',e=>{ if(e.target.tagName==='IMG') _showImgResizeBar(e.target); });
+        _quillInstances[id]=q;
       }
     });
     loadPageContents();
@@ -1834,6 +1875,83 @@ async function savePageContent(id){
     if(r.ok&&d.success) showToast('ذخیره شد');
     else showToast(d.error||'خطا',false);
   }catch(e){showToast('خطا در ذخیره',false);}
+}
+
+// ── Quill image insert dialog (URL or upload) ──
+let _imgQuill=null;
+function _showImageInsertDialog(q){
+  _imgQuill=q;
+  let d=document.getElementById('_img-dlg');
+  if(d) d.remove();
+  d=document.createElement('div');
+  d.id='_img-dlg';
+  d.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;';
+  d.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;width:420px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:Vazir,Tahoma,sans-serif;direction:rtl;">
+    <h3 style="font-size:15px;font-weight:900;margin:0 0 16px;color:#1e293b;">درج تصویر</h3>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">آپلود فایل</label>
+      <input type="file" accept="image/*" id="_img-file" style="font-size:12px;width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:6px;box-sizing:border-box;">
+    </div>
+    <div style="text-align:center;color:#94a3b8;font-size:12px;margin:8px 0;">— یا —</div>
+    <div style="margin-bottom:18px;">
+      <label style="font-size:12px;font-weight:700;color:#64748b;display:block;margin-bottom:5px;">لینک تصویر (URL)</label>
+      <input type="url" id="_img-url" placeholder="https://..." style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;box-sizing:border-box;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="document.getElementById('_img-dlg').remove()" style="background:#f1f5f9;color:#64748b;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-weight:700;font-size:13px;">لغو</button>
+      <button onclick="_insertImg()" style="background:#0d9488;color:#fff;border:none;border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:700;font-size:13px;">درج</button>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+}
+async function _insertImg(){
+  const fileInput=document.getElementById('_img-file');
+  const urlInput=document.getElementById('_img-url');
+  const q=_imgQuill; if(!q) return;
+  let url='';
+  if(fileInput&&fileInput.files&&fileInput.files[0]){
+    const fd=new FormData(); fd.append('content_image',fileInput.files[0]);
+    try{
+      const r=await adminFetch('/api/admin/upload-content-image',{method:'POST',body:fd});
+      if(!r.ok) throw new Error();
+      const d=await r.json(); url=d.url;
+    }catch(e){ alert('خطا در آپلود تصویر'); return; }
+  } else if(urlInput&&urlInput.value.trim()){ url=urlInput.value.trim(); }
+  if(!url){ alert('لطفاً یک فایل یا لینک وارد کنید'); return; }
+  const range=q.getSelection(true);
+  q.insertEmbed(range?range.index:0,'image',url);
+  document.getElementById('_img-dlg').remove();
+}
+
+// ── Quill image resize ──
+function _showImgResizeBar(img){
+  let bar=document.getElementById('_img-rbar'); if(bar) bar.remove();
+  bar=document.createElement('div'); bar.id='_img-rbar';
+  bar.style.cssText='position:fixed;z-index:9999;background:#1e293b;color:#fff;border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:8px;font-size:12px;font-family:Vazir,Tahoma,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.4);direction:rtl;';
+  const curW=img.style.width?parseInt(img.style.width):(img.naturalWidth||300);
+  bar.innerHTML=`<span>عرض:</span>
+    <input type="number" id="_img-w" value="${curW}" min="10" max="2000" style="width:68px;background:#334155;border:1px solid #475569;color:#fff;border-radius:4px;padding:3px 6px;font-size:12px;outline:none;">
+    <span>px</span>
+    <button onclick="_applyImgW()" style="background:#0d9488;color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">اعمال</button>
+    <button onclick="document.getElementById('_img-rbar').remove()" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;">✕</button>`;
+  const rect=img.getBoundingClientRect();
+  bar.style.top=Math.max(8,rect.top-48)+'px';
+  bar.style.left=Math.max(8,rect.left)+'px';
+  document.body.appendChild(bar);
+  window._rImg=img;
+  document.getElementById('_img-w').focus();
+  setTimeout(()=>{
+    document.addEventListener('click',function _cb(e){
+      if(!bar.contains(e.target)&&e.target!==img){ bar.remove(); document.removeEventListener('click',_cb); }
+    });
+  },100);
+}
+function _applyImgW(){
+  const img=window._rImg; const inp=document.getElementById('_img-w');
+  if(!img||!inp) return;
+  const w=parseInt(inp.value); if(isNaN(w)||w<10) return;
+  img.style.width=w+'px'; img.style.height='auto';
+  const bar=document.getElementById('_img-rbar'); if(bar) bar.remove();
 }
 
 // SUPPORT (Tickets + QA combined)
