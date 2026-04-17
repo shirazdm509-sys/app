@@ -77,7 +77,7 @@ function renderLibrary() {
     if (titleEl) titleEl.textContent = 'کتاب‌ها';
     const homeBooks = [...allBooks].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
     const isDesktop = window.innerWidth >= 640;
-    const homeLimit = isDesktop ? 10 : 5;
+    const homeLimit = isDesktop ? 6 : 5;
     homeContainer.innerHTML = homeBooks.slice(0, homeLimit).map((b, i) => renderCard(b, i, !isDesktop)).join('') +
         (isDesktop ? '' : `<div class="shrink-0 w-4"></div>`);
 }
