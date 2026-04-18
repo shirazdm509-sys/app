@@ -1,102 +1,153 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v3';
-const STATIC_CACHE = 'nashr-static-v3';
-const DYNAMIC_CACHE = 'nashr-dynamic-v3';
+const CACHE_NAME = 'nashr-asar-v15';
+const STATIC_CACHE = 'nashr-static-v15';
+const DYNAMIC_CACHE = 'nashr-dynamic-v15';
 
+// فقط فونت‌ها و فایل‌های ثابت را pre-cache می‌کنیم
+// فایل‌های JS/CSS با استراتژی network-first بارگذاری می‌شوند (همیشه به‌روز)
 const STATIC_ASSETS = [
-  '/',
-  '/css/style.css',
-  '/js/app.js',
-  '/manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css',
+  '/vendor/fa/webfonts/fa-solid-900.woff2',
+  '/vendor/fa/webfonts/fa-regular-400.woff2',
+  '/vendor/fa/webfonts/fa-brands-400.woff2',
+  '/vendor/fonts/vazir/Vazir-Regular.woff2',
+  '/vendor/fonts/vazir/Vazir-Bold.woff2',
+  '/vendor/fonts/vazir/Vazir-Medium.woff2',
+  '/vendor/fonts/shabnam/Shabnam.woff2',
+  '/vendor/fonts/shabnam/Shabnam-Bold.woff2',
 ];
 
-// Install
+function offlineResponse(msg) {
+  return new Response(JSON.stringify({ error: msg || 'offline' }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// Install: فقط فونت‌ها را pre-cache کن
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then(cache => {
       return Promise.allSettled(
-        STATIC_ASSETS.map(url => cache.add(url).catch(() => console.warn('Could not cache:', url)))
+        STATIC_ASSETS.map(url => cache.add(url).catch(() => {}))
       );
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate
+// Activate: کش‌های قدیمی را پاک کن، کنترل را بگیر، و همه صفحات را reload کن
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
+    caches.keys()
+      .then(keys => Promise.all(
         keys.filter(key => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
             .map(key => caches.delete(key))
-      );
-    }).then(() => self.clients.claim())
+      ))
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+      .then(clients => Promise.all(
+        // وقتی SW جدید فعال می‌شود، همه صفحات باز را reload کن تا JS جدید بارگذاری شود
+        clients.map(client => client.navigate(client.url).catch(() => {}))
+      ))
   );
+});
+
+// پیام skipWaiting از اپ برای فعال‌سازی فوری SW جدید
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
+
   // Skip non-GET and chrome-extension
   if (event.request.method !== 'GET' || url.protocol === 'chrome-extension:') return;
-  
-  // API calls - network first
+
+  // API calls - network only
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match(event.request))
+      fetch(event.request).catch(() => offlineResponse('api offline'))
     );
     return;
   }
-  
+
+  // فایل‌های JS و CSS: network-first (همیشه نسخه جدید، آفلاین از کش)
+  if (url.hostname === self.location.hostname &&
+      url.pathname.match(/\.(js|css)$/)) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then(c => c.put(event.request, clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request).then(r => r || offlineResponse('script offline')))
+    );
+    return;
+  }
+
   // WP API - network first with cache fallback
   if (url.hostname.includes('dastgheibqoba.info') && url.pathname.includes('/wp-json/')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          if (response.ok) {
+          if (response && response.ok) {
             const clone = response.clone();
-            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone));
+            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request).then(r => r || offlineResponse('wp offline')))
     );
     return;
   }
-  
-  // Static assets - cache first
-  if (url.hostname !== self.location.hostname || 
-      url.pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
+
+  // آیکون‌ها و تصاویر — network first
+  if (url.pathname.startsWith('/icons/') || url.pathname.startsWith('/logos/') || url.pathname.startsWith('/banners/') || url.pathname.startsWith('/sliders/')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then(r => r || new Response('', { status: 404 })))
+    );
+    return;
+  }
+
+  // فونت‌ها و فایل‌های باینری — cache first (تغییر نمی‌کنند)
+  if (url.pathname.match(/\.(woff|woff2|ttf|png|jpg|jpeg|gif|svg|ico)$/)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(response => {
-          if (response.ok) {
+          if (response && response.ok) {
             const clone = response.clone();
-            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+            caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
           }
           return response;
-        });
+        }).catch(() => offlineResponse('asset offline'));
       })
     );
     return;
   }
-  
+
   // HTML pages - network first
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response.ok) {
+        if (response && response.ok) {
           const clone = response.clone();
-          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone));
+          caches.open(STATIC_CACHE).then(cache => cache.put(event.request, clone)).catch(() => {});
         }
         return response;
       })
-      .catch(() => caches.match('/') || caches.match(event.request))
+      .catch(() => caches.match('/').then(r => r || offlineResponse('page offline')))
   );
 });
 
