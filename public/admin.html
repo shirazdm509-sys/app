@@ -11,20 +11,31 @@
 <script src="/vendor/quill/quill.min.js"></script>
 <style>
 body{font-family:'Vazir',Tahoma,sans-serif;}
-.tab-active{background:#0d9488;color:white;}
+.tab-active{background:#3c5448;color:white;}
 .tab-inactive{color:#94a3b8;}
 .tab-inactive:hover{background:#1e293b;}
 .color-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;}
-.color-swatch.selected{border-color:white;box-shadow:0 0 0 3px #0d9488;}
+.color-swatch.selected{border-color:white;box-shadow:0 0 0 3px #c89a5a;}
 input[type=color]{width:48px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;}
 input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:#e2e8f0;outline:none;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#0d9488;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#3c5448;cursor:pointer;}
 /* Quill: show actual size values in size picker */
 .ql-snow .ql-picker.ql-size .ql-picker-label[data-value]::before,
 .ql-snow .ql-picker.ql-size .ql-picker-item[data-value]::before { content: attr(data-value) !important; }
 .ql-snow .ql-picker.ql-size { width: 80px !important; }
 /* Default RTL for editor — lower specificity so ql-align-* classes can override */
 .ql-editor { direction: rtl; text-align: right; min-height: 200px; }
+/* Brand color overrides — forest green replaces teal */
+.bg-teal-600, [class*="bg-teal-6"] { background-color: #3c5448 !important; }
+.bg-teal-700, .hover\:bg-teal-700:hover { background-color: #2e4236 !important; }
+.bg-teal-50, [class*="bg-teal-5"] { background-color: rgba(200,154,90,0.08) !important; }
+.text-teal-600, [class*="text-teal-6"] { color: #3c5448 !important; }
+.text-teal-700, [class*="text-teal-7"] { color: #2e4236 !important; }
+.hover\:text-teal-600:hover { color: #3c5448 !important; }
+.border-teal-500, .focus\:border-teal-500:focus { border-color: #3c5448 !important; }
+.file\:bg-teal-50::file-selector-button { background-color: rgba(200,154,90,0.08) !important; }
+.file\:text-teal-700::file-selector-button { color: #2e4236 !important; }
+
 /* Mobile responsive */
 #admin-mobile-header{display:none;}
 @media(max-width:767px){
@@ -53,10 +64,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 <!-- Login -->
 <div id="login-screen" class="fixed inset-0 bg-gray-900/95 z-50 flex items-center justify-center">
   <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
-    <div class="w-20 h-20 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl"><i class="fas fa-lock"></i></div>
+    <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl" style="background:rgba(200,154,90,0.12);color:#3c5448;border:2px solid rgba(200,154,90,0.4);"><i class="fas fa-lock"></i></div>
     <h2 class="text-2xl font-black mb-6">ورود مدیریت</h2>
-    <input type="password" id="admin-pass" class="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl mb-4 text-center text-lg outline-none focus:border-teal-500" placeholder="رمز عبور" onkeypress="if(event.key==='Enter')loginAdmin()">
-    <button onclick="loginAdmin()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg transition">ورود به پنل</button>
+    <input type="password" id="admin-pass" class="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl mb-4 text-center text-lg outline-none" style="transition:border-color 0.2s;" onfocus="this.style.borderColor='#3c5448'" onblur="this.style.borderColor=''" placeholder="رمز عبور" onkeypress="if(event.key==='Enter')loginAdmin()">
+    <button onclick="loginAdmin()" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition" style="background:#3c5448;">ورود به پنل</button>
   </div>
 </div>
 

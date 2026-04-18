@@ -6,7 +6,7 @@
     <title>نرم افزار آیت الله دستغیب</title>
     
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0d9488">
+    <meta name="theme-color" content="#3c5448">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -27,7 +27,8 @@
                     extend: {
                         fontFamily: { vazir: ['Vazir', 'sans-serif'], shabnam: ['Shabnam', 'sans-serif'], tahoma: ['Tahoma', 'sans-serif'] },
                         colors: {
-                            brand: { 50:'#f0fdfa', 100:'#ccfbf1', 200:'#99f6e4', 300:'#5eead4', 400:'#2dd4bf', 500:'#14b8a6', 600:'#0d9488', 700:'#0f766e', 800:'#115e59', 900:'#134e4a' }
+                            brand: { 50:'#f2f5f3', 100:'#dfe9e3', 200:'#c0d3c8', 300:'#96b5a6', 400:'#6a9283', 500:'#4e7863', 600:'#3c5448', 700:'#2e4236', 800:'#243529', 900:'#1a2920' },
+                            accent: { DEFAULT:'#c89a5a', light:'#e8d5a8', dark:'#a07a3a' }
                         }
                     }
                 }
@@ -39,11 +40,15 @@
 <body class="font-vazir antialiased text-gray-800">
 
 <!-- LOADING / SPLASH -->
-<div id="loading-screen" style="position: fixed; inset: 0; z-index: 9999; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
+<div id="loading-screen" style="position: fixed; inset: 0; z-index: 9999; background: #f0eee9; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
     <div id="splash-icon-wrap" style="display:none;margin-bottom:16px;"></div>
-    <div id="loading-spinner" style="width: 60px; height: 60px; border: 5px solid #ccfbf1; border-top: 5px solid #0d9488; border-radius: 50%; animation: inlineSpin 1s linear infinite; margin-bottom: 24px;"></div>
-    <h2 id="splash-title-el" style="font-size: 24px; font-weight: 900; color: #1f2937; margin: 0 0 10px 0; font-family: Vazir, Tahoma, sans-serif;">نرم افزار آیت الله دستغیب</h2>
-    <p id="loading-text" style="font-size: 14px; color: #6b7280; font-family: Vazir, Tahoma, sans-serif; text-align: center; line-height: 1.8;">
+    <!-- نماد دایره‌ای برند -->
+    <div id="loading-emblem" style="width:80px;height:80px;border-radius:50%;background:#3c5448;border:3px solid #c89a5a;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 4px 20px rgba(42,32,24,0.18);">
+        <i class="fas fa-book-open" style="color:#e8d5a8;font-size:28px;"></i>
+    </div>
+    <div id="loading-spinner" style="width: 48px; height: 48px; border: 4px solid rgba(200,154,90,0.2); border-top: 4px solid #c89a5a; border-radius: 50%; animation: inlineSpin 1s linear infinite; margin-bottom: 20px;"></div>
+    <h2 id="splash-title-el" style="font-size: 20px; font-weight: 900; color: #2a2018; margin: 0 0 8px 0; font-family: Vazir, Tahoma, sans-serif;">نرم افزار آیت الله دستغیب</h2>
+    <p id="loading-text" style="font-size: 13px; color: #7a6a58; font-family: Vazir, Tahoma, sans-serif; text-align: center; line-height: 1.8;">
         در حال آماده‌سازی و دریافت اطلاعات...<br>
     </p>
 </div>
@@ -71,7 +76,9 @@
         ls.style.backgroundPosition = 'center center';
         ls.style.backgroundRepeat = 'no-repeat';
       }
+      var emb = document.getElementById('loading-emblem');
       if (spin) spin.style.display = 'none';
+      if (emb) emb.style.display = 'none';
       if (st) st.style.display = 'none';
       if (sub) sub.style.display = 'none';
     }
@@ -80,12 +87,12 @@
 </script>
 
 <!-- APP WRAPPER -->
-<div id="app-wrapper" class="absolute inset-0 flex flex-col w-full bg-gray-50 overflow-hidden hidden">
+<div id="app-wrapper" class="absolute inset-0 flex flex-col w-full overflow-hidden hidden" style="background:var(--bg-main,#f0eee9);">
 
     <!-- DESKTOP SIDEBAR — فقط در حالت دسکتاپ نمایش داده می‌شه -->
     <aside id="desktop-sidebar">
         <div id="sd-brand">
-            <div id="sd-logo"><i class="fas fa-user text-teal-400 text-xl" id="sd-logo-icon"></i></div>
+            <div id="sd-logo"><i class="fas fa-book-open text-xl" id="sd-logo-icon" style="color:#c89a5a;"></i></div>
             <div id="sd-brand-name">نرم افزار آیت الله دستغیب</div>
             <div id="sd-brand-sub">DastgheibQoba.info</div>
         </div>
@@ -262,7 +269,7 @@
                         <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">زندگی‌نامه</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('mosque','مسجد قبا')">
-                        <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,#14b8a6,#0f766e);"><i class="fas fa-mosque"></i></div>
+                        <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,#4e7863,#2e4236);"><i class="fas fa-mosque"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">مسجد قبا</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('contact','ارتباط با ما')">
@@ -1036,7 +1043,7 @@
             <span class="text-sm font-bold text-gray-800 block mb-3">رنگ تیترها</span>
             <div class="flex flex-wrap gap-3">
                 <button data-title-color="inherit" onclick="setTitleColor('inherit')" class="color-swatch w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white transition-transform"></button>
-                <button data-title-color="#0d9488" onclick="setTitleColor('#0d9488')" class="color-swatch w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-title-color="#3c5448" onclick="setTitleColor('#3c5448')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-white transition-transform" style="background:#3c5448;"></button>
                 <button data-title-color="#2563eb" onclick="setTitleColor('#2563eb')" class="color-swatch w-10 h-10 rounded-full bg-blue-600 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-title-color="#e11d48" onclick="setTitleColor('#e11d48')" class="color-swatch w-10 h-10 rounded-full bg-rose-600 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-title-color="#1e3a8a" onclick="setTitleColor('#1e3a8a')" class="color-swatch w-10 h-10 rounded-full bg-blue-900 shadow-sm border-2 border-white transition-transform"></button>
@@ -1052,7 +1059,7 @@
             <div class="flex flex-wrap gap-3">
                 <button data-text-color="inherit" onclick="setTextColor('inherit')" class="color-swatch w-10 h-10 rounded-full bg-gray-800 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-text-color="#334155" onclick="setTextColor('#334155')" class="color-swatch w-10 h-10 rounded-full bg-slate-700 shadow-sm border-2 border-white transition-transform"></button>
-                <button data-text-color="#0d9488" onclick="setTextColor('#0d9488')" class="color-swatch w-10 h-10 rounded-full bg-teal-600 shadow-sm border-2 border-white transition-transform"></button>
+                <button data-text-color="#3c5448" onclick="setTextColor('#3c5448')" class="color-swatch w-10 h-10 rounded-full shadow-sm border-2 border-white transition-transform" style="background:#3c5448;"></button>
                 <button data-text-color="#1d4ed8" onclick="setTextColor('#1d4ed8')" class="color-swatch w-10 h-10 rounded-full bg-blue-700 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-text-color="#92400e" onclick="setTextColor('#92400e')" class="color-swatch w-10 h-10 rounded-full bg-amber-800 shadow-sm border-2 border-white transition-transform"></button>
                 <button data-text-color="#f97316" onclick="setTextColor('#f97316')" class="color-swatch w-10 h-10 rounded-full bg-orange-500 shadow-sm border-2 border-white transition-transform"></button>
@@ -1076,7 +1083,7 @@
 <!-- HIGHLIGHT TOOLBAR -->
 <div id="highlight-toolbar" ontouchstart="saveSelectionForMobile()" class="fixed z-[260] bg-gray-900 text-white rounded-2xl shadow-2xl px-3 py-2 flex items-center gap-2 hidden" style="transform:translateX(-50%);direction:ltr;">
     <button onclick="saveSelectionToNote()" class="w-7 h-7 bg-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="ذخیره در یادداشت"><i class="fas fa-sticky-note text-xs"></i></button>
-    <button onclick="shareSelectedText()" class="w-7 h-7 bg-teal-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="انتشار متنی"><i class="fas fa-share-alt text-xs"></i></button>
+    <button onclick="shareSelectedText()" class="w-7 h-7 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" style="background:#3c5448;" title="انتشار متنی"><i class="fas fa-share-alt text-xs"></i></button>
     <button onclick="shareSelectedTextAsImage()" class="w-7 h-7 bg-purple-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white" title="انتشار به صورت عکس"><i class="fas fa-image text-xs"></i></button>
     <div class="w-px h-5 bg-white/20"></div>
     <button onclick="applyHighlight('#fde68a')" class="w-7 h-7 bg-yellow-300 rounded-full border-2 border-white shadow-sm" title="زرد"></button>
@@ -1138,7 +1145,7 @@
         <div class="px-5 pt-3 pb-1">
             <span class="text-xs text-gray-400 font-bold block mb-2">متن دلخواه (پایین تصویر):</span>
             <input type="text" id="share-custom-text" placeholder="مثلاً: @username یا نام صفحه..." dir="rtl"
-                class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-teal-400"
+                class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-brand-600"
                 oninput="onShareCustomTextChange(this.value)">
         </div>
         <!-- Action buttons -->
@@ -1186,7 +1193,7 @@
   </div>
   <!-- Loading overlay -->
   <div id="pdf-loading" class="absolute inset-0 bg-gray-900/90 flex flex-col items-center justify-center z-10">
-    <i class="fas fa-spinner fa-spin text-4xl text-teal-400 mb-4"></i>
+    <i class="fas fa-spinner fa-spin text-4xl mb-4" style="color:#c89a5a;"></i>
     <p class="text-white text-sm font-bold">در حال بارگذاری...</p>
   </div>
   <!-- Bottom navigation -->
@@ -1318,10 +1325,10 @@
 <div id="update-banner" class="hidden fixed bottom-20 left-4 right-4 z-[9999]">
   <div class="bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-2xl gap-3">
     <div class="flex items-center gap-2 min-w-0">
-      <i class="fas fa-sync-alt text-teal-400 text-sm shrink-0"></i>
+      <i class="fas fa-sync-alt text-sm shrink-0" style="color:#c89a5a;"></i>
       <span class="text-sm font-bold truncate">نسخه جدید آماده است</span>
     </div>
-    <button onclick="applyUpdate()" class="bg-teal-500 hover:bg-teal-400 text-white text-xs font-black px-4 py-1.5 rounded-xl shrink-0 active:scale-95 transition-transform">
+    <button onclick="applyUpdate()" class="text-white text-xs font-black px-4 py-1.5 rounded-xl shrink-0 active:scale-95 transition-transform" style="background:#3c5448;">
       بروزرسانی
     </button>
   </div>
