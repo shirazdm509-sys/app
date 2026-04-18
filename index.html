@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>طراحی اپلیکیشن آیت الله دستغیب</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { height: 100%; }
+  body { background: #f0eee9; font-family: 'Vazirmatn', system-ui, sans-serif; }
+  .screen-label {
+    font-size: 12px; font-weight: 500; color: rgba(60,50,40,0.7);
+    margin-bottom: 8px; font-family: 'Vazirmatn', system-ui;
+    padding-right: 4px;
+  }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: rgba(40,30,20,0.85);
+    padding: 0 60px 28px; letter-spacing: -0.3px;
+  }
+  .section-subtitle {
+    font-size: 13px; font-weight: 400; color: rgba(60,50,40,0.6);
+    padding: 0 60px 36px; margin-top: -20px;
+  }
+  .hstack {
+    display: flex; gap: 48px; padding: 0 60px 100px;
+    align-items: flex-start; width: max-content;
+  }
+  .artboard-card {
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    overflow: hidden; background: #fff;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="android-frame.jsx"></script>
+<script type="text/babel" src="browser-window.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="screens/mobile.jsx"></script>
+<script type="text/babel" src="screens/mobile2.jsx"></script>
+<script type="text/babel" src="screens/tablet.jsx"></script>
+<script type="text/babel" src="screens/desktop.jsx"></script>
+<script type="text/babel">
+
+const Phone = ({ label, children }) => (
+  <div style={{ flexShrink: 0 }}>
+    <div className="screen-label">{label}</div>
+    <AndroidDevice width={412} height={892}>
+      {children}
+    </AndroidDevice>
+  </div>
+);
+
+const Tablet = ({ label, children }) => (
+  <div style={{ flexShrink: 0 }}>
+    <div className="screen-label">{label}</div>
+    <div className="artboard-card" style={{
+      width: 1024, height: 768, position: 'relative',
+      border: '10px solid rgba(40,30,20,0.5)', borderRadius: 22,
+      boxShadow: '0 30px 80px rgba(0,0,0,0.25)',
+      overflow: 'hidden', background: '#000',
+    }}>
+      <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>{children}</div>
+    </div>
+  </div>
+);
+
+const Desktop = ({ label, url, children }) => (
+  <div style={{ flexShrink: 0 }}>
+    <div className="screen-label">{label}</div>
+    <ChromeWindow
+      tabs={[{ title: 'آیت الله دستغیب' }, { title: 'جستجو' }]}
+      activeIndex={0}
+      url={url || 'dastgheib.ir'}
+      width={1280} height={800}
+    >
+      {children}
+    </ChromeWindow>
+  </div>
+);
+
+const App = () => (
+  <DesignCanvas>
+    {/* MOBILE */}
+    <div className="section-title">موبایل — Android</div>
+    <div className="section-subtitle">۴۱۲ × ۸۹۲ — همه صفحات اصلی اپلیکیشن</div>
+    <div className="hstack">
+      <Phone label="۰۱ خانه"><MobileHome /></Phone>
+      <Phone label="۰۲ کتابخانه"><MobileLibrary /></Phone>
+      <Phone label="۰۳ فهرست کتاب"><MobileBookIndex /></Phone>
+      <Phone label="۰۴ خواندن کتاب"><MobileReading /></Phone>
+      <Phone label="۰۵ رسانه"><MobileMedia /></Phone>
+      <Phone label="۰۶ سخنرانی‌ها"><MobileLectures /></Phone>
+      <Phone label="۰۷ ورود / ثبت‌نام"><MobileLogin /></Phone>
+      <Phone label="۰۸ پخش‌کننده صوت"><MobilePlayer /></Phone>
+    </div>
+
+    {/* TABLET */}
+    <div className="section-title">تبلت — Landscape</div>
+    <div className="section-subtitle">۱۰۲۴ × ۷۶۸ — ساختار دو ستونه با نوار کناری</div>
+    <div className="hstack">
+      <Tablet label="۰۱ خانه"><TabletHome /></Tablet>
+      <Tablet label="۰۲ کتابخانه"><TabletLibrary /></Tablet>
+      <Tablet label="۰۳ خواندن کتاب"><TabletReading /></Tablet>
+    </div>
+
+    {/* DESKTOP */}
+    <div className="section-title">دسکتاپ — وب</div>
+    <div className="section-subtitle">۱۲۸۰ × ۸۰۰ — نسخه کامل وب‌سایت</div>
+    <div className="hstack">
+      <Desktop label="۰۱ خانه" url="dastgheib.ir"><DesktopHome /></Desktop>
+      <Desktop label="۰۲ خواندن کتاب" url="dastgheib.ir/books/40-hadith/4"><DesktopReading /></Desktop>
+    </div>
+  </DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

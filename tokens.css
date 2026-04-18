@@ -1,0 +1,107 @@
+/* Design tokens — Dastgheib app */
+@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+
+:root {
+  /* Neutrals — warm cream/beige */
+  --bg: oklch(0.98 0.008 85);
+  --bg-soft: oklch(0.965 0.012 85);
+  --bg-deep: oklch(0.94 0.015 80);
+  --card: oklch(0.995 0.004 85);
+  --card-soft: oklch(0.985 0.006 85);
+  --border: oklch(0.88 0.012 80);
+  --border-soft: oklch(0.92 0.010 82);
+  --divider: oklch(0.90 0.010 82);
+
+  /* Text */
+  --ink: oklch(0.22 0.015 60);
+  --ink-2: oklch(0.40 0.015 60);
+  --ink-3: oklch(0.58 0.012 65);
+  --ink-4: oklch(0.72 0.010 70);
+
+  /* Green accent — soft, muted */
+  --green: oklch(0.52 0.08 155);
+  --green-deep: oklch(0.38 0.06 158);
+  --green-soft: oklch(0.82 0.04 155);
+  --green-wash: oklch(0.95 0.02 155);
+
+  /* Gold — cultural hint */
+  --gold: oklch(0.72 0.09 75);
+  --gold-deep: oklch(0.55 0.09 70);
+  --gold-wash: oklch(0.96 0.025 80);
+
+  /* Earth category colors */
+  --cat-1: oklch(0.72 0.08 35);   /* terracotta */
+  --cat-2: oklch(0.68 0.08 200);  /* dusty blue */
+  --cat-3: oklch(0.70 0.09 290);  /* muted violet */
+  --cat-4: oklch(0.72 0.09 125);  /* sage */
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* Shadows — soft, warm */
+  --sh-1: 0 1px 2px oklch(0.22 0.015 60 / 0.04), 0 2px 6px oklch(0.22 0.015 60 / 0.04);
+  --sh-2: 0 2px 4px oklch(0.22 0.015 60 / 0.05), 0 8px 24px oklch(0.22 0.015 60 / 0.06);
+  --sh-3: 0 4px 8px oklch(0.22 0.015 60 / 0.06), 0 16px 40px oklch(0.22 0.015 60 / 0.08);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Vazirmatn', 'IRANSansX', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'ss02';
+}
+
+/* Persian digit helper */
+.pn { font-variant-numeric: tabular-nums; }
+
+/* Geometric pattern — subtle Islamic-inspired watermark */
+.pattern-watermark {
+  background-image:
+    radial-gradient(circle at 20% 20%, oklch(0.52 0.08 155 / 0.04) 0, transparent 35%),
+    radial-gradient(circle at 80% 80%, oklch(0.72 0.09 75 / 0.05) 0, transparent 35%);
+}
+
+/* Thin decorative line */
+.hairline {
+  height: 1px;
+  background: linear-gradient(to left,
+    transparent,
+    oklch(0.52 0.08 155 / 0.3) 20%,
+    oklch(0.72 0.09 75 / 0.4) 50%,
+    oklch(0.52 0.08 155 / 0.3) 80%,
+    transparent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* Reusable primitives */
+.icon-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg-deep); color: var(--ink); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  background: var(--green-wash);
+  color: var(--green-deep);
+}
