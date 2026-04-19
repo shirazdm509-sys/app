@@ -920,10 +920,7 @@ async function loadAudioPlaylist(categoryId, title, count) {
             if (audioEl) { try { audioEl.pause(); audioEl.src = ''; } catch(e) {} }
             const playerCard = document.getElementById('audio-player-card');
             if (playerCard) playerCard.classList.add('hidden');
-            const plView = document.getElementById('audio-playlist-view');
-            const catsView = document.getElementById('audio-categories-view');
-            if (plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
-            if (catsView) catsView.classList.remove('hidden');
+            backToAudioCategories();
         });
     });
     _currentAudioCatId = categoryId;
