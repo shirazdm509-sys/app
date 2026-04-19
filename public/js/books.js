@@ -76,7 +76,7 @@ function renderLibrary() {
     const titleEl = document.getElementById('home-books-title');
     if (titleEl) titleEl.textContent = 'کتاب‌ها';
     const homeBooks = [...allBooks].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
-    homeContainer.innerHTML = homeBooks.slice(0, 5).map((b, i) => renderCard(b, i, true)).join('') +
+    homeContainer.innerHTML = homeBooks.slice(0, 6).map((b, i) => renderCard(b, i, true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
 }
 

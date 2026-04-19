@@ -265,9 +265,6 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #screen-home > header { display: none !important; }
     #home-desktop-header { display: flex !important; }
 
-    /* ── Home slider taller ── */
-    #home-slider { height: 240px !important; }
-
     /* ── Two-column section ── */
     #home-two-col-wrap {
         display: grid !important;

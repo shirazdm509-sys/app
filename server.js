@@ -1069,7 +1069,7 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
         const act=req.body.active==='1'||req.body.active==='true'?1:0;
         const title=san(req.body.title||'');
         const link=san(req.body.link||'');
-        const validSections=['after_slider','after_shortcuts','after_books','after_lectures'];
+        const validSections=['after_slider','after_shortcuts','after_books','after_lectures','after_images','after_videos','after_audio'];
         const pageSec=validSections.includes(req.body.page_section)?req.body.page_section:(bn&&bn.page_section||'after_books');
         const validPages=['home','media_video','media_audio','media_photo','lectures','library'];
         const pages=(req.body.pages||'home').split(',').filter(p=>validPages.includes(p)).join(',') || 'home';

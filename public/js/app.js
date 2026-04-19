@@ -291,9 +291,9 @@ function openHomeAudio(idx) {
 async function loadHomeLatestMedia() {
     try {
         const [imgRes, vidRes, audRes] = await Promise.all([
-            fetch('/api/gallery/latest?limit=8').catch(()=>null),
+            fetch('/api/gallery/latest?limit=4').catch(()=>null),
             fetch('/api/videos/latest?limit=5').catch(()=>null),
-            fetch('/api/audio/latest?limit=5').catch(()=>null)
+            fetch('/api/audio/latest?limit=7').catch(()=>null)
         ]);
         _homeLatestImages = imgRes ? await imgRes.json().catch(()=>[]) : [];
         _homeLatestVideos = vidRes ? await vidRes.json().catch(()=>[]) : [];
@@ -348,7 +348,7 @@ async function loadHomeLatestMedia() {
 // بنرهای صفحه اصلی
 // ====================================================
 async function loadBanners() {
-    ['after_slider','after_shortcuts','after_books','after_lectures'].forEach(sec => {
+    ['after_slider','after_shortcuts','after_books','after_lectures','after_images','after_videos','after_audio'].forEach(sec => {
         const el = document.getElementById('home-banner-' + sec);
         if (el) el.innerHTML = '';
     });
@@ -368,13 +368,15 @@ async function loadBanners() {
             if (!groups[sec]) groups[sec] = [];
             groups[sec].push(b);
         });
+        const isDesktop = window.innerWidth >= 1024;
         for (const [sec, items] of Object.entries(groups)) {
             const container = document.getElementById('home-banner-' + sec);
             if (!container) continue;
-            container.style.padding = '0 ' + padding + 'px';
+            container.style.padding = isDesktop ? '0' : '0 ' + padding + 'px';
+            const bRadius = isDesktop ? '0' : radius + 'px';
             container.innerHTML = items.map(b => {
                 const onclick = b.link ? `onclick="handleBannerLink('${b.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
-                return `<div class="overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${radius}px;" ${onclick}>
+                return `<div class="overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${bRadius};" ${onclick}>
                     <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
                 </div>`;
             }).join('');
