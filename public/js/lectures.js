@@ -266,15 +266,11 @@ async function fetchLatestLectures() {
         container.innerHTML = posts.map(post => {
             let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
             const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
-            const catName = post._embedded && post._embedded['wp:term'] ? (post._embedded['wp:term'][0]?.[0]?.name || '') : '';
-            return `<div onclick="openLatestPost(${post.id})" class="bg-white rounded-2xl p-3 border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition" style="box-shadow:0 1px 4px rgba(42,32,24,0.06);">
-                ${imgUrl
-                    ? `<img src="${imgUrl}" class="w-12 h-12 rounded-xl object-cover shrink-0" style="border:1px solid rgba(200,154,90,0.15);">`
-                    : `<div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#f5ede0,#eddcca);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-microphone-alt" style="color:#8a6030;font-size:16px;"></i></div>`}
-                <div class="flex flex-col justify-center min-w-0 gap-1">
-                    ${catName ? `<span style="display:inline-flex;align-items:center;align-self:flex-start;background:#e8f2ec;color:#2e4236;font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:100px;">${catName}</span>` : ''}
-                    <h4 class="font-bold text-xs line-clamp-2 leading-snug" style="color:#2a2018;">${post.title.rendered}</h4>
-                    <span style="font-size:10px;color:#9a8a78;">${date}</span>
+            return `<div onclick="openLatestPost(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
+                ${imgUrl ? `<img src="${imgUrl}" class="w-14 h-14 rounded-xl object-cover shrink-0">` : `<div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-microphone-alt text-amber-400"></i></div>`}
+                <div class="flex flex-col justify-center min-w-0">
+                    <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1">${post.title.rendered}</h4>
+                    <span class="text-[10px] text-gray-400"><i class="far fa-calendar ml-1"></i>${date}</span>
                 </div>
             </div>`;
         }).join('');

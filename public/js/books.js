@@ -42,7 +42,7 @@ function renderLibrary() {
     empty.classList.add('hidden');
     empty.classList.remove('flex');
 
-    const colors=['from-[#3c5448] to-[#5a7a68]','from-[#7a5020] to-[#c08040]','from-[#5a4838] to-[#8c7668]','from-[#3c4e68] to-[#6a7e9a]','from-[#4a3c5a] to-[#7a6a8c]','from-[#2e4236] to-[#6a8c7a]'];
+    const colors=['from-indigo-600 to-indigo-400','from-sky-600 to-sky-400','from-rose-600 to-pink-400','from-amber-500 to-orange-400','from-teal-600 to-teal-400','from-violet-600 to-violet-400'];
 
     const renderCard = (book, i, isHome=false) => {
         if (i < 0) i = 0;
@@ -53,22 +53,18 @@ function renderLibrary() {
         const unavailable = isOffline && !offline;
 
         return `<div onclick="${book.book_type==='pdf'?`openPdfBook(${book.id})`:`openBook(${book.id})`}" class="${widthClass} relative cursor-pointer book-card active:scale-95 transition-transform${unavailable ? ' opacity-40' : ''}">
-            <div class="rounded-xl overflow-hidden aspect-[2/3] relative book-cover-wrap" style="box-shadow:0 4px 16px rgba(42,32,24,0.14);">
+            <div class="rounded-2xl overflow-hidden aspect-[2/3] relative book-cover-wrap shadow-md">
                 ${book.cover?`<img src="${book.cover}" class="w-full h-full object-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
-                <div class="absolute inset-0 bg-gradient-to-br ${colors[i%colors.length]} flex items-center justify-center p-3" style="${book.cover?'display:none':''}">
-                    <div style="position:absolute;inset:6px;border:1px solid rgba(232,213,168,0.4);border-radius:5px;pointer-events:none;"></div>
-                    <span class="text-white text-center font-black text-[10px] leading-tight drop-shadow relative">${book.title}</span>
-                    <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,0.2);"></div>
-                </div>
-                ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-4 pb-1.5 px-2"><div class="w-full bg-white/30 rounded-full h-1 overflow-hidden"><div class="h-full rounded-full" style="width:${progress}%;background:#c89a5a;"></div></div><span class="text-[8px] text-white/80 block text-center mt-0.5">${toFa(progress)}٪</span></div>`:''}
+                <div class="absolute inset-0 bg-gradient-to-br ${colors[i%colors.length]} flex items-end justify-center pb-3 px-2" style="${book.cover?'display:none':''}"><span class="text-white text-center font-black text-[9px] leading-tight drop-shadow">${book.title}</span></div>
+                ${progress>0?`<div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-4 pb-1.5 px-2"><div class="w-full bg-white/30 rounded-full h-1 overflow-hidden"><div class="bg-white h-full rounded-full" style="width:${progress}%"></div></div><span class="text-[8px] text-white/80 block text-center mt-0.5">${toFa(progress)}٪</span></div>`:''}
                 ${!isOffline ? `<button onclick="event.stopPropagation();toggleOfflineBook(${book.id})" id="dl-btn-${book.id}"
-                    class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 ${offline ? 'text-white' : 'bg-white/90 text-gray-500'}"
-                    style="${offline?'background:#3c5448;':''}" title="${offline ? 'حذف آفلاین' : 'دانلود'}">
+                    class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 ${offline ? 'bg-brand-500 text-white' : 'bg-white/90 text-gray-500'}"
+                    title="${offline ? 'حذف آفلاین' : 'دانلود'}">
                     <i class="fas ${offline ? 'fa-check' : 'fa-download'} text-[9px]"></i>
-                </button>` : offline ? `<span class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 text-white" style="background:#3c5448;" title="آفلاین"><i class="fas fa-check text-[9px]"></i></span>` : ''}
+                </button>` : offline ? `<span class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 bg-brand-500 text-white" title="آفلاین"><i class="fas fa-check text-[9px]"></i></span>` : ''}
             </div>
-            <h3 class="book-title font-bold text-[11px] truncate mt-2 leading-tight transition-all duration-200" style="color:#2a2018;">${book.title}</h3>
-            <p class="text-[9px] truncate" style="color:#9a8a78;">${book.author||''}</p>
+            <h3 class="book-title font-bold text-[11px] text-gray-800 truncate mt-1.5 leading-tight transition-all duration-200">${book.title}</h3>
+            <p class="text-[9px] text-gray-400 truncate">${book.author||''}</p>
         </div>`;
     };
 
