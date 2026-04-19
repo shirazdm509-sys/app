@@ -455,6 +455,8 @@ async function loadVideoList(categoryId, title, count) {
     if(catsView) catsView.classList.add('hidden');
     if(playerView) playerView.classList.add('hidden');
     if(listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
+    const _vCatsHdr = document.getElementById('video-cats-header');
+    if(_vCatsHdr) { _vCatsHdr.classList.add('hidden'); _vCatsHdr.classList.remove('flex'); }
     document.getElementById('video-cat-title').textContent = title;
     document.getElementById('video-count-badge').textContent = count > 0 ? `${count} ویدیو` : '';
     if(list) list.innerHTML = '';
