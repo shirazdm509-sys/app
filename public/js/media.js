@@ -927,6 +927,18 @@ async function loadAudioPlaylist(categoryId, title, count) {
         });
     });
     _currentAudioCatId = categoryId;
+    if (_mediaViewMode !== 'list') {
+        _mediaViewMode = 'list';
+        localStorage.setItem('mediaViewMode', 'list');
+        const iconEl = document.getElementById('view-mode-icon');
+        if (iconEl) iconEl.className = 'fas fa-list text-sm';
+        document.querySelectorAll('.view-mode-option').forEach(btn => {
+            const active = btn.dataset.mode === 'list';
+            btn.classList.toggle('text-brand-600', active);
+            btn.classList.toggle('bg-brand-50', active);
+            btn.classList.toggle('text-gray-600', !active);
+        });
+    }
     setMediaLoading(true);
     const catsView = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
