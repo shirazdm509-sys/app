@@ -299,14 +299,14 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #home-lectures-section > div:first-child { padding: 0 4px 10px !important; }
     #home-lectures-container { padding: 0 4px !important; }
 
-    /* ── Books: grid instead of horizontal scroll ── */
+    /* ── Books: grid inside shortcuts column ── */
     #home-books-container {
         display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+        grid-template-columns: repeat(3, 1fr) !important;
         overflow-x: visible !important;
-        gap: 12px !important;
-        padding: 0 20px 8px !important;
+        gap: 10px !important;
+        padding: 0 4px 8px !important;
     }
     #home-books-container > * { width: auto !important; flex: none !important; }
-    #home-books-section > div:first-child { padding: 0 20px 10px !important; }
+    #home-books-section > div:first-child { padding: 0 4px 10px !important; }
 }
