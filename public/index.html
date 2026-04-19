@@ -239,6 +239,31 @@
                     <div id="slider-dots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5"></div>
                 </div>
 
+                <!-- HERO CARD — shows when no slider content -->
+                <div id="home-hero-card" class="relative overflow-hidden mb-4" style="height:180px;border-radius:20px;margin:0 16px;background:linear-gradient(135deg,#3c5448 0%,#253828 100%);box-shadow:0 4px 20px rgba(42,32,24,0.18);">
+                    <svg style="position:absolute;inset:0;opacity:0.08;width:100%;height:100%;" viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice">
+                        <defs><pattern id="hero-geo" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M20 0 L40 20 L20 40 L0 20 Z" fill="none" stroke="#fff" stroke-width="1"/>
+                            <circle cx="20" cy="20" r="3" fill="#fff"/>
+                        </pattern></defs>
+                        <rect width="400" height="180" fill="url(#hero-geo)"/>
+                    </svg>
+                    <div style="position:absolute;inset:0;padding:20px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;">
+                        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#c89a5a;margin-bottom:6px;">ویژه امروز</div>
+                        <div style="font-size:19px;font-weight:900;line-height:1.4;margin-bottom:4px;" id="hero-title">آخرین برنامه‌های آموزشی</div>
+                        <div style="font-size:11px;opacity:0.65;">در کتابخانه و رسانه مشاهده کنید</div>
+                    </div>
+                    <div onclick="navToScreen('media')" style="position:absolute;top:16px;left:16px;background:#fff;border-radius:100px;padding:8px 14px 8px 12px;display:flex;align-items:center;gap:6px;color:#3c5448;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                        <i class="fas fa-play" style="font-size:9px;"></i> رسانه
+                    </div>
+                    <div style="position:absolute;bottom:14px;left:20px;display:flex;gap:4px;">
+                        <div style="height:4px;border-radius:2px;width:16px;background:#c89a5a;"></div>
+                        <div style="height:4px;border-radius:2px;width:4px;background:rgba(255,255,255,0.35);"></div>
+                        <div style="height:4px;border-radius:2px;width:4px;background:rgba(255,255,255,0.35);"></div>
+                        <div style="height:4px;border-radius:2px;width:4px;background:rgba(255,255,255,0.35);"></div>
+                    </div>
+                </div>
+
                 <!-- BANNERS position: after_slider -->
                 <div id="home-banner-after_slider" class="px-4 mb-4 flex flex-col gap-3"></div>
 
@@ -260,37 +285,37 @@
                 </div>
 
                 <!-- SHORTCUTS GRID (8 items, responsive) -->
-                <div id="home-shortcuts-section" class="grid grid-cols-4 sm:grid-cols-8 gap-x-2 gap-y-4 px-4 mb-5">
+                <div id="home-shortcuts-section" class="grid grid-cols-4 sm:grid-cols-8 gap-x-2 gap-y-3 px-4 mb-5">
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('social','شبکه‌های اجتماعی')">
-                        <div class="sc-icon"><i class="fab fa-instagram"></i></div>
+                        <div class="sc-icon" style="background:rgba(200,110,82,0.12);border-color:rgba(200,110,82,0.18);color:#9a3020;"><i class="fab fa-instagram"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">شبکه‌های اجتماعی</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('biography','زندگی‌نامه')">
-                        <div class="sc-icon"><img src="/icons/biography-icon.png" alt="" style="width:26px;height:26px;object-fit:contain;filter:sepia(60%) saturate(60%);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user-graduate" style="display:none;"></i></div>
+                        <div class="sc-icon" style="background:rgba(78,136,178,0.12);border-color:rgba(78,136,178,0.18);color:#2a68a0;"><img src="/icons/biography-icon.png" alt="" style="width:22px;height:22px;object-fit:contain;filter:hue-rotate(200deg) saturate(60%);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user-graduate" style="display:none;"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">زندگی‌نامه</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('mosque','مسجد قبا')">
-                        <div class="sc-icon"><i class="fas fa-mosque"></i></div>
+                        <div class="sc-icon" style="background:rgba(200,154,90,0.12);border-color:rgba(200,154,90,0.2);color:#7a5820;"><i class="fas fa-mosque"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">مسجد قبا</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('contact','ارتباط با ما')">
-                        <div class="sc-icon"><i class="fas fa-headset"></i></div>
+                        <div class="sc-icon" style="background:rgba(98,162,112,0.14);border-color:rgba(98,162,112,0.2);color:#386844;"><i class="fas fa-headset"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">ارتباط با ما</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('news')">
-                        <div class="sc-icon"><i class="fas fa-newspaper"></i></div>
+                        <div class="sc-icon" style="background:rgba(140,106,190,0.12);border-color:rgba(140,106,190,0.18);color:#5c3ca8;"><i class="fas fa-newspaper"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">اخبار</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('statements')">
-                        <div class="sc-icon"><i class="fas fa-scroll"></i></div>
+                        <div class="sc-icon" style="background:#e8f2ec;border-color:rgba(60,84,72,0.2);color:#2e4236;"><i class="fas fa-scroll"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">بیانیه‌ها</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('payment')">
-                        <div class="sc-icon"><i class="fas fa-credit-card"></i></div>
+                        <div class="sc-icon" style="background:rgba(78,136,178,0.12);border-color:rgba(78,136,178,0.18);color:#2a68a0;"><i class="fas fa-credit-card"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">پرداخت</span>
                     </div>
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('live')">
-                        <div class="sc-icon"><i class="fas fa-broadcast-tower"></i></div>
+                        <div class="sc-icon" style="background:rgba(200,110,82,0.12);border-color:rgba(200,110,82,0.18);color:#9a3020;"><i class="fas fa-broadcast-tower"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">پخش زنده</span>
                     </div>
                 </div>
@@ -844,24 +869,29 @@
 
     <!-- BOTTOM NAV -->
     <nav id="bottom-nav" class="shrink-0 z-50" style="background:#faf8f5;border-top:1px solid #e8e2d9;">
-        <div class="flex items-center justify-around px-1 pt-2 pb-2 h-16">
-            <button class="nav-item active flex flex-col items-center justify-center gap-1 flex-1" data-nav="home" onclick="navToScreen('home')">
+        <div class="flex items-center justify-around px-1 pt-1 pb-2" style="height:60px;">
+            <button class="nav-item active flex flex-col items-center justify-center gap-1 flex-1 relative" data-nav="home" onclick="navToScreen('home')" style="padding-top:10px;">
+                <span class="nav-dot" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;border-radius:2px;background:#3c5448;display:none;"></span>
                 <i class="fas fa-home text-[18px]" style="color:#9a8a78;"></i>
                 <span class="text-[9px] font-bold" style="color:#9a8a78;">خانه</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1" data-nav="library" onclick="navToScreen('library')">
+            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1 relative" data-nav="library" onclick="navToScreen('library')" style="padding-top:10px;">
+                <span class="nav-dot" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;border-radius:2px;background:#3c5448;display:none;"></span>
                 <i class="fas fa-book text-[18px]" style="color:#9a8a78;"></i>
                 <span class="text-[9px] font-bold" style="color:#9a8a78;">کتابخانه</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1" data-nav="media" onclick="navToScreen('media')">
+            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1 relative" data-nav="media" onclick="navToScreen('media')" style="padding-top:10px;">
+                <span class="nav-dot" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;border-radius:2px;background:#3c5448;display:none;"></span>
                 <i class="fas fa-photo-film text-[18px]" style="color:#9a8a78;"></i>
                 <span class="text-[9px] font-bold" style="color:#9a8a78;">رسانه</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1" data-nav="lectures" onclick="navToScreen('lectures')">
+            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1 relative" data-nav="lectures" onclick="navToScreen('lectures')" style="padding-top:10px;">
+                <span class="nav-dot" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;border-radius:2px;background:#3c5448;display:none;"></span>
                 <i class="fas fa-microphone-alt text-[18px]" style="color:#9a8a78;"></i>
                 <span class="text-[9px] font-bold" style="color:#9a8a78;">سخنرانی</span>
             </button>
-            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1" data-nav="qa" onclick="navToScreen('qa')">
+            <button class="nav-item flex flex-col items-center justify-center gap-1 flex-1 relative" data-nav="qa" onclick="navToScreen('qa')" style="padding-top:10px;">
+                <span class="nav-dot" style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;border-radius:2px;background:#3c5448;display:none;"></span>
                 <i class="fas fa-question-circle text-[18px]" style="color:#9a8a78;"></i>
                 <span class="text-[9px] font-bold" style="color:#9a8a78;">سوال</span>
             </button>
