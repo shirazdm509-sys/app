@@ -434,8 +434,13 @@ function applySettingsObject(s) {
     if (subEl && s.site_subtitle) subEl.textContent = s.site_subtitle;
     if (s.site_name) document.title = s.site_name;
     if (s.logo_url) {
-        const logoWrapper = document.querySelector('#screen-home header .w-11');
-        if (logoWrapper) logoWrapper.innerHTML = `<img src="${s.logo_url}" class="w-full h-full object-contain">`;
+        const logoWrapper = document.getElementById('home-logo-wrap');
+        if (logoWrapper) {
+            logoWrapper.style.background = 'transparent';
+            logoWrapper.style.border = 'none';
+            logoWrapper.style.boxShadow = 'none';
+            logoWrapper.innerHTML = `<img src="${s.logo_url}" class="w-full h-full object-contain rounded-full">`;
+        }
     }
     if (s.favicon_url) {
         let link = document.querySelector("link[rel~='icon']");

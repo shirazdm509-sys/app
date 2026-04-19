@@ -210,7 +210,7 @@
                         <h1 class="text-[15px] font-black" style="color:#2a2018;line-height:1.3;" id="home-app-title">آیت الله دستغیب</h1>
                         <h2 class="text-[10px] font-bold" style="color:#7a6a58;" id="home-app-subtitle">شهید محراب</h2>
                     </div>
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#3c5448;border:2px solid rgba(200,154,90,0.5);box-shadow:0 2px 8px rgba(42,32,24,0.15);">
+                    <div id="home-logo-wrap" class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style="background:#3c5448;border:2px solid rgba(200,154,90,0.5);box-shadow:0 2px 8px rgba(42,32,24,0.15);">
                         <span style="font-size:18px;font-weight:900;color:#e8d5a8;font-family:Vazir,serif;" id="sd-logo-icon">د</span>
                     </div>
                 </div>
@@ -259,39 +259,39 @@
                     </div>
                 </div>
 
-                <!-- SHORTCUTS GRID (8 items, responsive) -->
-                <div id="home-shortcuts-section" class="grid grid-cols-4 sm:grid-cols-8 gap-x-2 gap-y-4 px-4 mb-5">
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('social','شبکه‌های اجتماعی')">
-                        <div class="sc-icon"><i class="fab fa-instagram"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">شبکه‌های اجتماعی</span>
+                <!-- SHORTCUTS GRID (8 items) -->
+                <div id="home-shortcuts-section" class="grid grid-cols-4 gap-2 px-4 mb-5">
+                    <div class="shortcut-card" onclick="navToScreen('news')">
+                        <div class="sc-icon" style="background:rgba(130,80,210,0.1);color:#7030b0;"><i class="fas fa-newspaper"></i></div>
+                        <span class="shortcut-label">اخبار</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('biography','زندگی‌نامه')">
-                        <div class="sc-icon"><img src="/icons/biography-icon.png" alt="" style="width:26px;height:26px;object-fit:contain;filter:sepia(60%) saturate(60%);" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><i class="fas fa-user-graduate" style="display:none;"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">زندگی‌نامه</span>
+                    <div class="shortcut-card" onclick="navToScreen('statements')">
+                        <div class="sc-icon" style="background:rgba(20,160,150,0.1);color:#0a8880;"><i class="fas fa-scroll"></i></div>
+                        <span class="shortcut-label">بیانیه‌ها</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('mosque','مسجد قبا')">
-                        <div class="sc-icon"><i class="fas fa-mosque"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">مسجد قبا</span>
+                    <div class="shortcut-card" onclick="navToScreen('payment')">
+                        <div class="sc-icon" style="background:rgba(50,110,220,0.1);color:#2050c0;"><i class="fas fa-credit-card"></i></div>
+                        <span class="shortcut-label">پرداخت</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('contact','ارتباط با ما')">
-                        <div class="sc-icon"><i class="fas fa-headset"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">ارتباط با ما</span>
+                    <div class="shortcut-card" onclick="navToScreen('live')">
+                        <div class="sc-icon" style="background:rgba(230,100,40,0.1);color:#b84010;"><i class="fas fa-broadcast-tower"></i></div>
+                        <span class="shortcut-label">پخش زنده</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('news')">
-                        <div class="sc-icon"><i class="fas fa-newspaper"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">اخبار</span>
+                    <div class="shortcut-card" onclick="openContentPage('social','شبکه‌های اجتماعی')">
+                        <div class="sc-icon" style="background:rgba(220,50,110,0.1);color:#a01858;"><i class="fab fa-instagram"></i></div>
+                        <span class="shortcut-label">شبکه‌های اجتماعی</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('statements')">
-                        <div class="sc-icon"><i class="fas fa-scroll"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">بیانیه‌ها</span>
+                    <div class="shortcut-card" onclick="openContentPage('biography','زندگی‌نامه')">
+                        <div class="sc-icon" style="background:rgba(40,110,200,0.1);color:#1850a0;"><img src="/icons/biography-icon.png" alt="" style="width:20px;height:20px;object-fit:contain;filter:hue-rotate(210deg) saturate(80%) brightness(0.6);" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"><i class="fas fa-id-card" style="display:none;"></i></div>
+                        <span class="shortcut-label">زندگی‌نامه</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('payment')">
-                        <div class="sc-icon"><i class="fas fa-credit-card"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">پرداخت</span>
+                    <div class="shortcut-card" onclick="openContentPage('mosque','مسجد قبا')">
+                        <div class="sc-icon" style="background:rgba(210,130,30,0.1);color:#a05810;"><i class="fas fa-mosque"></i></div>
+                        <span class="shortcut-label">مسجد</span>
                     </div>
-                    <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="navToScreen('live')">
-                        <div class="sc-icon"><i class="fas fa-broadcast-tower"></i></div>
-                        <span class="shortcut-label text-[10px] font-bold text-center" style="color:#7a6a58;">پخش زنده</span>
+                    <div class="shortcut-card" onclick="openContentPage('contact','ارتباط با ما')">
+                        <div class="sc-icon" style="background:rgba(30,140,80,0.1);color:#0a6030;"><i class="fas fa-comment-dots"></i></div>
+                        <span class="shortcut-label">ارتباط</span>
                     </div>
                 </div>
 
