@@ -233,6 +233,13 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
         transform: none !important;
     }
 
+    /* Reader content full width */
+    #content-container > div {
+        max-width: none !important;
+        padding-left: 48px !important;
+        padding-right: 48px !important;
+    }
+
     /* Reader fixed header/footer */
     #reader-header, #reader-footer {
         left: 0 !important; right: 0 !important;
