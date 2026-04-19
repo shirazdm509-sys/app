@@ -41,14 +41,33 @@ function toggleMediaFav(type, id) {
     if (fv && fv.style.display !== 'none') renderFavoritesTab();
 }
 
+function switchFavTab(tab) {
+    const videoBtn = document.getElementById('fav-tab-video');
+    const audioBtn = document.getElementById('fav-tab-audio');
+    const vList = document.getElementById('fav-video-list');
+    const aList = document.getElementById('fav-audio-list');
+    if (tab === 'video') {
+        if (videoBtn) { videoBtn.classList.add('bg-white','shadow-sm','text-brand-600'); videoBtn.classList.remove('text-gray-500'); }
+        if (audioBtn) { audioBtn.classList.remove('bg-white','shadow-sm','text-brand-600'); audioBtn.classList.add('text-gray-500'); }
+        if (vList) vList.classList.remove('hidden');
+        if (aList) aList.classList.add('hidden');
+    } else {
+        if (audioBtn) { audioBtn.classList.add('bg-white','shadow-sm','text-brand-600'); audioBtn.classList.remove('text-gray-500'); }
+        if (videoBtn) { videoBtn.classList.remove('bg-white','shadow-sm','text-brand-600'); videoBtn.classList.add('text-gray-500'); }
+        if (aList) aList.classList.remove('hidden');
+        if (vList) vList.classList.add('hidden');
+    }
+    renderFavoritesTab();
+}
+
 function renderFavoritesTab() {
     const f = _getFavs();
-
-    // ── فیلم‌ها ──
     const vList = document.getElementById('fav-video-list');
-    if (vList) {
+    const aList = document.getElementById('fav-audio-list');
+
+    if (vList && !vList.classList.contains('hidden')) {
         if (!f.video || f.video.length === 0) {
-            vList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">هنوز فیلمی اضافه نشده</p>`;
+            vList.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-gray-400 gap-2"><i class="fas fa-film text-3xl opacity-20"></i><p class="text-xs font-bold opacity-50">هنوز فیلمی اضافه نشده</p></div>`;
         } else {
             vList.innerHTML = f.video.map(v => {
                 const thumb = v.thumbnail || v._catCover || '';
@@ -56,7 +75,7 @@ function renderFavoritesTab() {
                     ? `<img src="${thumb}" class="w-full h-full object-cover">`
                     : `<div class="w-full h-full bg-gray-800 flex items-center justify-center"><i class="fas fa-film text-gray-500"></i></div>`;
                 return `
-                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100">
                     <div class="w-20 h-[45px] bg-gray-900 rounded-lg overflow-hidden relative shrink-0 cursor-pointer" onclick="playFavVideo(${v.id})">
                         ${thumbHtml}
                         <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -74,11 +93,9 @@ function renderFavoritesTab() {
         }
     }
 
-    // ── صوت‌ها ──
-    const aList = document.getElementById('fav-audio-list');
-    if (aList) {
+    if (aList && !aList.classList.contains('hidden')) {
         if (!f.audio || f.audio.length === 0) {
-            aList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">هنوز صوتی اضافه نشده</p>`;
+            aList.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-gray-400 gap-2"><i class="fas fa-headphones text-3xl opacity-20"></i><p class="text-xs font-bold opacity-50">هنوز صوتی اضافه نشده</p></div>`;
         } else {
             aList.innerHTML = f.audio.map(tr => {
                 const cover = tr.cover || '';
@@ -86,8 +103,8 @@ function renderFavoritesTab() {
                     ? `<img src="${cover}" class="w-full h-full object-cover">`
                     : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-xs"></i></div>`;
                 return `
-                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition">
-                    <div class="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gray-100 cursor-pointer" onclick="playFavAudio(${tr.id})">
+                <div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100">
+                    <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 cursor-pointer" onclick="playFavAudio(${tr.id})">
                         ${coverHtml}
                     </div>
                     <div class="flex-1 min-w-0 cursor-pointer" onclick="playFavAudio(${tr.id})">
@@ -271,11 +288,17 @@ function switchMediaTab(tab) {
     const vc = document.getElementById('wp-media-player-container');
     if(tab !== 'video' && vc) vc.innerHTML = '';
 
+    // مخفی کردن نوار پلی‌لیست صوت وقتی از تب صوت خارج می‌شیم
+    if (tab !== 'audio') {
+        const _hb = document.getElementById('audio-playlist-header-bar');
+        if (_hb) _hb.classList.add('hidden');
+    }
+
     if (!_skipHistoryPush) {
         if (tab === 'video') initVideoGallery();
         if (tab === 'photo') initGallery();
         if (tab === 'audio') initAudioGallery();
-        if (tab === 'favorites') renderFavoritesTab();
+        if (tab === 'favorites') { switchFavTab('video'); }
     }
 }
 
