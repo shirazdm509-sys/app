@@ -392,6 +392,22 @@
                 </div>
             </header>
 
+            <!-- نوار عنوان پلی‌لیست صوت — خارج از scroll تا همیشه بالا بچسبه -->
+            <div id="audio-playlist-header-bar" class="hidden shrink-0 bg-white px-4 py-2 border-b border-gray-100 shadow-sm z-10">
+                <div class="flex items-center gap-2">
+                    <button onclick="backToAudioCategories()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
+                    <h2 id="audio-cat-title" class="font-bold text-sm text-gray-800 truncate flex-1"></h2>
+                    <div class="relative shrink-0">
+                        <button id="audio-sort-btn" onclick="toggleAudioSortDropdown()" class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1.5 rounded-lg font-bold flex items-center gap-1"><i class="fas fa-sort-amount-down text-[9px]"></i><span id="audio-sort-label">ترتیب</span></button>
+                        <div id="audio-sort-dropdown" class="hidden absolute top-9 left-0 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 py-1 min-w-[110px]">
+                            <button onclick="setAudioSort('order')" class="audio-sort-option w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition" data-sort="order"><i class="fas fa-sort-numeric-up-alt w-4 text-center"></i><span>ترتیب</span></button>
+                            <button onclick="setAudioSort('date')" class="audio-sort-option w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition" data-sort="date"><i class="fas fa-calendar-alt w-4 text-center"></i><span>تاریخ</span></button>
+                        </div>
+                    </div>
+                    <span id="audio-track-count" class="text-[10px] text-gray-400 font-medium shrink-0"></span>
+                </div>
+            </div>
+
             <div class="flex-1 overflow-y-auto relative p-6">
                 <!-- اسلایدر و بنر رسانه -->
                 <div id="media-slider-wrap" class="relative w-full overflow-hidden mb-4 rounded-2xl" style="display:none;">
@@ -467,22 +483,6 @@
 
                     <!-- نمای پلی‌لیست -->
                     <div id="audio-playlist-view" class="hidden flex-col gap-3 w-full">
-                        <div class="flex items-center gap-2 mb-1 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 sticky top-0 z-10">
-                            <button onclick="backToAudioCategories()" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100 transition shrink-0"><i class="fas fa-arrow-right"></i></button>
-                            <h2 id="audio-cat-title" class="font-bold text-sm text-gray-800 truncate flex-1">پلی‌لیست</h2>
-                            <div class="relative shrink-0">
-                                <button id="audio-sort-btn" onclick="toggleAudioSortDropdown()" class="text-[10px] bg-gray-100 text-gray-500 px-2 py-1.5 rounded-lg font-bold flex items-center gap-1"><i class="fas fa-sort-amount-down text-[9px]"></i><span id="audio-sort-label">ترتیب</span></button>
-                                <div id="audio-sort-dropdown" class="hidden absolute top-9 left-0 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 py-1 min-w-[110px]">
-                                    <button onclick="setAudioSort('order')" class="audio-sort-option w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition" data-sort="order">
-                                        <i class="fas fa-sort-numeric-up-alt w-4 text-center"></i><span>ترتیب</span>
-                                    </button>
-                                    <button onclick="setAudioSort('date')" class="audio-sort-option w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition" data-sort="date">
-                                        <i class="fas fa-calendar-alt w-4 text-center"></i><span>تاریخ</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <span id="audio-track-count" class="text-[10px] text-gray-400 font-medium shrink-0"></span>
-                        </div>
 
                         <!-- پلیر اصلی -->
                         <div id="audio-player-card" class="hidden bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden">

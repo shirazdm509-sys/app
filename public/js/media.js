@@ -640,6 +640,8 @@ function setAudioTracksAndPlay(tracks, idx) {
     const plView = document.getElementById('audio-playlist-view');
     if (catsView) catsView.classList.add('hidden');
     if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    const _hb3 = document.getElementById('audio-playlist-header-bar');
+    if(_hb3) _hb3.classList.remove('hidden');
     document.getElementById('audio-cat-title').textContent = 'آخرین صوت‌ها';
     document.getElementById('audio-track-count').textContent = toFa(tracks.length) + ' صوت';
     renderAudioTrackList();
@@ -801,7 +803,11 @@ async function loadAudioCategories(parentId, parentName) {
     const view = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
     // فقط اگه مستقیماً از home باز نشده (race condition با setAudioTracksAndPlay)
-    if(plView && !window._audioDirectPlay) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+    if(plView && !window._audioDirectPlay) {
+        plView.classList.add('hidden'); plView.classList.remove('flex');
+        const _hb = document.getElementById('audio-playlist-header-bar');
+        if(_hb) _hb.classList.add('hidden');
+    }
     if(view) view.classList.remove('hidden');
 
     // Update breadcrumb/back
@@ -943,6 +949,8 @@ async function loadAudioPlaylist(categoryId, title, count) {
 
     if(catsView) catsView.classList.add('hidden');
     if(plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    const _hdrBar = document.getElementById('audio-playlist-header-bar');
+    if(_hdrBar) _hdrBar.classList.remove('hidden');
     document.getElementById('audio-cat-title').textContent = title;
     document.getElementById('audio-track-count').textContent = count > 0 ? `${count} صوت` : '';
     if(list) list.innerHTML = '';
@@ -1108,6 +1116,8 @@ function backToAudioCategories() {
     const catsView = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
+    const _hdrBar2 = document.getElementById('audio-playlist-header-bar');
+    if(_hdrBar2) _hdrBar2.classList.add('hidden');
     if(catsView) catsView.classList.remove('hidden');
     if(_audioNavStack.length > 0) {
         _audioNavStack.pop();
