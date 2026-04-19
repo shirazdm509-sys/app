@@ -4,6 +4,124 @@ function _pnh(fn){ pushNavHistory(fn,'media'); }
 // متغیرهای رسانه
 // ====================================================
 
+// ====================================================
+// علاقه‌مندی‌ها (Favorites)
+// ====================================================
+window._mfTmp = {}; // ذخیره موقت آیتم‌ها برای toggle
+
+function _getFavs() {
+    try { return JSON.parse(localStorage.getItem('_mediaFavs') || '{"audio":[],"video":[]}'); }
+    catch(e) { return {audio:[], video:[]}; }
+}
+function _saveFavs(f) { try { localStorage.setItem('_mediaFavs', JSON.stringify(f)); } catch(e) {} }
+function _isFav(type, id) {
+    return _getFavs()[type].some(x => String(x.id) === String(id));
+}
+
+function toggleMediaFav(type, id) {
+    const f = _getFavs();
+    if (!f[type]) f[type] = [];
+    const idx = f[type].findIndex(x => String(x.id) === String(id));
+    if (idx >= 0) {
+        f[type].splice(idx, 1);
+    } else {
+        const item = window._mfTmp[type + '_' + id];
+        if (item) f[type].push(item);
+    }
+    _saveFavs(f);
+    // آپدیت آیکون‌های قلب
+    document.querySelectorAll(`.mf-btn[data-ftype="${type}"][data-fid="${id}"]`).forEach(btn => {
+        const now = _isFav(type, id);
+        btn.innerHTML = now
+            ? '<i class="fas fa-heart text-red-500 text-xs"></i>'
+            : '<i class="far fa-heart text-gray-300 text-xs"></i>';
+    });
+    // اگه تب علاقه‌مندی بازه، دوباره رندر کن
+    const fv = document.getElementById('media-content-favorites');
+    if (fv && fv.style.display !== 'none') renderFavoritesTab();
+}
+
+function renderFavoritesTab() {
+    const f = _getFavs();
+
+    // ── فیلم‌ها ──
+    const vList = document.getElementById('fav-video-list');
+    if (vList) {
+        if (!f.video || f.video.length === 0) {
+            vList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">هنوز فیلمی اضافه نشده</p>`;
+        } else {
+            vList.innerHTML = f.video.map(v => {
+                const thumb = v.thumbnail || v._catCover || '';
+                const thumbHtml = thumb
+                    ? `<img src="${thumb}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gray-800 flex items-center justify-center"><i class="fas fa-film text-gray-500"></i></div>`;
+                return `
+                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-20 h-[45px] bg-gray-900 rounded-lg overflow-hidden relative shrink-0 cursor-pointer" onclick="playFavVideo(${v.id})">
+                        ${thumbHtml}
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <i class="fas fa-play text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0 cursor-pointer" onclick="playFavVideo(${v.id})">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
+                    </div>
+                    <button onclick="toggleMediaFav('video','${v.id}')" class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition" data-ftype="video" data-fid="${v.id}">
+                        <i class="fas fa-heart text-red-500 text-xs"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // ── صوت‌ها ──
+    const aList = document.getElementById('fav-audio-list');
+    if (aList) {
+        if (!f.audio || f.audio.length === 0) {
+            aList.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">هنوز صوتی اضافه نشده</p>`;
+        } else {
+            aList.innerHTML = f.audio.map(tr => {
+                const cover = tr.cover || '';
+                const coverHtml = cover
+                    ? `<img src="${cover}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-xs"></i></div>`;
+                return `
+                <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition">
+                    <div class="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-gray-100 cursor-pointer" onclick="playFavAudio(${tr.id})">
+                        ${coverHtml}
+                    </div>
+                    <div class="flex-1 min-w-0 cursor-pointer" onclick="playFavAudio(${tr.id})">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>
+                        ${tr.artist ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>` : ''}
+                    </div>
+                    <button onclick="toggleMediaFav('audio','${tr.id}')" class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition" data-ftype="audio" data-fid="${tr.id}">
+                        <i class="fas fa-heart text-red-500 text-xs"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+    }
+}
+
+function playFavVideo(id) {
+    const f = _getFavs();
+    const item = (f.video || []).find(v => String(v.id) === String(id));
+    if (!item) return;
+    window._mfTmp['video_' + id] = item;
+    videoCachedItems = [item];
+    switchMediaTab('video');
+    setTimeout(() => playVideoItem(item.id), 80);
+}
+
+function playFavAudio(id) {
+    const f = _getFavs();
+    const item = (f.audio || []).find(tr => String(tr.id) === String(id));
+    if (!item) return;
+    window._mfTmp['audio_' + id] = item;
+    switchMediaTab('audio');
+    setTimeout(() => setAudioTracksAndPlay([item], 0), 80);
+}
+
 // هنگام خطای بارگذاری تصویر: سعی می‌کند از catCover استفاده کند، سپس gradient
 function _videoImgErr(img, catCover) {
     img.onerror = null;
@@ -122,7 +240,7 @@ function _reRenderGalleryPhotos() {
 // ====================================================
 function switchMediaTab(tab) {
     // تشخیص تب فعلی قبل از تغییر
-    const _tabs = ['video', 'audio', 'photo'];
+    const _tabs = ['video', 'audio', 'photo', 'favorites'];
     const _prevTab = _tabs.find(t => {
         const c = document.getElementById('media-content-' + t);
         return c && c.style.display !== 'none';
@@ -157,6 +275,7 @@ function switchMediaTab(tab) {
         if (tab === 'video') initVideoGallery();
         if (tab === 'photo') initGallery();
         if (tab === 'audio') initAudioGallery();
+        if (tab === 'favorites') renderFavoritesTab();
     }
 }
 
@@ -354,20 +473,31 @@ async function loadVideoList(categoryId, title, count) {
                 const thumb = v.thumbnail || v._catCover || '';
                 const errHandler = `_videoImgErr(this,'${catCover}')`;
                 const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+                // ذخیره موقت برای favorites
+                window._mfTmp['video_' + v.id] = {id: v.id, title: v.title, description: v.description||'', thumbnail: thumb, _catCover: v._catCover||'', embed_url: v.embed_url||''};
+                const isFav = _isFav('video', v.id);
+                const favBtn = `<button class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="video" data-fid="${v.id}" onclick="event.stopPropagation();toggleMediaFav('video','${v.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-sm"></i>' : '<i class="far fa-heart text-gray-300 text-sm"></i>'}</button>`;
                 if (_mediaViewMode === 'grid') return `
-                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
-                    <div class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
-                    <div class="px-2 py-2"><h4 class="font-bold text-[11px] text-gray-800 line-clamp-2 leading-snug">${v.title}</h4></div>
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+                    <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+                    <div class="px-2 py-2 flex items-start gap-1">
+                        <h4 onclick="playVideoItem(${v.id})" class="font-bold text-[11px] text-gray-800 line-clamp-2 leading-snug flex-1">${v.title}</h4>
+                        ${favBtn}
+                    </div>
                 </div>`;
                 if (_mediaViewMode === 'large') return `
-                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col">
-                    <div class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
-                    <div class="p-3"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[11px] text-gray-400 mt-1 line-clamp-2">${v.description}</p>`:''}</div>
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col">
+                    <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+                    <div class="p-3 flex items-start gap-2">
+                        <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[11px] text-gray-400 mt-1 line-clamp-2">${v.description}</p>`:''}</div>
+                        ${favBtn}
+                    </div>
                 </div>`;
                 return `
-                <div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                    <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}${playBtn}</div>
-                    <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>`:''}</div>
+                <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                    <div onclick="playVideoItem(${v.id})" class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}${playBtn}</div>
+                    <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>`:''}</div>
+                    ${favBtn}
                 </div>`;
             }).join('');
         } else {
@@ -986,10 +1116,17 @@ function renderAudioTrackList() {
         const coverSrc = tr.cover || tr._catCover || '';
         const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
         const activeOverlay = isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : '';
+        // ذخیره موقت برای favorites
+        window._mfTmp['audio_' + tr.id] = {id: tr.id, title: tr.title, artist: tr.artist||'', cover: coverSrc, url: tr.url||''};
+        const isFav = _isFav('audio', tr.id);
+        const favBtn = `<button class="mf-btn shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="audio" data-fid="${tr.id}" onclick="event.stopPropagation();toggleMediaFav('audio','${tr.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-xs"></i>' : '<i class="far fa-heart text-gray-300 text-xs"></i>'}</button>`;
         if (_mediaViewMode === 'grid') return `
-        <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)" class="${activeCls} rounded-2xl cursor-pointer transition-all active:scale-95 overflow-hidden shadow-sm flex flex-col">
+        <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)" class="${activeCls} rounded-2xl cursor-pointer transition-all active:scale-95 overflow-hidden shadow-sm flex flex-col relative">
             <div class="w-full aspect-square overflow-hidden relative bg-gray-100 flex items-center justify-center">${coverInner}${activeOverlay}</div>
-            <div class="p-2"><h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug">${tr.title}</h4></div>
+            <div class="p-2 flex items-start gap-1">
+                <h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug flex-1">${tr.title}</h4>
+                ${favBtn}
+            </div>
         </div>`;
         const coverSize = _mediaViewMode === 'large' ? 'w-16 h-16' : 'w-11 h-11';
         return `
@@ -1000,7 +1137,7 @@ function renderAudioTrackList() {
                 <h4 class="font-bold text-xs ${isActive?'text-brand-700':'text-gray-800'} line-clamp-1">${tr.title}</h4>
                 ${tr.artist ? `<p class="text-[10px] ${isActive?'text-brand-500':'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
             </div>
-            <span class="text-[10px] font-bold ${isActive?'text-brand-500':'text-gray-300'} shrink-0">${idx+1}</span>
+            ${favBtn}
         </div>`;
     }).join('');
 }
