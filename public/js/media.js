@@ -770,6 +770,8 @@ function setAudioTracksAndPlay(tracks, idx) {
     const plView = document.getElementById('audio-playlist-view');
     if (catsView) catsView.classList.add('hidden');
     if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    const _catsHdr3 = document.getElementById('audio-cats-header');
+    if(_catsHdr3) { _catsHdr3.classList.add('hidden'); _catsHdr3.classList.remove('flex'); }
     const _hb3 = document.getElementById('audio-playlist-header-bar');
     if(_hb3) _hb3.classList.remove('hidden');
     document.getElementById('audio-cat-title').textContent = 'آخرین صوت‌ها';
@@ -1079,6 +1081,8 @@ async function loadAudioPlaylist(categoryId, title, count) {
 
     if(catsView) catsView.classList.add('hidden');
     if(plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    const _catsHdr = document.getElementById('audio-cats-header');
+    if(_catsHdr) { _catsHdr.classList.add('hidden'); _catsHdr.classList.remove('flex'); }
     const _hdrBar = document.getElementById('audio-playlist-header-bar');
     if(_hdrBar) _hdrBar.classList.remove('hidden');
     document.getElementById('audio-cat-title').textContent = title;
