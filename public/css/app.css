@@ -16,8 +16,9 @@ body { overflow: hidden; overscroll-behavior-y: none; background: #ddd8ce; margi
 
 #bottom-nav { padding-bottom: var(--safe-bottom); border-radius: 24px 24px 0 0; }
 .nav-item { transition: all .3s ease; flex: 1; }
-.nav-item.active i { color: #3c5448; transform: translateY(-2px); }
-.nav-item.active span { color: #3c5448; font-weight: 800; }
+.nav-item.active i { color: #3c5448 !important; }
+.nav-item.active span { color: #3c5448 !important; font-weight: 800; }
+.nav-item.active .nav-dot { display: block !important; }
 
 .screen { display:none; }
 .screen.active { display:flex;flex-direction:column; animation: fadeIn 0.4s ease forwards; }

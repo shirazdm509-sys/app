@@ -194,6 +194,8 @@ async function loadSliders() {
     const height = vw >= 1024 ? desktopH : vw >= 640 ? tabletH : mobileH;
     wrapper.style.display = 'block';
     wrapper.style.height = height + 'px';
+    const heroCard = document.getElementById('home-hero-card');
+    if (heroCard) heroCard.style.display = 'none';
     wrapper.style.padding = padding + 'px';
     wrapper.style.borderRadius = radius + 'px';
     wrapper.style.direction = 'ltr'; // جلوگیری از RTL overflow که اسلاید اشتباه نشون داده میشه
@@ -315,14 +317,14 @@ async function loadHomeLatestMedia() {
                 const catCover = (v._catCover || '').replace(/'/g, "\\'");
                 const thumb = v.thumbnail || v._catCover || '';
                 const thumbHtml = thumb
-                    ? `<img src="${thumb}" onerror="_videoImgErr(this,'${catCover}')" class="w-full h-full object-cover opacity-90">`
-                    : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
-                return `<div onclick="openHomeVideo(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
-                <div class="w-24 h-14 bg-gray-900 rounded-xl overflow-hidden relative shrink-0 shadow-sm">
+                    ? `<img src="${thumb}" onerror="_videoImgErr(this,'${catCover}')" class="w-full h-full object-cover">`
+                    : '';
+                return `<div onclick="openHomeVideo(${i})" class="bg-white rounded-2xl p-2.5 border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center" style="box-shadow:0 1px 4px rgba(42,32,24,0.06);">
+                <div class="w-24 h-14 rounded-xl overflow-hidden relative shrink-0" style="background:linear-gradient(135deg,#3c5448,#1e2e22);">
                     ${thumbHtml}
-                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div>
+                    <div class="absolute inset-0 flex items-center justify-center"><div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;padding-left:2px;"><i class="fas fa-play text-[10px]" style="color:#3c5448;"></i></div></div>
                 </div>
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4></div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs line-clamp-2 leading-snug" style="color:#2a2018;">${v.title}</h4></div>
             </div>`;
             }).join('');
             if (vidSec) vidSec.classList.remove('hidden');
@@ -332,12 +334,12 @@ async function loadHomeLatestMedia() {
         const audSec = document.getElementById('home-media-audio-section');
         const audEl = document.getElementById('home-latest-audio');
         if (audEl && _homeLatestAudios.length > 0) {
-            audEl.innerHTML = _homeLatestAudios.map((tr, i) => `<div onclick="openHomeAudio(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
-                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
-                    ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
+            audEl.innerHTML = _homeLatestAudios.map((tr, i) => `<div onclick="openHomeAudio(${i})" class="bg-white rounded-2xl p-3 border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center" style="box-shadow:0 1px 4px rgba(42,32,24,0.06);">
+                <div style="width:42px;height:42px;border-radius:50%;background:#e8f2ec;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding-left:2px;">
+                    <i class="fas fa-play text-[11px]" style="color:#3c5448;"></i>
                 </div>
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>` : ''}</div>
-                <i class="fas fa-play text-brand-400 text-xs shrink-0"></i>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs line-clamp-1" style="color:#2a2018;">${tr.title}</h4>${tr.artist ? `<p class="text-[10px] mt-0.5" style="color:#9a8a78;">${tr.artist}</p>` : ''}</div>
+                <i class="fas fa-arrow-down text-[12px]" style="color:#b8a898;flex-shrink:0;"></i>
             </div>`).join('');
             if (audSec) audSec.classList.remove('hidden');
         }
