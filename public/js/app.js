@@ -56,11 +56,10 @@ function navToScreen(name) {
         n.classList.remove('active');
         n.querySelectorAll('i, span').forEach(el => { el.style.color = '#9ca3af'; });
     });
-    const navBtn = document.querySelector(`[data-nav="${name}"]`);
-    if (navBtn) {
+    document.querySelectorAll(`[data-nav="${name}"]`).forEach(navBtn => {
         navBtn.classList.add('active');
         navBtn.querySelectorAll('i, span').forEach(el => { el.style.color = '#0d9488'; });
-    }
+    });
 
     // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
     if (!_skipHistoryPush && prevName !== name) {
