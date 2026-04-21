@@ -280,7 +280,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
         padding: 0 20px !important;
         align-items: start !important;
     }
-    #home-col-shortcuts { padding: 0 !important; }
+    #home-col-shortcuts { padding: 0 !important; margin-top: 36px !important; }
     #home-shortcuts-section {
         grid-template-columns: repeat(4, 1fr) !important;
         padding: 0 4px !important;
