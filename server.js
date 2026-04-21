@@ -95,11 +95,10 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
     // اول از فایل می‌خواند، اگر نبود از دیتابیس
     const filePath = path.join(__dirname, 'public', '.well-known', 'assetlinks.json');
     if (fs.existsSync(filePath)) {
-        return res.sendFile(filePath);
+        try { return res.send(fs.readFileSync(filePath, 'utf8')); } catch(e) {}
     }
     mainDb.get(`SELECT value FROM settings WHERE key='assetlinks'`, (err, row) => {
-        let content = '[]';
-        if (row && row.value) { try { JSON.parse(row.value); content = row.value; } catch(e) {} }
+        const content = (row && row.value) ? row.value : '[]';
         res.send(content);
     });
 });
@@ -159,7 +158,7 @@ app.use((req, res, next) => {
     }
     next();
 });
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true, dotfiles: 'allow' }));
 
 // DB
 const mainDbPath = path.resolve(__dirname, 'library.sqlite');
