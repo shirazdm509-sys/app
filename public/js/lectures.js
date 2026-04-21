@@ -299,6 +299,8 @@ function openLatestPost(postId) {
     if (navBtn) navBtn.classList.add('active');
     const liveEl = document.getElementById('live-embed-container');
     if (liveEl) liveEl.innerHTML = '';
+    // علامت‌گذاری برای بازگشت به خانه از طریق دکمه header
+    wpState._fromHome = true;
     // نمایش پست بدون ثبت مجدد در تاریخچه
     withoutHistory(function() { showWPSingleView(postId); });
 }
