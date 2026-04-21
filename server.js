@@ -296,6 +296,7 @@ function _makeFilter(types){
     };
 }
 const uploadImage = multer({ storage, limits:{fileSize:50*1024*1024, files:10}, fileFilter: _makeFilter(['image']) });
+const uploadIconMemory = multer({ storage: multer.memoryStorage(), limits:{fileSize:2*1024*1024, files:1}, fileFilter: _makeFilter(['image']) });
 const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024, files:5}, fileFilter: _makeFilter(['audio','image']) });
 // آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf
 const upload = multer({ storage, limits:{fileSize:400*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
@@ -1041,14 +1042,32 @@ app.post('/api/admin/favicon',adminAuth,uploadImage.single('favicon'),(req,res)=
             });
         }).catch(e=>{ console.error('icon resize error:',e); res.status(500).json({error:'خطا در پردازش آیکون: '+e.message}); });
     } else {
-        // fallback: کپی مستقیم بدون resize (اگر sharp نصب نشده)
-        anySizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}.png`)); }catch(e){} });
-        maskableSizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}-maskable.png`)); }catch(e){} });
+        // اگر کلاینت از canvas resize استفاده کرده، icon‌ها را کپی نکن
+        if (req.body.client_resized !== '1') {
+            anySizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}.png`)); }catch(e){} });
+            maskableSizes.forEach(s=>{ try{ fs.copyFileSync(srcPath, path.join(iconsDir,`icon-${s}-maskable.png`)); }catch(e){} });
+        }
         mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("favicon_url",?,CURRENT_TIMESTAMP)',[fu],()=>{
             mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("icon_version",?,CURRENT_TIMESTAMP)',[newVersion],()=>{
                 res.json({success:true,favicon_url:fu});
             });
         });
+    }
+});
+
+// ذخیره آیکون از پیش resize‌شده توسط کلاینت
+app.post('/api/admin/icon-save', adminAuth, uploadIconMemory.single('icon'), (req, res) => {
+    if (!req.file) return res.status(400).json({error: 'فایل ارائه نشده'});
+    const filename = (req.body.filename || '').replace(/[^a-z0-9\-\.]/gi, '');
+    if (!filename.match(/^icon-\d+(-maskable)?\.png$/)) {
+        return res.status(400).json({error: 'نام فایل نامعتبر'});
+    }
+    const dest = path.join(__dirname, 'public', 'icons', filename);
+    try {
+        fs.writeFileSync(dest, req.file.buffer);
+        res.json({success: true});
+    } catch(e) {
+        res.status(500).json({error: 'خطا در ذخیره فایل'});
     }
 });
 

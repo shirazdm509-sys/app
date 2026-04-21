@@ -2311,15 +2311,40 @@ async function uploadLogo(){
 async function uploadFavicon(){
   const f=document.getElementById('favicon-input').files[0];
   if(!f) return showToast('ابتدا آیکون انتخاب کنید',false);
-  if(f.size > 5*1024*1024) return showToast('حجم آیکون نباید بیشتر از ۵ مگابایت باشد',false);
-  const fd=new FormData();fd.append('favicon',f);
+  const anySizes=[72,96,128,144,152,192,384,512];
+  const maskableSizes=[192,512];
+  const img=new Image();
+  const objUrl=URL.createObjectURL(f);
   try{
-    const r=await adminFetch('/api/admin/favicon',{method:'POST',body:fd});
-    let d; try{d=await r.json();}catch(je){d={};}
-    if(r.ok&&d.success){showToast('آیکون PWA آپلود شد — برای اعمال، برنامه را حذف و دوباره نصب کنید');}
-    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است',false);
-    else showToast(d.error||'خطا در آپلود',false);
-  }catch(e){ showToast('خطا در اتصال',false); }
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=objUrl;});
+  }catch(e){URL.revokeObjectURL(objUrl);return showToast('خطا در پردازش تصویر',false);}
+  const makeBlob=(size,maskable=false)=>new Promise(resolve=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=size;canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,size,size);
+    if(maskable){const p=Math.round(size*0.1);ctx.drawImage(img,p,p,size-p*2,size-p*2);}
+    else{ctx.drawImage(img,0,0,size,size);}
+    canvas.toBlob(resolve,'image/png');
+  });
+  try{
+    showToast('در حال پردازش آیکون‌ها...');
+    const items=await Promise.all([
+      ...anySizes.map(s=>makeBlob(s).then(b=>({b,n:`icon-${s}.png`}))),
+      ...maskableSizes.map(s=>makeBlob(s,true).then(b=>({b,n:`icon-${s}-maskable.png`})))
+    ]);
+    for(const {b,n} of items){
+      const fd=new FormData();fd.append('icon',b,n);fd.append('filename',n);
+      const r=await adminFetch('/api/admin/icon-save',{method:'POST',body:fd});
+      if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'failed: '+n);}
+    }
+    const fd2=new FormData();fd2.append('favicon',f);fd2.append('client_resized','1');
+    const r2=await adminFetch('/api/admin/favicon',{method:'POST',body:fd2});
+    let d2;try{d2=await r2.json();}catch(je){d2={};}
+    URL.revokeObjectURL(objUrl);
+    if(r2.ok&&d2.success) showToast('آیکون PWA آپلود شد — برای اعمال، برنامه را حذف و دوباره نصب کنید');
+    else showToast(d2.error||'خطا در آپلود',false);
+  }catch(e){URL.revokeObjectURL(objUrl);showToast('خطا: '+e.message,false);}
 }
 function previewLogo(input){
   if(!input.files[0]) return;
