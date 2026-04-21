@@ -32,6 +32,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@secure2024';
 
+// Digital Asset Links — قبل از هر middleware تا هیچ‌چیزی بلاکش نکنه
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    const fp = path.join(__dirname, 'public', '.well-known', 'assetlinks.json');
+    try {
+        const c = fs.readFileSync(fp, 'utf8');
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.end(c);
+    } catch(e) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.end('[]');
+    }
+});
+
 // Security middleware
 if (helmet) {
     app.use(helmet({
@@ -87,21 +101,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09', dir: __dirname }));
-
-// Digital Asset Links — برای TWA standalone (بدون Chrome UI)
-app.get('/.well-known/assetlinks.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache');
-    // اول از فایل می‌خواند، اگر نبود از دیتابیس
-    const filePath = path.join(__dirname, 'public', '.well-known', 'assetlinks.json');
-    if (fs.existsSync(filePath)) {
-        try { return res.send(fs.readFileSync(filePath, 'utf8')); } catch(e) {}
-    }
-    mainDb.get(`SELECT value FROM settings WHERE key='assetlinks'`, (err, row) => {
-        const content = (row && row.value) ? row.value : '[]';
-        res.send(content);
-    });
-});
 
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
