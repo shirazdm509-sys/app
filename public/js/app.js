@@ -52,9 +52,15 @@ function navToScreen(name) {
     const targetScreen = document.getElementById('screen-' + name);
     if (targetScreen) targetScreen.classList.add('active');
 
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.remove('active');
+        n.querySelectorAll('i, span').forEach(el => { el.style.color = '#9ca3af'; });
+    });
     const navBtn = document.querySelector(`[data-nav="${name}"]`);
-    if (navBtn) navBtn.classList.add('active');
+    if (navBtn) {
+        navBtn.classList.add('active');
+        navBtn.querySelectorAll('i, span').forEach(el => { el.style.color = '#0d9488'; });
+    }
 
     // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
     if (!_skipHistoryPush && prevName !== name) {
