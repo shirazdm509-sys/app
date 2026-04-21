@@ -147,8 +147,9 @@ function _buildAudioHtml(tracks) {
     let h = `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
     h += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>${multi ? 'فایل‌های صوتی (' + tracks.length + ')' : 'فایل صوتی'}</h3>`;
     tracks.forEach((track, i) => {
-        if (multi && track.title) {
-            h += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${i + 1}. ${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
+        if (track.title) {
+            const prefix = multi ? `${i + 1}. ` : '';
+            h += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${prefix}${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
         }
         h += `<audio controls src="${track.src}" class="w-full h-11 mb-2 outline-none"></audio>`;
         h += `<a href="${track.src}" target="_blank" download class="inline-flex items-center bg-white text-brand-600 px-3 py-2 rounded-xl text-[11px] font-bold mb-3 shadow-sm border border-gray-200" style="text-decoration:none"><i class="fas fa-download ml-1.5"></i>دانلود${track.title ? ' — ' + track.title : ''}</a>`;

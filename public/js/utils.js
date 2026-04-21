@@ -288,9 +288,13 @@ function extractMediaFromPost(post) {
     cleanHtml = cleanHtml.replace(/فیلم جلسه[:\s]*/g, '');
     cleanHtml = cleanHtml.replace(/دریافت فایل صوتی/g, '');
     cleanHtml = cleanHtml.replace(/در حال بارگذاری\.*/gi, '');
+    cleanHtml = cleanHtml.replace(/انتخاب آهنگ[.‌‍\s]*/g, '');
+    cleanHtml = cleanHtml.replace(/Select\s+Track[.‌\s]*/gi, '');
     // پاک کردن نمایشگر زمان و سرعت پلیر وردپرس
     cleanHtml = cleanHtml.replace(/\d+:\d+\s*\/\s*\d+:\d+/g, '');
-    cleanHtml = cleanHtml.replace(/\b\d+[xX]\b/g, '');
+    cleanHtml = cleanHtml.replace(/\d+:\d+\s+\d+:\d+/g, '');
+    cleanHtml = cleanHtml.replace(/\d+:\d{2}/g, '');
+    cleanHtml = cleanHtml.replace(/\b\d+[xX×]\b/g, '');
 
     tempDiv.innerHTML = cleanHtml;
 
