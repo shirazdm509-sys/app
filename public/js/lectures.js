@@ -141,19 +141,162 @@ function exitReadingMode() {
     if (btnSet) btnSet.classList.add('hidden');
 }
 
+function _paFmt(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+function _paToggle(uid) {
+    const audio = document.getElementById('post-audio-' + uid);
+    if (!audio || !audio.src) return;
+    if (!audio._paSetup) _paInitSingle(uid);
+    const icon = document.getElementById('post-play-icon-' + uid);
+    const cur = (window._paCur || {})[uid];
+    if (audio.paused) {
+        audio.play().catch(() => {});
+        if (icon) icon.className = 'fas fa-pause text-xl';
+        if (cur >= 0) { const ii = document.getElementById('post-item-icon-' + uid + '-' + cur); if (ii) ii.className = 'fas fa-pause text-sm'; }
+    } else {
+        audio.pause();
+        if (icon) icon.className = 'fas fa-play text-xl ml-0.5';
+        if (cur >= 0) { const ii = document.getElementById('post-item-icon-' + uid + '-' + cur); if (ii) ii.className = 'fas fa-play text-sm ml-0.5'; }
+    }
+}
+function _paSeek(uid, val) {
+    const a = document.getElementById('post-audio-' + uid);
+    if (a && a.duration) a.currentTime = (val / 100) * a.duration;
+}
+function _paSkip(uid, sec) {
+    const a = document.getElementById('post-audio-' + uid);
+    if (a) a.currentTime = Math.max(0, Math.min(a.duration || 0, a.currentTime + sec));
+}
+function _paSpeed(uid, speed) {
+    const a = document.getElementById('post-audio-' + uid);
+    if (a) a.playbackRate = parseFloat(speed);
+    document.querySelectorAll('[data-pa="' + uid + '"][data-speed]').forEach(btn => {
+        const active = parseFloat(btn.dataset.speed) === parseFloat(speed);
+        btn.classList.toggle('bg-brand-100', active); btn.classList.toggle('text-brand-700', active);
+        btn.classList.toggle('bg-gray-100', !active); btn.classList.toggle('text-gray-500', !active);
+    });
+}
+function _paInitSingle(uid) {
+    const a = document.getElementById('post-audio-' + uid);
+    if (!a || a._paSetup) return; a._paSetup = true;
+    a.addEventListener('timeupdate', () => {
+        const p = document.getElementById('post-prog-' + uid), c = document.getElementById('post-ct-' + uid);
+        if (p && a.duration) p.value = (a.currentTime / a.duration) * 100;
+        if (c) c.textContent = toFa(_paFmt(a.currentTime));
+    });
+    a.addEventListener('loadedmetadata', () => { const d = document.getElementById('post-dt-' + uid); if (d && a.duration) d.textContent = toFa(_paFmt(a.duration)); });
+    a.addEventListener('ended', () => { const i = document.getElementById('post-play-icon-' + uid); if (i) i.className = 'fas fa-play text-xl ml-0.5'; const p = document.getElementById('post-prog-' + uid); if (p) p.value = 0; });
+}
+function _paLoad(uid, idx) {
+    const tracks = (window._paTr || {})[uid]; if (!tracks || !tracks[idx]) return;
+    const tr = tracks[idx];
+    const a = document.getElementById('post-audio-' + uid); if (!a) return;
+    if (!window._paCur) window._paCur = {};
+    const cur = window._paCur[uid];
+    if (cur === idx) { _paToggle(uid); return; }
+    if (cur >= 0) {
+        const pi = document.getElementById('post-item-icon-' + uid + '-' + cur); if (pi) pi.className = 'fas fa-play text-sm ml-0.5';
+        const pb = document.getElementById('post-item-btn-' + uid + '-' + cur); if (pb) { pb.classList.remove('bg-brand-600','text-white'); pb.classList.add('bg-brand-50','text-brand-600'); }
+    }
+    const wrap = document.getElementById('post-player-wrap-' + uid); if (wrap) wrap.classList.remove('hidden');
+    const te = document.getElementById('post-cur-title-' + uid); if (te) te.textContent = tr.title || '';
+    const ne = document.getElementById('post-cur-num-' + uid); if (ne) ne.textContent = toFa(idx + 1) + ' / ' + toFa(tracks.length);
+    const ii = document.getElementById('post-item-icon-' + uid + '-' + idx); if (ii) ii.className = 'fas fa-pause text-sm';
+    const ib = document.getElementById('post-item-btn-' + uid + '-' + idx); if (ib) { ib.classList.add('bg-brand-600','text-white'); ib.classList.remove('bg-brand-50','text-brand-600'); }
+    window._paCur[uid] = idx;
+    if (!a._paSetup) {
+        a._paSetup = true;
+        a.addEventListener('timeupdate', () => {
+            const p = document.getElementById('post-prog-' + uid), c = document.getElementById('post-ct-' + uid);
+            if (p && a.duration) p.value = (a.currentTime / a.duration) * 100;
+            if (c) c.textContent = toFa(_paFmt(a.currentTime));
+        });
+        a.addEventListener('loadedmetadata', () => { const d = document.getElementById('post-dt-' + uid); if (d && a.duration) d.textContent = toFa(_paFmt(a.duration)); });
+        a.addEventListener('ended', () => {
+            const c2 = (window._paCur || {})[uid], ts = (window._paTr || {})[uid];
+            if (ts && c2 >= 0 && c2 < ts.length - 1) { _paLoad(uid, c2 + 1); return; }
+            const pi2 = document.getElementById('post-play-icon-' + uid); if (pi2) pi2.className = 'fas fa-play text-xl ml-0.5';
+            if (c2 >= 0) {
+                const ci = document.getElementById('post-item-icon-' + uid + '-' + c2); if (ci) ci.className = 'fas fa-play text-sm ml-0.5';
+                const cb = document.getElementById('post-item-btn-' + uid + '-' + c2); if (cb) { cb.classList.remove('bg-brand-600','text-white'); cb.classList.add('bg-brand-50','text-brand-600'); }
+            }
+        });
+    }
+    a.src = tr.src; a.play().catch(() => {});
+    const pi = document.getElementById('post-play-icon-' + uid); if (pi) pi.className = 'fas fa-pause text-xl';
+}
+function _paInitAll(container) {
+    (container || document).querySelectorAll('[data-pa-uid]').forEach(el => {
+        const uid = el.dataset.paUid;
+        if (!el.dataset.paTracks) return;
+        try {
+            const tr = JSON.parse(decodeURIComponent(el.dataset.paTracks));
+            (window._paTr = window._paTr || {})[uid] = tr;
+            (window._paCur = window._paCur || {})[uid] = -1;
+        } catch(e) {}
+    });
+}
+function _paCtrl(uid, src, duration) {
+    let h = `<div class="p-4" dir="ltr">`;
+    h += `<audio id="post-audio-${uid}"${src ? ' src="'+src+'"' : ''} class="hidden"></audio>`;
+    h += `<input type="range" id="post-prog-${uid}" value="0" min="0" max="100" step="0.1" oninput="_paSeek('${uid}',this.value)" class="w-full h-1.5 rounded-full bg-gray-200 appearance-none cursor-pointer accent-brand-600 mb-1" style="-webkit-appearance:none;direction:ltr">`;
+    h += `<div class="flex justify-between text-[10px] text-gray-400 font-mono mb-3"><span id="post-ct-${uid}">۰:۰۰</span><span id="post-dt-${uid}">${duration ? toFa(duration) : '۰:۰۰'}</span></div>`;
+    h += `<div class="flex items-center justify-center gap-3 mb-3">`;
+    h += `<button onclick="_paSkip('${uid}',-15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center relative"><i class="fas fa-undo text-sm"></i><span class="text-[9px] absolute" style="bottom:6px;right:6px">۱۵</span></button>`;
+    h += `<button id="post-play-btn-${uid}" onclick="_paToggle('${uid}')" class="w-14 h-14 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"><i id="post-play-icon-${uid}" class="fas fa-play text-xl ml-0.5"></i></button>`;
+    h += `<button onclick="_paSkip('${uid}',15)" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-full flex items-center justify-center relative"><i class="fas fa-redo text-sm"></i><span class="text-[9px] absolute" style="bottom:6px;left:6px">۱۵</span></button>`;
+    h += `</div><div class="flex items-center justify-center gap-1 flex-wrap"><span class="text-[10px] text-gray-400 font-bold ml-1">سرعت:</span>`;
+    for (const [s, lbl] of [[0.75,'۰.۷۵×'],[1,'۱×'],[1.25,'۱.۲۵×'],[1.5,'۱.۵×'],[2,'۲×']]) {
+        h += `<button onclick="_paSpeed('${uid}',${s})" data-pa="${uid}" data-speed="${s}" class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${s===1?'bg-brand-100 text-brand-700':'bg-gray-100 text-gray-500'} hover:bg-brand-50 hover:text-brand-600 transition">${lbl}</button>`;
+    }
+    h += `</div></div>`;
+    return h;
+}
 function _buildAudioHtml(tracks) {
     if (!tracks || tracks.length === 0) return '';
     const multi = tracks.length > 1;
-    let h = `<div class="bg-brand-50/50 p-4 rounded-2xl mb-8 border border-brand-100 shadow-sm">`;
-    h += `<h3 class="font-bold text-sm text-brand-800 mb-4"><i class="fas fa-headphones-alt ml-2"></i>${multi ? 'فایل‌های صوتی (' + tracks.length + ')' : 'فایل صوتی'}</h3>`;
-    tracks.forEach((track, i) => {
-        if (track.title) {
-            const prefix = multi ? `${i + 1}. ` : '';
-            h += `<p class="text-xs font-bold text-brand-700 mb-1 mt-${i > 0 ? '4' : '0'}">${prefix}${track.title}${track.duration ? ' <span class="font-normal text-gray-400">' + track.duration + '</span>' : ''}</p>`;
-        }
-        h += `<audio controls src="${track.src}" class="w-full h-11 mb-2 outline-none"></audio>`;
-        h += `<a href="${track.src}" target="_blank" download class="inline-flex items-center bg-white text-brand-600 px-3 py-2 rounded-xl text-[11px] font-bold mb-3 shadow-sm border border-gray-200" style="text-decoration:none"><i class="fas fa-download ml-1.5"></i>دانلود${track.title ? ' — ' + track.title : ''}</a>`;
-    });
+    const uid = 'pa' + (Date.now() % 999999);
+    let h = `<div class="bg-brand-50/50 p-4 rounded-2xl mb-6 border border-brand-100 shadow-sm">`;
+    h += `<h3 class="font-bold text-sm text-brand-800 mb-3"><i class="fas fa-headphones-alt ml-2 text-brand-600"></i>${multi ? 'فایل‌های صوتی (' + toFa(tracks.length) + ')' : 'فایل صوتی'}</h3>`;
+    if (!multi) {
+        const tr = tracks[0];
+        h += `<div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">`;
+        h += `<div class="bg-gradient-to-br from-brand-600 to-brand-800 p-4 flex items-center gap-3">`;
+        h += `<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-headphones text-white/60 text-2xl"></i></div>`;
+        h += `<div class="flex-1 min-w-0">`;
+        if (tr.title) h += `<p class="font-bold text-white text-sm line-clamp-2 mb-1">${tr.title}</p>`;
+        h += `<a href="${tr.src}" target="_blank" download class="inline-flex w-7 h-7 bg-white/20 hover:bg-white/30 text-white rounded-full items-center justify-center text-xs"><i class="fas fa-download"></i></a>`;
+        h += `</div></div>`;
+        h += _paCtrl(uid, tr.src, tr.duration);
+        h += `</div>`;
+    } else {
+        const tracksEnc = encodeURIComponent(JSON.stringify(tracks.map(t => ({src:t.src,title:t.title||'',duration:t.duration||''}))));
+        h += `<div data-pa-uid="${uid}" data-pa-tracks="${tracksEnc}">`;
+        // Shared player (hidden until track selected)
+        h += `<div id="post-player-wrap-${uid}" class="hidden bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 mb-3">`;
+        h += `<div class="bg-gradient-to-br from-brand-600 to-brand-800 p-4">`;
+        h += `<p id="post-cur-title-${uid}" class="font-bold text-white text-sm line-clamp-2 mb-0.5"></p>`;
+        h += `<p id="post-cur-num-${uid}" class="text-white/60 text-xs"></p>`;
+        h += `</div>`;
+        h += _paCtrl(uid, '', '');
+        h += `</div>`;
+        // Track list
+        h += `<div class="flex flex-col gap-2">`;
+        tracks.forEach((tr, i) => {
+            h += `<div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-brand-200 transition-colors" onclick="_paLoad('${uid}',${i})">`;
+            h += `<button id="post-item-btn-${uid}-${i}" class="w-10 h-10 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center shrink-0 transition-colors"><i id="post-item-icon-${uid}-${i}" class="fas fa-play text-sm ml-0.5"></i></button>`;
+            h += `<div class="flex-1 min-w-0">`;
+            h += `<p class="font-bold text-sm text-gray-800 line-clamp-2">${tr.title || (toFa(i + 1) + '. فایل صوتی')}</p>`;
+            if (tr.duration) h += `<p class="text-xs text-gray-400 mt-0.5">${tr.duration}</p>`;
+            h += `</div>`;
+            h += `<a href="${tr.src}" target="_blank" download onclick="event.stopPropagation()" class="shrink-0 w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-gray-400 hover:text-brand-600 rounded-full border border-gray-100 transition"><i class="fas fa-download text-xs"></i></a>`;
+            h += `</div>`;
+        });
+        h += `</div></div>`;
+    }
     h += `</div>`;
     return h;
 }
@@ -207,9 +350,11 @@ async function showWPSingleView(postId) {
     finalHtml += _buildAudioHtml(media.audioTracks);
     finalHtml += media.cleanHtml;
 
-    document.getElementById('single-post-content').innerHTML = finalHtml;
-    document.getElementById('single-post-content').style.fontSize = fontSize + 'px';
-    convertDOMNumbers(document.getElementById('single-post-content'));
+    const _spc = document.getElementById('single-post-content');
+    _spc.innerHTML = finalHtml;
+    _paInitAll(_spc);
+    _spc.style.fontSize = fontSize + 'px';
+    convertDOMNumbers(_spc);
 
     let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
     const imgContainer = document.getElementById('single-post-image');
@@ -230,7 +375,9 @@ async function showWPSingleView(postId) {
                         thumb: ''
                     })).filter(t => t.src);
                     if (tracks.length > 0) {
-                        document.getElementById('single-post-content').insertAdjacentHTML('afterbegin', _buildAudioHtml(tracks));
+                        const _spc2 = document.getElementById('single-post-content');
+                        _spc2.insertAdjacentHTML('afterbegin', _buildAudioHtml(tracks));
+                        _paInitAll(_spc2);
                     }
                 }
             }
