@@ -14,19 +14,28 @@ let cachedPosts = [];
 
 // ===== تقویم سخنرانی =====
 let _lcalYear = 0, _lcalMonth = 0, _lcalSelDay = 0;
+let _lcalAllPosts = [];
+let _lcalFromCatView = false;
 
 function _postJalParts(post) {
     const d = new Date(post.date);
     return _gregToJal(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }
 
-function toggleLecturesCalendar() {
+async function toggleLecturesCalendar() {
     const wrap = document.getElementById('lectures-calendar-wrap');
     const btn = document.getElementById('lectures-cal-btn');
     if (!wrap) return;
     if (wrap.classList.contains('hidden')) {
         wrap.classList.remove('hidden');
         if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
+        if (_lcalAllPosts.length === 0) {
+            wrap.innerHTML = '<div class="flex justify-center py-4"><i class="fas fa-spinner fa-spin text-teal-500"></i></div>';
+            try {
+                const r = await wpFetch('posts?per_page=100&_embed=1');
+                if (r.ok) _lcalAllPosts = await r.json();
+            } catch(e) {}
+        }
         if (!_lcalYear) _lcalInitFromPosts();
         renderLecturesCalendar();
     } else {
@@ -39,13 +48,14 @@ function _lcalHide() {
     const wrap = document.getElementById('lectures-calendar-wrap');
     if (wrap) wrap.classList.add('hidden');
     const btn = document.getElementById('lectures-cal-btn');
-    if (btn) { btn.style.background = ''; btn.style.color = ''; btn.classList.add('hidden'); }
-    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0;
+    if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0; _lcalFromCatView = false;
 }
 
 function _lcalInitFromPosts() {
-    if (cachedPosts.length) {
-        const [jy, jm] = _postJalParts(cachedPosts[0]);
+    const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
+    if (src.length) {
+        const [jy, jm] = _postJalParts(src[0]);
         _lcalYear = jy; _lcalMonth = jm;
     } else {
         const [jy, jm] = _jalTodayParts();
@@ -58,19 +68,42 @@ function lcalNavMonth(dir) {
     _lcalMonth += dir;
     if (_lcalMonth > 12) { _lcalMonth = 1; _lcalYear++; }
     if (_lcalMonth < 1) { _lcalMonth = 12; _lcalYear--; }
+    if (_lcalFromCatView && _lcalSelDay) {
+        const postsView = document.getElementById('lectures-posts-view');
+        const catView = document.getElementById('lectures-categories-view');
+        if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
+        if (catView) catView.classList.remove('hidden');
+        _lcalFromCatView = false;
+    }
     _lcalSelDay = 0;
-    _renderLecturesList();
+    if (wpState.view === 'posts') _renderLecturesList();
     renderLecturesCalendar();
 }
 
 function lcalSelectDay(day) {
-    if (_lcalSelDay === day) { _lcalSelDay = 0; _renderLecturesList(); }
-    else {
+    const postsView = document.getElementById('lectures-posts-view');
+    const catView = document.getElementById('lectures-categories-view');
+    if (_lcalSelDay === day) {
+        _lcalSelDay = 0;
+        if (_lcalFromCatView) {
+            _lcalFromCatView = false;
+            if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
+            if (catView) catView.classList.remove('hidden');
+        } else {
+            _renderLecturesList();
+        }
+    } else {
         _lcalSelDay = day;
-        const pairs = cachedPosts.map((p, i) => ({p, i})).filter(({p}) => {
+        const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
+        const pairs = src.map((p, i) => ({p, i})).filter(({p}) => {
             const [py, pm, pd] = _postJalParts(p);
             return py === _lcalYear && pm === _lcalMonth && pd === day;
         });
+        if (wpState.view !== 'posts') {
+            _lcalFromCatView = true;
+            if (postsView) { postsView.classList.remove('hidden'); postsView.classList.add('flex'); }
+            if (catView) catView.classList.add('hidden');
+        }
         _renderLecturesList(pairs);
     }
     renderLecturesCalendar();
@@ -81,7 +114,8 @@ function renderLecturesCalendar() {
     if (!wrap || wrap.classList.contains('hidden')) return;
     const dim = _jalDaysInMonth(_lcalYear, _lcalMonth), first = _jalFirstWeekday(_lcalYear, _lcalMonth);
     const days = new Set();
-    for (const p of cachedPosts) {
+    const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
+    for (const p of src) {
         const [py, pm, pd] = _postJalParts(p);
         if (py === _lcalYear && pm === _lcalMonth) days.add(pd);
     }
@@ -106,7 +140,8 @@ function renderLecturesCalendar() {
         ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
         ${cells}
     </div>
-    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}`;
+    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}
+    <div class="mt-2 text-left"><button onclick="toggleLecturesCalendar()" class="text-[11px] text-gray-400 hover:text-gray-600 font-bold px-2">✕ بستن</button></div>`;
 }
 
 function _renderLecturesList(pairs) {
@@ -421,13 +456,20 @@ function _buildAudioHtml(tracks) {
 }
 
 async function showWPSingleView(postId) {
-    let post = cachedPosts.find(p => p.id === postId);
+    let post = cachedPosts.find(p => p.id === postId) || _lcalAllPosts.find(p => p.id === postId);
     if (!post) return;
 
     const _prevCatId = wpState.currentCat.id;
     const _prevCatName = wpState.currentCat.name;
+    const _prevFromCal = _lcalFromCatView;
     _pnh(function() {
-        withoutHistory(function() { showWPPostsView(_prevCatId, _prevCatName); });
+        withoutHistory(function() {
+            if (_prevCatId && !_prevFromCal) {
+                showWPPostsView(_prevCatId, _prevCatName);
+            } else {
+                showWPMainCategories();
+            }
+        });
     });
 
     wpState.view = 'single';
@@ -439,7 +481,7 @@ async function showWPSingleView(postId) {
     const _lcwSingle = document.getElementById('lectures-calendar-wrap');
     if (_lcwSingle) _lcwSingle.classList.add('hidden');
     const _lcbSingle = document.getElementById('lectures-cal-btn');
-    if (_lcbSingle) { _lcbSingle.classList.add('hidden'); _lcbSingle.style.background = ''; _lcbSingle.style.color = ''; }
+    if (_lcbSingle) { _lcbSingle.style.background = ''; _lcbSingle.style.color = ''; }
 
     document.getElementById('lectures-categories-view').classList.add('hidden');
     document.getElementById('lectures-posts-view').classList.remove('flex');

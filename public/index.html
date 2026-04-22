@@ -427,6 +427,7 @@
                         <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">عکس</button>
                         <button onclick="switchMediaTab('favorites')" id="tab-media-favorites" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all"><i class="far fa-heart"></i></button>
                     </div>
+                    <button id="global-cal-btn" onclick="toggleGlobalCal()" class="hidden w-9 h-9 flex items-center justify-center bg-gray-100 rounded-xl text-gray-500 transition-colors shrink-0"><i class="fas fa-calendar-alt text-sm"></i></button>
                     <div class="relative shrink-0">
                         <button onclick="toggleViewModeDropdown()" id="view-mode-trigger" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-xl transition text-gray-500 hover:bg-gray-200">
                             <i id="view-mode-icon" class="fas fa-th text-sm"></i>
@@ -445,6 +446,9 @@
                     </div>
                 </div>
             </header>
+
+            <!-- تقویم سراسری رسانه -->
+            <div id="global-cal-wrap" class="hidden shrink-0 bg-white border-b border-gray-100 px-3 pb-3 pt-1 z-10"></div>
 
             <!-- نوار عنوان پلی‌لیست صوت — خارج از scroll تا همیشه بالا بچسبه -->
             <div id="audio-playlist-header-bar" class="hidden shrink-0 bg-white px-4 py-2 border-b border-gray-100 shadow-sm z-10">
@@ -740,7 +744,7 @@
                 <button id="btn-lectures-settings" onclick="openSettings()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm">
                     <i class="fas fa-font"></i>
                 </button>
-                <button id="lectures-cal-btn" onclick="toggleLecturesCalendar()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm"><i class="fas fa-calendar-alt text-sm"></i></button>
+                <button id="lectures-cal-btn" onclick="toggleLecturesCalendar()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm"><i class="fas fa-calendar-alt text-sm"></i></button>
             </header>
             <div id="lectures-calendar-wrap" class="hidden shrink-0 bg-white border-b border-gray-100 px-3 pb-3 pt-1"></div>
 

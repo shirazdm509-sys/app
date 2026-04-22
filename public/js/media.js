@@ -222,7 +222,10 @@ function setMediaViewMode(mode) {
         const acv = document.getElementById('audio-categories-view');
         const apv = document.getElementById('audio-playlist-view');
         if (acv && !acv.classList.contains('hidden')) { _audioCatsLoaded=false; const top=_audioNavStack[_audioNavStack.length-1]; withoutHistory(()=>loadAudioCategories(top?top.id:null,top?top.name:'')); }
-        else if (apv && !apv.classList.contains('hidden') && audioCurrentTracks.length) renderAudioTrackList();
+        else if (apv && !apv.classList.contains('hidden') && audioCurrentTracks.length) {
+            if (_calSelDay) { const _fp=audioCurrentTracks.map((t,i)=>({tr:t,i})).filter(({tr:t})=>_jalMatchDate(t.publish_date,_calYear,_calMonth,_calSelDay)); renderAudioTrackList(_fp); }
+            else renderAudioTrackList();
+        }
     } else if (photoContent && photoContent.style.display !== 'none') {
         const gcv = document.getElementById('gallery-categories-view');
         const gpv = document.getElementById('gallery-photos-view');
@@ -292,6 +295,12 @@ function switchMediaTab(tab) {
     if (tab !== 'audio') {
         const _hb = document.getElementById('audio-playlist-header-bar');
         if (_hb) _hb.classList.add('hidden');
+    }
+    // نمایش/مخفی دکمه تقویم سراسری
+    const _gcb = document.getElementById('global-cal-btn');
+    if (_gcb) {
+        if (tab === 'audio' || tab === 'video') { _gcb.classList.remove('hidden'); }
+        else { _gcb.classList.add('hidden'); closeGlobalCal(); }
     }
 
     if (!_skipHistoryPush) {
@@ -1192,10 +1201,11 @@ function renderAudioCalendar() {
         cells+=`<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
     }
     wrap.innerHTML=`
-    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
         <button onclick="calNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_calMonth-1]} ${toFa(_calYear)}</span>
+        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_calMonth-1]} ${toFa(_calYear)}</span>
         <button onclick="calNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+        <button onclick="toggleAudioCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
     </div>
     <div class="grid grid-cols-7 gap-y-1">
         ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
@@ -1222,6 +1232,174 @@ async function setAudioSort(sort) {
         btn.classList.toggle('text-gray-600', !active);
     });
     if (_currentAudioCatId) await withoutHistory(() => loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0));
+}
+
+// ===== تقویم سراسری رسانه =====
+let _gCalYear = 0, _gCalMonth = 0, _gCalSelDay = 0;
+let _gCalAudio = [], _gCalVideo = [], _gCalLoaded = {audio: false, video: false};
+
+function _gCalActiveTab() {
+    return ['audio','video','photo','favorites'].find(t => {
+        const c = document.getElementById('media-content-' + t);
+        return c && c.style.display !== 'none';
+    }) || 'audio';
+}
+
+async function toggleGlobalCal() {
+    const wrap = document.getElementById('global-cal-wrap');
+    const btn = document.getElementById('global-cal-btn');
+    if (!wrap) return;
+    const tab = _gCalActiveTab();
+    if (tab !== 'audio' && tab !== 'video') return;
+    if (!wrap.classList.contains('hidden')) { closeGlobalCal(); return; }
+    if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
+    if (tab === 'audio' && !_gCalLoaded.audio) {
+        try { const r = await fetch('/api/audio/all-dates'); _gCalAudio = await r.json(); _gCalLoaded.audio = true; } catch(e) {}
+    }
+    if (tab === 'video' && !_gCalLoaded.video) {
+        try { const r = await fetch('/api/videos/all-dates'); _gCalVideo = await r.json(); _gCalLoaded.video = true; } catch(e) {}
+    }
+    const items = tab === 'audio' ? _gCalAudio : _gCalVideo;
+    if (!_gCalYear && items.length) {
+        const p = items[0].publish_date.split('/'); _gCalYear = parseInt(p[0]); _gCalMonth = parseInt(p[1]);
+    } else if (!_gCalYear) {
+        const [jy,jm] = _jalTodayParts(); _gCalYear = jy; _gCalMonth = jm;
+    }
+    _gCalSelDay = 0;
+    wrap.classList.remove('hidden');
+    _renderGlobalCal();
+}
+
+function closeGlobalCal() {
+    const wrap = document.getElementById('global-cal-wrap');
+    if (wrap) wrap.classList.add('hidden');
+    const btn = document.getElementById('global-cal-btn');
+    if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    const res = document.getElementById('global-cal-results');
+    if (res) res.remove();
+    _gCalYear = 0; _gCalMonth = 0; _gCalSelDay = 0;
+}
+
+function gCalNavMonth(dir) {
+    _gCalMonth += dir;
+    if (_gCalMonth > 12) { _gCalMonth = 1; _gCalYear++; }
+    if (_gCalMonth < 1) { _gCalMonth = 12; _gCalYear--; }
+    _gCalSelDay = 0;
+    _renderGlobalCal();
+    _renderGlobalCalResults();
+}
+
+function gCalSelectDay(day) {
+    _gCalSelDay = _gCalSelDay === day ? 0 : day;
+    _renderGlobalCal();
+    _renderGlobalCalResults();
+}
+
+function _renderGlobalCal() {
+    const wrap = document.getElementById('global-cal-wrap');
+    if (!wrap || wrap.classList.contains('hidden')) return;
+    const tab = _gCalActiveTab();
+    const items = tab === 'audio' ? _gCalAudio : _gCalVideo;
+    const dim = _jalDaysInMonth(_gCalYear, _gCalMonth), first = _jalFirstWeekday(_gCalYear, _gCalMonth);
+    const days = new Set();
+    for (const it of items) {
+        if (!it.publish_date) continue;
+        const p = it.publish_date.split('/');
+        if (parseInt(p[0]) === _gCalYear && parseInt(p[1]) === _gCalMonth) days.add(parseInt(p[2]));
+    }
+    const [ty,tm,td] = _jalTodayParts();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += `<div></div>`;
+    for (let d = 1; d <= dim; d++) {
+        const has = days.has(d), sel = _gCalSelDay === d, today = ty===_gCalYear&&tm===_gCalMonth&&td===d;
+        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
+        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
+        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
+        const click = has ? `onclick="gCalSelectDay(${d})"` : '';
+        cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
+    }
+    wrap.innerHTML = `
+    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
+        <button onclick="gCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
+        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)}</span>
+        <button onclick="gCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+        <button onclick="closeGlobalCal()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
+    </div>
+    <div class="grid grid-cols-7 gap-y-1">
+        ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
+        ${cells}
+    </div>
+    ${_gCalSelDay ? `<div class="mt-2 text-center"><button onclick="gCalSelectDay(${_gCalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه</button></div>` : ''}`;
+}
+
+function _renderGlobalCalResults() {
+    const existing = document.getElementById('global-cal-results');
+    if (existing) existing.remove();
+    if (!_gCalSelDay) return;
+    const tab = _gCalActiveTab();
+    const items = (tab === 'audio' ? _gCalAudio : _gCalVideo).filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
+    if (!items.length) return;
+    const targetContent = document.getElementById('media-content-' + tab);
+    if (!targetContent) return;
+    const div = document.createElement('div');
+    div.id = 'global-cal-results';
+    div.className = 'flex flex-col gap-3 w-full mt-1';
+    if (tab === 'audio') {
+        div.innerHTML = items.map((tr, idx) => {
+            const cover = tr.cover || '';
+            const coverInner = cover ? `<img src="${cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-xs"></i></div>`;
+            const dateStr = tr.publish_date ? `<p class="text-[10px] text-gray-400">${toFa(tr.publish_date)}</p>` : '';
+            return `<div onclick="_gCalPlayAudio(${idx})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">${coverInner}</div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist?`<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>`:''}${dateStr}</div>
+                <div class="w-8 h-8 bg-brand-50 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-play text-brand-600 text-xs mr-[-1px]"></i></div>
+            </div>`;
+        }).join('');
+    } else {
+        div.innerHTML = items.map(v => {
+            const thumb = v.thumbnail || '';
+            const thumbHtml = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+            const dateStr = v.publish_date ? `<p class="text-[10px] text-gray-400 mt-0.5">${toFa(v.publish_date)}</p>` : '';
+            return `<div onclick="_gCalPlayVideo('${v.id}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/30"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div></div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${dateStr}</div>
+            </div>`;
+        }).join('');
+    }
+    const firstChild = targetContent.firstChild;
+    if (firstChild) targetContent.insertBefore(div, firstChild);
+    else targetContent.appendChild(div);
+}
+
+function _gCalPlayAudio(idx) {
+    const tracks = _gCalAudio.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
+    audioCurrentTracks = tracks;
+    audioCurrentIndex = -1;
+    _currentAudioCatId = null;
+    closeGlobalCal();
+    const catsView = document.getElementById('audio-categories-view');
+    const plView = document.getElementById('audio-playlist-view');
+    if (catsView) catsView.classList.add('hidden');
+    if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+    const hdrBar = document.getElementById('audio-playlist-header-bar');
+    if (hdrBar) hdrBar.classList.remove('hidden');
+    const titleEl = document.getElementById('audio-cat-title');
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} - روز ${toFa(_gCalSelDay)}`;
+    selectAudioTrack(idx, true);
+}
+
+function _gCalPlayVideo(itemId) {
+    const filtered = _gCalVideo.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
+    videoCachedItems = filtered;
+    closeGlobalCal();
+    const catsView = document.getElementById('video-categories-view');
+    if (catsView) catsView.classList.add('hidden');
+    const listView = document.getElementById('video-list-view');
+    if (listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
+    const titleEl = document.getElementById('video-cat-title');
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} - روز ${toFa(_gCalSelDay)}`;
+    _renderVideoItems();
+    playVideoItem(parseInt(itemId));
 }
 
 // ===== تقویم ویدیو =====
@@ -1291,10 +1469,11 @@ function renderVideoCalendar() {
         cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
     }
     wrap.innerHTML = `
-    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
         <button onclick="vCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_vCalMonth-1]} ${toFa(_vCalYear)}</span>
+        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_vCalMonth-1]} ${toFa(_vCalYear)}</span>
         <button onclick="vCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+        <button onclick="toggleVideoCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
     </div>
     <div class="grid grid-cols-7 gap-y-1">
         ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
