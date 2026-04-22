@@ -238,6 +238,11 @@ function _paInitAll(container) {
             (window._paCur = window._paCur || {})[uid] = -1;
         } catch(e) {}
     });
+    // init single-track players immediately so loadedmetadata fires correctly
+    (container || document).querySelectorAll('audio[id^="post-audio-"]').forEach(a => {
+        const uid = a.id.replace('post-audio-', '');
+        if (!(window._paTr || {})[uid]) _paInitSingle(uid);
+    });
 }
 function _paCtrl(uid, src, duration) {
     let h = `<div class="p-4" dir="ltr">`;
@@ -268,7 +273,7 @@ function _buildAudioHtml(tracks) {
         h += `<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-headphones text-white/60 text-2xl"></i></div>`;
         h += `<div class="flex-1 min-w-0">`;
         if (tr.title) h += `<p class="font-bold text-white text-sm line-clamp-2 mb-1">${tr.title}</p>`;
-        h += `<a href="${tr.src}" target="_blank" download class="inline-flex w-7 h-7 bg-white/20 hover:bg-white/30 text-white rounded-full items-center justify-center text-xs"><i class="fas fa-download"></i></a>`;
+        h += `<a href="${tr.src}" target="_blank" download class="inline-flex items-center gap-1 text-white text-xs font-bold mt-1 px-3 py-1 rounded-xl" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4)"><i class="fas fa-download text-[10px]"></i>دانلود</a>`;
         h += `</div></div>`;
         h += _paCtrl(uid, tr.src, tr.duration);
         h += `</div>`;

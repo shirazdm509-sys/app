@@ -170,7 +170,13 @@ function extractMediaFromPost(post) {
     const seenSrcs = new Set();
     const addTrack = (src, title='', duration='', thumb='') => {
         const clean = src.trim();
-        if (!clean || seenSrcs.has(clean)) return;
+        if (!clean) return;
+        const existing = audioTracks.find(t => t.src === clean);
+        if (existing) {
+            if (!existing.title && title) existing.title = title;
+            if (!existing.duration && duration) existing.duration = duration;
+            return;
+        }
         seenSrcs.add(clean);
         audioTracks.push({ src: clean, title, duration, thumb });
     };
