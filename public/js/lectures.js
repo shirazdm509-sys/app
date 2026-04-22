@@ -289,7 +289,7 @@ function _buildAudioHtml(tracks) {
             h += `<div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:border-brand-200 transition-colors" onclick="_paLoad('${uid}',${i})">`;
             h += `<button id="post-item-btn-${uid}-${i}" class="w-10 h-10 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center shrink-0 transition-colors"><i id="post-item-icon-${uid}-${i}" class="fas fa-play text-sm ml-0.5"></i></button>`;
             h += `<div class="flex-1 min-w-0">`;
-            h += `<p class="font-bold text-sm text-gray-800 line-clamp-2">${tr.title || (toFa(i + 1) + '. فایل صوتی')}</p>`;
+            h += `<p class="font-bold text-sm text-gray-800 line-clamp-2">${tr.title || toFa(i + 1)}</p>`;
             if (tr.duration) h += `<p class="text-xs text-gray-400 mt-0.5">${tr.duration}</p>`;
             h += `</div>`;
             h += `<a href="${tr.src}" target="_blank" download onclick="event.stopPropagation()" class="shrink-0 w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-brand-50 text-gray-400 hover:text-brand-600 rounded-full border border-gray-100 transition"><i class="fas fa-download text-xs"></i></a>`;
@@ -342,6 +342,14 @@ async function showWPSingleView(postId) {
     } catch(e) {}
 
     const media = extractMediaFromPost(post);
+
+    // برای تک‌فایل بدون عنوان: از عنوان پست استفاده کن
+    if (media.audioTracks.length === 1 && !media.audioTracks[0].title) {
+        const _td = document.createElement('div');
+        _td.innerHTML = post.title.rendered;
+        media.audioTracks[0].title = _td.textContent.trim();
+    }
+
     let finalHtml = '';
 
     media.iframes.forEach(src => { finalHtml += `<div class="h_iframe-aparat_embed_frame mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-200"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`; });

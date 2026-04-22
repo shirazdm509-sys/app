@@ -233,15 +233,35 @@ function extractMediaFromPost(post) {
         el.querySelectorAll('source').forEach(s => { if (s.getAttribute('src')) addTrack(s.getAttribute('src')); });
     });
 
-    // ۴. لینک‌های دانلود فایل صوتی
+    // ۴. لینک‌های دانلود فایل صوتی — عنوان لینک هم گرفته می‌شود
     tempDiv.querySelectorAll('a[href]').forEach(a => {
         const href = a.getAttribute('href') || '';
-        if (href.match(/\.(mp3|m4a|wav|ogg)(\?|$)/i)) addTrack(href);
+        if (href.match(/\.(mp3|m4a|wav|ogg)(\?|$)/i)) {
+            const raw = a.textContent.trim();
+            const title = /^(دانلود|دریافت|download|صوت|فایل|audio|mp3)$/i.test(raw) ? '' : raw;
+            addTrack(href, title);
+        }
     });
 
     // ۵. regex روی JSON string (فال‌بک)
     const audioRegex = /https?:\/\/[^\s"'<>\\]+\.(mp3|m4a|wav|ogg)(?:\?[^\s"'<>\\]*)?/gi;
     (postString.match(audioRegex) || []).forEach(url => addTrack(url.replace(/\\+$/, '')));
+
+    // ۶. اگر تراک‌ها عنوان ندارند، از <li> های محتوا تطابق بده
+    const noTitle = audioTracks.filter(t => !t.title);
+    if (noTitle.length > 1) {
+        const liTexts = Array.from(tempDiv.querySelectorAll('li'))
+            .map(li => li.textContent.trim())
+            .filter(t => t.length > 3 && t.length < 200 && !/^(دانلود|دریافت|بازگشت|download)$/i.test(t));
+        if (liTexts.length === noTitle.length) {
+            noTitle.forEach((tr, i) => { tr.title = liTexts[i]; });
+            // حذف از cleanHtml چون توی پلیر نشون داده می‌شه
+            tempDiv.querySelectorAll('li').forEach(li => {
+                if (liTexts.includes(li.textContent.trim())) li.remove();
+            });
+            tempDiv.querySelectorAll('ul, ol').forEach(el => { if (!el.textContent.trim()) el.remove(); });
+        }
+    }
 
     // استخراج iframe آپارات از DOM
     tempDiv.querySelectorAll('iframe').forEach(ifr => {
