@@ -1353,7 +1353,12 @@ function selectAudioTrack(idx, autoPlay) {
     el.load();
     if(autoPlay) el.play().catch(()=>{});
 
-    renderAudioTrackList();
+    if (_calSelDay) {
+        const _fp = audioCurrentTracks.map((t,i) => ({tr:t,i})).filter(({tr:t}) => _jalMatchDate(t.publish_date, _calYear, _calMonth, _calSelDay));
+        renderAudioTrackList(_fp);
+    } else {
+        renderAudioTrackList();
+    }
 
     // Scroll track into view
     setTimeout(()=>{
@@ -1434,6 +1439,11 @@ function backToAudioCategories() {
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     const _hdrBar2 = document.getElementById('audio-playlist-header-bar');
     if(_hdrBar2) _hdrBar2.classList.add('hidden');
+    const _calWrap = document.getElementById('audio-calendar-wrap');
+    if(_calWrap) _calWrap.classList.add('hidden');
+    const _calBtn = document.getElementById('audio-cal-btn');
+    if(_calBtn) { _calBtn.style.background = ''; _calBtn.style.color = ''; }
+    _calSelDay = 0;
     if(catsView) catsView.classList.remove('hidden');
     if(_audioNavStack.length > 0) {
         _audioNavStack.pop();
