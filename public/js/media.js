@@ -1036,6 +1036,142 @@ let _audioSort = 'order'; // order | date
 let _currentVideoCatId = null;
 let _videoSort = 'order'; // order | date
 
+// ===== تقویم شمسی =====
+const _jalMonthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const _jalDayHdrs = ['ش','ی','د','س','چ','پ','ج'];
+let _calYear = 0, _calMonth = 0, _calSelDay = 0;
+
+function _jalDaysInMonth(jy, jm) {
+    if (jm <= 6) return 31;
+    if (jm <= 11) return 30;
+    const r = ((jy - (jy > 0 ? 474 : 473)) % 2820 + 474 + 38) % 2820;
+    return [1,5,9,13,17,22,26,30].some(x => x === r % 2820) ? 30 : 29;
+}
+
+function _jalToGreg(jy, jm, jd) {
+    const jMonths = [31,31,31,31,31,31,30,30,30,30,30,29];
+    let jy1=jy-979, jDayNo=365*jy1+Math.floor(jy1/33)*8+Math.floor((jy1%33+3)/4);
+    for (let i=0;i<jm-1;i++) jDayNo+=jMonths[i];
+    jDayNo+=jd-1;
+    let gDayNo=jDayNo+79, gy=1600+400*Math.floor(gDayNo/146097); gDayNo%=146097;
+    let leap=true;
+    if(gDayNo>=36525){gDayNo--;gy+=100*Math.floor(gDayNo/36524);gDayNo%=36524;if(gDayNo>=365)gDayNo++;else leap=false;}
+    gy+=4*Math.floor(gDayNo/1461);gDayNo%=1461;
+    if(gDayNo>=366){leap=false;gDayNo--;gy+=Math.floor(gDayNo/365);gDayNo%=365;}
+    const gm=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31]; let mi=0;
+    while(gDayNo>=gm[mi])gDayNo-=gm[mi++];
+    return [gy,mi+1,gDayNo+1];
+}
+
+function _gregToJal(gy, gm, gd) {
+    const gMonths=[31,28,31,30,31,30,31,31,30,31,30,31];
+    let gd0=365*(gy-1600)+Math.floor((gy-1601)/4)-Math.floor((gy-1601)/100)+Math.floor((gy-1601)/400);
+    for(let i=0;i<gm-1;i++)gd0+=gMonths[i];
+    if(gm>1&&((gy%4==0&&gy%100!=0)||(gy%400==0)))gd0++;
+    gd0+=gd-1;
+    let jd0=gd0-79, jnp=Math.floor(jd0/12053); jd0%=12053;
+    let jy=979+33*jnp+4*Math.floor(jd0/1461); jd0%=1461;
+    if(jd0>=366){jy+=Math.floor((jd0-1)/365);jd0=(jd0-1)%365;}
+    const jMonths=[31,31,31,31,31,31,30,30,30,30,30,29]; let jm=0;
+    while(jm<11&&jd0>=jMonths[jm])jd0-=jMonths[jm++];
+    return [jy,jm+1,jd0+1];
+}
+
+function _jalTodayParts() {
+    const n=new Date(); return _gregToJal(n.getFullYear(),n.getMonth()+1,n.getDate());
+}
+
+function _jalFirstWeekday(jy, jm) {
+    const [gy,gm,gd]=_jalToGreg(jy,jm,1);
+    return (new Date(gy,gm-1,gd).getDay()+1)%7; // Sat=0
+}
+
+function _jalMatchDate(dateStr, y, m, d) {
+    if(!dateStr) return false;
+    const p=dateStr.split('/');
+    return parseInt(p[0])===y&&parseInt(p[1])===m&&parseInt(p[2])===d;
+}
+
+function toggleAudioCalendar() {
+    const wrap=document.getElementById('audio-calendar-wrap');
+    const btn=document.getElementById('audio-cal-btn');
+    if(!wrap)return;
+    if(wrap.classList.contains('hidden')){
+        wrap.classList.remove('hidden');
+        if(btn){btn.style.background='#ccfbf1';btn.style.color='#0d9488';}
+        if(!_calYear)_calInitFromTracks();
+        renderAudioCalendar();
+    } else {
+        wrap.classList.add('hidden');
+        if(btn){btn.style.background='';btn.style.color='';}
+    }
+}
+
+function _calInitFromTracks() {
+    let found=null;
+    for(const tr of audioCurrentTracks){if(tr.publish_date){found=tr.publish_date;break;}}
+    if(found){const p=found.split('/');_calYear=parseInt(p[0]);_calMonth=parseInt(p[1]);}
+    else{const[jy,jm]=_jalTodayParts();_calYear=jy;_calMonth=jm;}
+    _calSelDay=0;
+}
+
+function calNavMonth(dir) {
+    _calMonth+=dir;
+    if(_calMonth>12){_calMonth=1;_calYear++;}
+    if(_calMonth<1){_calMonth=12;_calYear--;}
+    _calSelDay=0;
+    renderAudioTrackList();
+    renderAudioCalendar();
+}
+
+function calSelectDay(day) {
+    if(_calSelDay===day){_calSelDay=0;renderAudioTrackList();}
+    else{
+        _calSelDay=day;
+        const pairs=audioCurrentTracks.map((tr,i)=>({tr,i})).filter(({tr})=>_jalMatchDate(tr.publish_date,_calYear,_calMonth,day));
+        renderAudioTrackList(pairs);
+    }
+    renderAudioCalendar();
+}
+
+function renderAudioCalendar() {
+    const wrap=document.getElementById('audio-calendar-wrap');
+    if(!wrap||wrap.classList.contains('hidden'))return;
+    const dim=_jalDaysInMonth(_calYear,_calMonth);
+    const first=_jalFirstWeekday(_calYear,_calMonth);
+    const trackDays=new Set();
+    for(const tr of audioCurrentTracks){
+        if(!tr.publish_date)continue;
+        const p=tr.publish_date.split('/');
+        if(parseInt(p[0])===_calYear&&parseInt(p[1])===_calMonth)trackDays.add(parseInt(p[2]));
+    }
+    const[ty,tm,td]=_jalTodayParts();
+    let cells='';
+    for(let i=0;i<first;i++)cells+=`<div></div>`;
+    for(let d=1;d<=dim;d++){
+        const has=trackDays.has(d),sel=_calSelDay===d,today=ty===_calYear&&tm===_calMonth&&td===d;
+        let cls='w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
+        if(sel)cls+='text-white';
+        else if(has)cls+='text-teal-700';
+        else if(today)cls+='text-teal-500 border border-teal-300';
+        else cls+='text-gray-400';
+        const bg=sel?'style="background:#0d9488"':has?'style="background:#ccfbf1;cursor:pointer"':'';
+        const click=has?`onclick="calSelectDay(${d})"`:'';
+        cells+=`<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
+    }
+    wrap.innerHTML=`
+    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+        <button onclick="calNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
+        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_calMonth-1]} ${toFa(_calYear)}</span>
+        <button onclick="calNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+    </div>
+    <div class="grid grid-cols-7 gap-y-1">
+        ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
+        ${cells}
+    </div>
+    ${_calSelDay?`<div class="mt-2 text-center"><button onclick="calSelectDay(${_calSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه صوت‌ها</button></div>`:''}`;
+}
+
 function toggleAudioSortDropdown() {
     const dd = document.getElementById('audio-sort-dropdown');
     if (dd) dd.classList.toggle('hidden');
@@ -1087,6 +1223,11 @@ async function loadAudioPlaylist(categoryId, title, count) {
         });
     });
     _currentAudioCatId = categoryId;
+    _calYear = 0; _calMonth = 0; _calSelDay = 0;
+    const _calWrap = document.getElementById('audio-calendar-wrap');
+    if (_calWrap) _calWrap.classList.add('hidden');
+    const _calBtn = document.getElementById('audio-cal-btn');
+    if (_calBtn) { _calBtn.style.background = ''; _calBtn.style.color = ''; }
     if (_mediaViewMode !== 'list') {
         _mediaViewMode = 'list';
         localStorage.setItem('mediaViewMode', 'list');
@@ -1135,20 +1276,25 @@ async function loadAudioPlaylist(categoryId, title, count) {
     } finally { setMediaLoading(false); }
 }
 
-function renderAudioTrackList() {
+function renderAudioTrackList(pairs) {
     const list = document.getElementById('audio-tracks-list');
     if(!list || !audioCurrentTracks.length) return;
+    const items = pairs || audioCurrentTracks.map((tr, i) => ({tr, i}));
+    if (!items.length) {
+        list.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-gray-400 gap-2"><i class="fas fa-calendar-times text-3xl opacity-20"></i><p class="text-xs font-bold opacity-50">صوتی در این تاریخ وجود ندارد</p></div>`;
+        return;
+    }
     list.className = _viewClasses('items') + ' w-full';
-    list.innerHTML = audioCurrentTracks.map((tr, idx) => {
+    list.innerHTML = items.map(({tr, i: idx}) => {
         const isActive = idx === audioCurrentIndex;
         const activeCls = isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50';
         const coverSrc = tr.cover || tr._catCover || '';
         const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
         const activeOverlay = isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : '';
-        // ذخیره موقت برای favorites
         window._mfTmp['audio_' + tr.id] = {id: tr.id, title: tr.title, artist: tr.artist||'', cover: coverSrc, url: tr.url||''};
         const isFav = _isFav('audio', tr.id);
         const favBtn = `<button class="mf-btn shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="audio" data-fid="${tr.id}" onclick="event.stopPropagation();toggleMediaFav('audio','${tr.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-xs"></i>' : '<i class="far fa-heart text-gray-300 text-xs"></i>'}</button>`;
+        const dateStr = tr.publish_date ? toFa(tr.publish_date) : '';
         if (_mediaViewMode === 'grid') return `
         <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)" class="${activeCls} rounded-2xl cursor-pointer transition-all active:scale-95 overflow-hidden shadow-sm flex flex-col relative">
             <div class="w-full aspect-square overflow-hidden relative bg-gray-100 flex items-center justify-center">${coverInner}${activeOverlay}</div>
@@ -1157,7 +1303,7 @@ function renderAudioTrackList() {
                     <h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug flex-1">${tr.title}</h4>
                     ${favBtn}
                 </div>
-                ${tr.publish_date ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'}">${tr.publish_date}</p>` : ''}
+                ${dateStr ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'}">${dateStr}</p>` : ''}
             </div>
         </div>`;
         const coverSize = _mediaViewMode === 'large' ? 'w-16 h-16' : 'w-11 h-11';
@@ -1168,7 +1314,7 @@ function renderAudioTrackList() {
             <div class="flex-1 min-w-0">
                 <h4 class="font-bold text-xs ${isActive?'text-brand-700':'text-gray-800'} line-clamp-1">${tr.title}</h4>
                 ${tr.artist ? `<p class="text-[10px] ${isActive?'text-brand-500':'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
-                ${tr.publish_date ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'} mt-0.5 dir-ltr text-right">${tr.publish_date}</p>` : ''}
+                ${dateStr ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'} mt-0.5">${dateStr}</p>` : ''}
             </div>
             ${favBtn}
         </div>`;
