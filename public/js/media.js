@@ -1152,9 +1152,12 @@ function renderAudioTrackList() {
         if (_mediaViewMode === 'grid') return `
         <div id="audio-track-item-${idx}" onclick="selectAudioTrack(${idx}, true)" class="${activeCls} rounded-2xl cursor-pointer transition-all active:scale-95 overflow-hidden shadow-sm flex flex-col relative">
             <div class="w-full aspect-square overflow-hidden relative bg-gray-100 flex items-center justify-center">${coverInner}${activeOverlay}</div>
-            <div class="p-2 flex items-start gap-1">
-                <h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug flex-1">${tr.title}</h4>
-                ${favBtn}
+            <div class="p-2 flex flex-col gap-1">
+                <div class="flex items-start gap-1">
+                    <h4 class="font-bold text-[10px] ${isActive?'text-brand-700':'text-gray-800'} line-clamp-2 leading-snug flex-1">${tr.title}</h4>
+                    ${favBtn}
+                </div>
+                ${tr.publish_date ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'}">${tr.publish_date}</p>` : ''}
             </div>
         </div>`;
         const coverSize = _mediaViewMode === 'large' ? 'w-16 h-16' : 'w-11 h-11';
@@ -1165,6 +1168,7 @@ function renderAudioTrackList() {
             <div class="flex-1 min-w-0">
                 <h4 class="font-bold text-xs ${isActive?'text-brand-700':'text-gray-800'} line-clamp-1">${tr.title}</h4>
                 ${tr.artist ? `<p class="text-[10px] ${isActive?'text-brand-500':'text-gray-400'} mt-0.5">${tr.artist}</p>` : ''}
+                ${tr.publish_date ? `<p class="text-[10px] ${isActive?'text-brand-400':'text-gray-400'} mt-0.5 dir-ltr text-right">${tr.publish_date}</p>` : ''}
             </div>
             ${favBtn}
         </div>`;
