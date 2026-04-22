@@ -505,8 +505,10 @@
                                     </button>
                                 </div>
                             </div>
+                            <button id="video-cal-btn" onclick="toggleVideoCalendar()" class="bg-gray-100 text-gray-500 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"><i class="fas fa-calendar-alt text-[11px]"></i></button>
                             <span id="video-count-badge" class="text-[10px] text-gray-400 font-medium shrink-0"></span>
                         </div>
+                        <div id="video-calendar-wrap" class="hidden bg-white p-3 rounded-2xl shadow-sm border border-gray-100"></div>
                         <div id="video-items-list" class="flex flex-col gap-3 w-full"></div>
                     </div>
 
@@ -738,8 +740,10 @@
                 <button id="btn-lectures-settings" onclick="openSettings()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm">
                     <i class="fas fa-font"></i>
                 </button>
+                <button id="lectures-cal-btn" onclick="toggleLecturesCalendar()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm"><i class="fas fa-calendar-alt text-sm"></i></button>
             </header>
-            
+            <div id="lectures-calendar-wrap" class="hidden shrink-0 bg-white border-b border-gray-100 px-3 pb-3 pt-1"></div>
+
             <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6 relative">
                 <!-- اسلایدر و بنر سخنرانی -->
                 <div id="lectures-slider-wrap" class="relative w-full overflow-hidden mb-4 rounded-2xl" style="display:none;">

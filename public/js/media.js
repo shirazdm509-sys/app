@@ -469,6 +469,11 @@ async function loadVideoList(categoryId, title, count) {
         });
     });
     _currentVideoCatId = categoryId;
+    _vCalYear = 0; _vCalMonth = 0; _vCalSelDay = 0;
+    const _vcw = document.getElementById('video-calendar-wrap');
+    if (_vcw) _vcw.classList.add('hidden');
+    const _vcb = document.getElementById('video-cal-btn');
+    if (_vcb) { _vcb.style.background = ''; _vcb.style.color = ''; }
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
@@ -490,41 +495,8 @@ async function loadVideoList(categoryId, title, count) {
         const items = await res.json();
         videoCachedItems = items;
 
-        list.className = _viewClasses('items') + ' w-full';
         if(items && items.length > 0) {
-            const playBtn = `<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-sm mr-[-1px]"></i></div></div>`;
-            list.innerHTML = items.map(v => {
-                const catCover = (v._catCover || '').replace(/'/g, "\\'");
-                const thumb = v.thumbnail || v._catCover || '';
-                const errHandler = `_videoImgErr(this,'${catCover}')`;
-                const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
-                // ذخیره موقت برای favorites
-                window._mfTmp['video_' + v.id] = {id: v.id, title: v.title, description: v.description||'', thumbnail: thumb, _catCover: v._catCover||'', embed_url: v.embed_url||''};
-                const isFav = _isFav('video', v.id);
-                const favBtn = `<button class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="video" data-fid="${v.id}" onclick="event.stopPropagation();toggleMediaFav('video','${v.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-sm"></i>' : '<i class="far fa-heart text-gray-300 text-sm"></i>'}</button>`;
-                if (_mediaViewMode === 'grid') return `
-                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
-                    <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
-                    <div class="px-2 py-2 flex items-start gap-1">
-                        <h4 onclick="playVideoItem(${v.id})" class="font-bold text-[11px] text-gray-800 line-clamp-2 leading-snug flex-1">${v.title}</h4>
-                        ${favBtn}
-                    </div>
-                </div>`;
-                if (_mediaViewMode === 'large') return `
-                <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col">
-                    <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
-                    <div class="p-3 flex items-start gap-2">
-                        <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[11px] text-gray-400 mt-1 line-clamp-2">${v.description}</p>`:''}</div>
-                        ${favBtn}
-                    </div>
-                </div>`;
-                return `
-                <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                    <div onclick="playVideoItem(${v.id})" class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}${playBtn}</div>
-                    <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.description?`<p class="text-[10px] text-gray-400 mt-1 line-clamp-1">${v.description}</p>`:''}</div>
-                    ${favBtn}
-                </div>`;
-            }).join('');
+            _renderVideoItems();
         } else {
             list.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
                 <i class="fas fa-video text-4xl opacity-20"></i>
@@ -568,6 +540,61 @@ function playVideoItem(itemId) {
     }
 }
 
+function _renderVideoItems(pairs) {
+    const list = document.getElementById('video-items-list');
+    if (!list) return;
+    const items = pairs || videoCachedItems.map((v, i) => ({v, i}));
+    list.className = _viewClasses('items') + ' w-full';
+    if (!items.length) {
+        list.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-gray-400 gap-2"><i class="fas fa-calendar-times text-3xl opacity-20"></i><p class="text-xs font-bold opacity-50">ویدیویی در این تاریخ وجود ندارد</p></div>`;
+        return;
+    }
+    const playBtn = `<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-sm mr-[-1px]"></i></div></div>`;
+    list.innerHTML = items.map(({v}) => {
+        const catCover = (v._catCover || '').replace(/'/g, "\\'");
+        const thumb = v.thumbnail || v._catCover || '';
+        const errHandler = `_videoImgErr(this,'${catCover}')`;
+        const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+        window._mfTmp['video_' + v.id] = {id: v.id, title: v.title, description: v.description||'', thumbnail: thumb, _catCover: v._catCover||'', embed_url: v.embed_url||''};
+        const isFav = _isFav('video', v.id);
+        const favBtn = `<button class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="video" data-fid="${v.id}" onclick="event.stopPropagation();toggleMediaFav('video','${v.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-sm"></i>' : '<i class="far fa-heart text-gray-300 text-sm"></i>'}</button>`;
+        const dateStr = v.publish_date ? `<p class="text-[10px] text-gray-400 mt-0.5">${toFa(v.publish_date)}</p>` : '';
+        if (_mediaViewMode === 'grid') return `
+        <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-lg transition-all active:scale-95 flex flex-col">
+            <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+            <div class="px-2 py-2 flex flex-col gap-0.5">
+                <div class="flex items-start gap-1">
+                    <h4 onclick="playVideoItem(${v.id})" class="font-bold text-[11px] text-gray-800 line-clamp-2 leading-snug flex-1">${v.title}</h4>
+                    ${favBtn}
+                </div>
+                ${dateStr}
+            </div>
+        </div>`;
+        if (_mediaViewMode === 'large') return `
+        <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col">
+            <div onclick="playVideoItem(${v.id})" class="w-full aspect-video bg-gray-900 overflow-hidden relative">${thumbHtml}${playBtn}</div>
+            <div class="p-3 flex items-start gap-2">
+                <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0">
+                    <h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
+                    ${v.description ? `<p class="text-[11px] text-gray-400 mt-1 line-clamp-2">${v.description}</p>` : ''}
+                    ${dateStr}
+                </div>
+                ${favBtn}
+            </div>
+        </div>`;
+        return `
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+            <div onclick="playVideoItem(${v.id})" class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}${playBtn}</div>
+            <div onclick="playVideoItem(${v.id})" class="flex-1 min-w-0">
+                <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
+                ${v.description ? `<p class="text-[10px] text-gray-400 mt-0.5 line-clamp-1">${v.description}</p>` : ''}
+                ${dateStr}
+            </div>
+            ${favBtn}
+        </div>`;
+    }).join('');
+}
+
 function backToVideoCategories() {
     _videoCatsLoaded = false;
     const catsView = document.getElementById('video-categories-view');
@@ -575,6 +602,11 @@ function backToVideoCategories() {
     const playerView = document.getElementById('video-player-view');
     if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
     if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
+    const _vCalWrap = document.getElementById('video-calendar-wrap');
+    if (_vCalWrap) _vCalWrap.classList.add('hidden');
+    const _vCalBtn = document.getElementById('video-cal-btn');
+    if (_vCalBtn) { _vCalBtn.style.background = ''; _vCalBtn.style.color = ''; }
+    _vCalYear = 0; _vCalMonth = 0; _vCalSelDay = 0;
     if(catsView) catsView.classList.remove('hidden');
     if(_videoNavStack.length > 0) {
         _videoNavStack.pop();
@@ -1190,6 +1222,85 @@ async function setAudioSort(sort) {
         btn.classList.toggle('text-gray-600', !active);
     });
     if (_currentAudioCatId) await withoutHistory(() => loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0));
+}
+
+// ===== تقویم ویدیو =====
+let _vCalYear = 0, _vCalMonth = 0, _vCalSelDay = 0;
+
+function toggleVideoCalendar() {
+    const wrap = document.getElementById('video-calendar-wrap');
+    const btn = document.getElementById('video-cal-btn');
+    if (!wrap) return;
+    if (wrap.classList.contains('hidden')) {
+        wrap.classList.remove('hidden');
+        if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
+        if (!_vCalYear) _vCalInitFromItems();
+        renderVideoCalendar();
+    } else {
+        wrap.classList.add('hidden');
+        if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    }
+}
+
+function _vCalInitFromItems() {
+    let found = null;
+    for (const v of videoCachedItems) { if (v.publish_date) { found = v.publish_date; break; } }
+    if (found) { const p = found.split('/'); _vCalYear = parseInt(p[0]); _vCalMonth = parseInt(p[1]); }
+    else { const [jy, jm] = _jalTodayParts(); _vCalYear = jy; _vCalMonth = jm; }
+    _vCalSelDay = 0;
+}
+
+function vCalNavMonth(dir) {
+    _vCalMonth += dir;
+    if (_vCalMonth > 12) { _vCalMonth = 1; _vCalYear++; }
+    if (_vCalMonth < 1) { _vCalMonth = 12; _vCalYear--; }
+    _vCalSelDay = 0;
+    _renderVideoItems();
+    renderVideoCalendar();
+}
+
+function vCalSelectDay(day) {
+    if (_vCalSelDay === day) { _vCalSelDay = 0; _renderVideoItems(); }
+    else {
+        _vCalSelDay = day;
+        const pairs = videoCachedItems.map((v, i) => ({v, i})).filter(({v}) => _jalMatchDate(v.publish_date, _vCalYear, _vCalMonth, day));
+        _renderVideoItems(pairs);
+    }
+    renderVideoCalendar();
+}
+
+function renderVideoCalendar() {
+    const wrap = document.getElementById('video-calendar-wrap');
+    if (!wrap || wrap.classList.contains('hidden')) return;
+    const dim = _jalDaysInMonth(_vCalYear, _vCalMonth), first = _jalFirstWeekday(_vCalYear, _vCalMonth);
+    const days = new Set();
+    for (const v of videoCachedItems) {
+        if (!v.publish_date) continue;
+        const p = v.publish_date.split('/');
+        if (parseInt(p[0]) === _vCalYear && parseInt(p[1]) === _vCalMonth) days.add(parseInt(p[2]));
+    }
+    const [ty, tm, td] = _jalTodayParts();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += `<div></div>`;
+    for (let d = 1; d <= dim; d++) {
+        const has = days.has(d), sel = _vCalSelDay === d, today = ty === _vCalYear && tm === _vCalMonth && td === d;
+        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
+        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
+        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
+        const click = has ? `onclick="vCalSelectDay(${d})"` : '';
+        cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
+    }
+    wrap.innerHTML = `
+    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+        <button onclick="vCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
+        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_vCalMonth-1]} ${toFa(_vCalYear)}</span>
+        <button onclick="vCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+    </div>
+    <div class="grid grid-cols-7 gap-y-1">
+        ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
+        ${cells}
+    </div>
+    ${_vCalSelDay ? `<div class="mt-2 text-center"><button onclick="vCalSelectDay(${_vCalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه ویدیوها</button></div>` : ''}`;
 }
 
 function toggleVideoSortDropdown() {

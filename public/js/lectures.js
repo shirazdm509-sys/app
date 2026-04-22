@@ -12,6 +12,118 @@ let wpState = { view: 'main', mainCat: { id: null, name: '' }, currentCat: { id:
 const TARGET_MAIN_CATS = ['تفسیر قرآن', 'محرم الحرام', 'مناسبت ها', 'رمضان المبارک'];
 let cachedPosts = [];
 
+// ===== تقویم سخنرانی =====
+let _lcalYear = 0, _lcalMonth = 0, _lcalSelDay = 0;
+
+function _postJalParts(post) {
+    const d = new Date(post.date);
+    return _gregToJal(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+function toggleLecturesCalendar() {
+    const wrap = document.getElementById('lectures-calendar-wrap');
+    const btn = document.getElementById('lectures-cal-btn');
+    if (!wrap) return;
+    if (wrap.classList.contains('hidden')) {
+        wrap.classList.remove('hidden');
+        if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
+        if (!_lcalYear) _lcalInitFromPosts();
+        renderLecturesCalendar();
+    } else {
+        wrap.classList.add('hidden');
+        if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    }
+}
+
+function _lcalHide() {
+    const wrap = document.getElementById('lectures-calendar-wrap');
+    if (wrap) wrap.classList.add('hidden');
+    const btn = document.getElementById('lectures-cal-btn');
+    if (btn) { btn.style.background = ''; btn.style.color = ''; btn.classList.add('hidden'); }
+    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0;
+}
+
+function _lcalInitFromPosts() {
+    if (cachedPosts.length) {
+        const [jy, jm] = _postJalParts(cachedPosts[0]);
+        _lcalYear = jy; _lcalMonth = jm;
+    } else {
+        const [jy, jm] = _jalTodayParts();
+        _lcalYear = jy; _lcalMonth = jm;
+    }
+    _lcalSelDay = 0;
+}
+
+function lcalNavMonth(dir) {
+    _lcalMonth += dir;
+    if (_lcalMonth > 12) { _lcalMonth = 1; _lcalYear++; }
+    if (_lcalMonth < 1) { _lcalMonth = 12; _lcalYear--; }
+    _lcalSelDay = 0;
+    _renderLecturesList();
+    renderLecturesCalendar();
+}
+
+function lcalSelectDay(day) {
+    if (_lcalSelDay === day) { _lcalSelDay = 0; _renderLecturesList(); }
+    else {
+        _lcalSelDay = day;
+        const pairs = cachedPosts.map((p, i) => ({p, i})).filter(({p}) => {
+            const [py, pm, pd] = _postJalParts(p);
+            return py === _lcalYear && pm === _lcalMonth && pd === day;
+        });
+        _renderLecturesList(pairs);
+    }
+    renderLecturesCalendar();
+}
+
+function renderLecturesCalendar() {
+    const wrap = document.getElementById('lectures-calendar-wrap');
+    if (!wrap || wrap.classList.contains('hidden')) return;
+    const dim = _jalDaysInMonth(_lcalYear, _lcalMonth), first = _jalFirstWeekday(_lcalYear, _lcalMonth);
+    const days = new Set();
+    for (const p of cachedPosts) {
+        const [py, pm, pd] = _postJalParts(p);
+        if (py === _lcalYear && pm === _lcalMonth) days.add(pd);
+    }
+    const [ty, tm, td] = _jalTodayParts();
+    let cells = '';
+    for (let i = 0; i < first; i++) cells += `<div></div>`;
+    for (let d = 1; d <= dim; d++) {
+        const has = days.has(d), sel = _lcalSelDay === d, today = ty === _lcalYear && tm === _lcalMonth && td === d;
+        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
+        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
+        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
+        const click = has ? `onclick="lcalSelectDay(${d})"` : '';
+        cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
+    }
+    wrap.innerHTML = `
+    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+        <button onclick="lcalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
+        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_lcalMonth-1]} ${toFa(_lcalYear)}</span>
+        <button onclick="lcalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
+    </div>
+    <div class="grid grid-cols-7 gap-y-1">
+        ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
+        ${cells}
+    </div>
+    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}`;
+}
+
+function _renderLecturesList(pairs) {
+    const postsView = document.getElementById('lectures-posts-view');
+    if (!postsView) return;
+    const items = pairs || cachedPosts.map((p, i) => ({p, i}));
+    if (!items.length) {
+        postsView.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400 gap-2"><i class="fas fa-calendar-times text-3xl opacity-20"></i><p class="text-xs font-bold opacity-50">سخنرانی‌ای در این تاریخ وجود ندارد</p></div>`;
+        return;
+    }
+    postsView.innerHTML = items.map(({p: post}) => {
+        let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+        const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
+        return `<div onclick="showWPSingleView(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">${imgUrl ? `<img src="${imgUrl}" class="w-20 h-20 rounded-xl object-contain bg-gray-100 shadow-sm shrink-0">` : `<div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-brand-300 text-2xl"></i></div>`}<div class="flex flex-col justify-center min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-2">${post.title.rendered}</h4><span class="text-[10px] text-gray-400 font-medium"><i class="far fa-calendar ml-1"></i>${date}</span></div></div>`;
+    }).join('');
+}
+
 // ====================================================
 // توابع سخنرانی‌ها (WP)
 // ====================================================
@@ -55,6 +167,7 @@ function renderCategoryGrid(cats, isMainView = false) {
 
 function showWPMainCategories() {
     exitReadingMode();
+    _lcalHide();
     wpState.view = 'main';
     document.getElementById('lectures-header-title').textContent = 'سخنرانی‌ها';
     document.getElementById('lectures-posts-view').classList.add('hidden');
@@ -79,6 +192,7 @@ function handleCategoryClick(catId, catName) {
 function showWPSubCategories(parentId, parentName, children) {
     _pnh(function() { withoutHistory(showWPMainCategories); });
     exitReadingMode();
+    _lcalHide();
     wpState.view = 'sub';
     document.getElementById('lectures-header-title').textContent = parentName;
     document.getElementById('lectures-posts-view').classList.add('hidden');
@@ -104,6 +218,7 @@ async function showWPPostsView(catId, catName) {
     exitReadingMode();
     wpState.view = 'posts';
     wpState.currentCat = { id: catId, name: catName };
+    _lcalHide();
     document.getElementById('lectures-categories-view').classList.add('hidden');
     document.getElementById('lectures-single-view').classList.add('hidden');
     document.getElementById('lectures-single-view').classList.remove('flex');
@@ -112,6 +227,9 @@ async function showWPPostsView(catId, catName) {
     postsView.classList.add('flex');
     postsView.innerHTML = '';
     document.getElementById('lectures-header-title').textContent = catName;
+    // نشان دادن دکمه تقویم
+    const _lCalBtn = document.getElementById('lectures-cal-btn');
+    if (_lCalBtn) _lCalBtn.classList.remove('hidden');
 
     setWPLoading(true);
     try {
@@ -122,11 +240,7 @@ async function showWPPostsView(catId, catName) {
         if(!Array.isArray(cachedPosts) || cachedPosts.length === 0) {
             postsView.innerHTML = `<div class="text-center py-20 text-gray-400 text-sm font-bold">هیچ نوشته‌ای در این بخش یافت نشد.</div>`;
         } else {
-            postsView.innerHTML = cachedPosts.map(post => {
-                let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
-                const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
-                return `<div onclick="showWPSingleView(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">${imgUrl ? `<img src="${imgUrl}" class="w-20 h-20 rounded-xl object-contain bg-gray-100 shadow-sm shrink-0">` : `<div class="w-20 h-20 bg-brand-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-brand-300 text-2xl"></i></div>`}<div class="flex flex-col justify-center min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-2">${post.title.rendered}</h4><span class="text-[10px] text-gray-400 font-medium"><i class="far fa-calendar ml-1"></i>${date}</span></div></div>`;
-            }).join('');
+            _renderLecturesList();
         }
     } catch (e) {
         postsView.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-gray-400"><p class="text-sm font-bold">خطا در دریافت نوشته‌ها</p><button onclick="showWPPostsView(${catId}, '${catName}')" class="mt-4 bg-brand-50 text-brand-600 px-5 py-2 rounded-full text-xs font-bold shadow-sm">تلاش مجدد</button></div>`;
@@ -321,6 +435,11 @@ async function showWPSingleView(postId) {
     if (screen) screen.classList.add('reading-mode');
     const btnSet = document.getElementById('btn-lectures-settings');
     if (btnSet) btnSet.classList.remove('hidden');
+    // مخفی کردن تقویم هنگام ورود به حالت خواندن
+    const _lcwSingle = document.getElementById('lectures-calendar-wrap');
+    if (_lcwSingle) _lcwSingle.classList.add('hidden');
+    const _lcbSingle = document.getElementById('lectures-cal-btn');
+    if (_lcbSingle) { _lcbSingle.classList.add('hidden'); _lcbSingle.style.background = ''; _lcbSingle.style.color = ''; }
 
     document.getElementById('lectures-categories-view').classList.add('hidden');
     document.getElementById('lectures-posts-view').classList.remove('flex');
