@@ -260,7 +260,7 @@ function _buildAudioHtml(tracks) {
     const multi = tracks.length > 1;
     const uid = 'pa' + (Date.now() % 999999);
     let h = `<div class="bg-brand-50/50 p-4 rounded-2xl mb-6 border border-brand-100 shadow-sm">`;
-    h += `<h3 class="font-bold text-sm text-brand-800 mb-3"><i class="fas fa-headphones-alt ml-2 text-brand-600"></i>${multi ? 'فایل‌های صوتی (' + toFa(tracks.length) + ')' : 'فایل صوتی'}</h3>`;
+    if (multi || !tracks[0].title) h += `<h3 class="font-bold text-sm text-brand-800 mb-3"><i class="fas fa-headphones-alt ml-2 text-brand-600"></i>${multi ? 'فایل‌های صوتی (' + toFa(tracks.length) + ')' : 'فایل صوتی'}</h3>`;
     if (!multi) {
         const tr = tracks[0];
         h += `<div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">`;
