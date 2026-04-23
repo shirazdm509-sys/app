@@ -1144,6 +1144,7 @@ async function setAudioSort(sort) {
 let _gCalYear = 0, _gCalMonth = 0, _gCalSelDay = 0;
 let _gCalAudio = [], _gCalVideo = [], _gCalLoaded = {audio: false, video: false};
 let _gCalHidPlView = false;
+let _gCalPicker = false, _gCalPickerYear = 0;
 
 function _gCalActiveTab() {
     return ['audio','video','photo','favorites'].find(t => {
@@ -1191,7 +1192,7 @@ function closeGlobalCal() {
         if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
         if (hdrBar) hdrBar.classList.remove('hidden');
     }
-    _gCalYear = 0; _gCalMonth = 0; _gCalSelDay = 0;
+    _gCalYear = 0; _gCalMonth = 0; _gCalSelDay = 0; _gCalPicker = false;
 }
 
 function gCalNavMonth(dir) {
@@ -1224,11 +1225,63 @@ function gCalSelectDay(day) {
     _renderGlobalCalResults();
 }
 
+function gCalTogglePicker() {
+    _gCalPicker = !_gCalPicker;
+    _gCalPickerYear = _gCalYear;
+    _renderGlobalCal();
+}
+function gCalPickerSelYear(y) {
+    _gCalPickerYear = y;
+    _renderGlobalCal();
+}
+function gCalSetYM(m) {
+    _gCalYear = _gCalPickerYear;
+    _gCalMonth = m;
+    _gCalSelDay = 0;
+    _gCalPicker = false;
+    _renderGlobalCal();
+    _renderGlobalCalResults();
+}
+
 function _renderGlobalCal() {
     const wrap = document.getElementById('global-cal-wrap');
     if (!wrap || wrap.classList.contains('hidden')) return;
     const tab = _gCalActiveTab();
     const items = tab === 'audio' ? _gCalAudio : _gCalVideo;
+
+    // استخراج سال‌های موجود در داده
+    const yearSet = new Set();
+    for (const it of items) {
+        if (it.publish_date) yearSet.add(parseInt(it.publish_date.split('/')[0]));
+    }
+    const years = [...yearSet].sort((a, b) => b - a);
+
+    const header = `
+    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
+        ${_gCalPicker ? '' : `<button onclick="gCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>`}
+        <button onclick="gCalTogglePicker()" class="text-xs font-bold text-gray-700 flex-1 text-center hover:text-teal-600 transition">
+            ${_gCalPicker ? `انتخاب ماه <i class="fas fa-times text-[9px] mr-1 text-gray-400"></i>` : `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} <i class="fas fa-chevron-down text-[9px] mr-1 text-gray-400"></i>`}
+        </button>
+        ${_gCalPicker ? '' : `<button onclick="gCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>`}
+        <button onclick="closeGlobalCal()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
+    </div>`;
+
+    if (_gCalPicker) {
+        const yearBtns = years.map(y => {
+            const sel = y === _gCalPickerYear;
+            return `<button onclick="gCalPickerSelYear(${y})" class="py-1 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${toFa(y)}</button>`;
+        }).join('');
+        const monthBtns = _jalMonthNames.map((mn, i) => {
+            const sel = (i + 1) === _gCalMonth && _gCalPickerYear === _gCalYear;
+            return `<button onclick="gCalSetYM(${i + 1})" class="py-1.5 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${mn}</button>`;
+        }).join('');
+        wrap.innerHTML = header + `
+        <div class="grid grid-cols-4 gap-1 mb-3">${yearBtns}</div>
+        <hr class="border-gray-100 mb-2">
+        <div class="grid grid-cols-4 gap-1">${monthBtns}</div>`;
+        return;
+    }
+
     const dim = _jalDaysInMonth(_gCalYear, _gCalMonth), first = _jalFirstWeekday(_gCalYear, _gCalMonth);
     const days = new Set();
     for (const it of items) {
@@ -1247,13 +1300,7 @@ function _renderGlobalCal() {
         const click = has ? `onclick="gCalSelectDay(${d})"` : '';
         cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
     }
-    wrap.innerHTML = `
-    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
-        <button onclick="gCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)}</span>
-        <button onclick="gCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
-        <button onclick="closeGlobalCal()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
-    </div>
+    wrap.innerHTML = header + `
     <div class="grid grid-cols-7 gap-y-1">
         ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
         ${cells}

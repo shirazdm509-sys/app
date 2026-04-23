@@ -16,6 +16,7 @@ let cachedPosts = [];
 let _lcalYear = 0, _lcalMonth = 0, _lcalSelDay = 0;
 let _lcalAllPosts = [];
 let _lcalFromCatView = false;
+let _lcalPicker = false, _lcalPickerYear = 0;
 
 function _postJalParts(post) {
     const d = new Date(post.date);
@@ -49,7 +50,7 @@ function _lcalHide() {
     if (wrap) wrap.classList.add('hidden');
     const btn = document.getElementById('lectures-cal-btn');
     if (btn) { btn.style.background = ''; btn.style.color = ''; }
-    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0; _lcalFromCatView = false;
+    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0; _lcalFromCatView = false; _lcalPicker = false;
 }
 
 function _lcalInitFromPosts() {
@@ -109,16 +110,74 @@ function lcalSelectDay(day) {
     renderLecturesCalendar();
 }
 
+function lcalTogglePicker() {
+    _lcalPicker = !_lcalPicker;
+    _lcalPickerYear = _lcalYear;
+    renderLecturesCalendar();
+}
+function lcalPickerSelYear(y) {
+    _lcalPickerYear = y;
+    renderLecturesCalendar();
+}
+function lcalSetYM(m) {
+    _lcalYear = _lcalPickerYear;
+    _lcalMonth = m;
+    _lcalSelDay = 0;
+    _lcalPicker = false;
+    if (_lcalFromCatView) {
+        const postsView = document.getElementById('lectures-posts-view');
+        const catView = document.getElementById('lectures-categories-view');
+        if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
+        if (catView) catView.classList.remove('hidden');
+        _lcalFromCatView = false;
+    } else if (wpState.view === 'posts') {
+        _renderLecturesList();
+    }
+    renderLecturesCalendar();
+}
+
 function renderLecturesCalendar() {
     const wrap = document.getElementById('lectures-calendar-wrap');
     if (!wrap || wrap.classList.contains('hidden')) return;
-    const dim = _jalDaysInMonth(_lcalYear, _lcalMonth), first = _jalFirstWeekday(_lcalYear, _lcalMonth);
-    const days = new Set();
     const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
+
+    // استخراج سال‌های موجود
+    const yearSet = new Set();
+    for (const p of src) { try { yearSet.add(_postJalParts(p)[0]); } catch(e) {} }
+    const years = [...yearSet].sort((a, b) => b - a);
+
+    const header = `
+    <div class="flex items-center justify-between mb-2 px-1 pt-1">
+        ${_lcalPicker ? '' : `<button onclick="lcalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>`}
+        <button onclick="lcalTogglePicker()" class="text-xs font-bold text-gray-700 flex-1 text-center hover:text-teal-600 transition">
+            ${_lcalPicker ? `انتخاب ماه <i class="fas fa-times text-[9px] mr-1 text-gray-400"></i>` : `${_jalMonthNames[_lcalMonth-1]} ${toFa(_lcalYear)} <i class="fas fa-chevron-down text-[9px] mr-1 text-gray-400"></i>`}
+        </button>
+        ${_lcalPicker ? '' : `<button onclick="lcalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>`}
+        <button onclick="toggleLecturesCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
+    </div>`;
+
+    if (_lcalPicker) {
+        const yearBtns = years.map(y => {
+            const sel = y === _lcalPickerYear;
+            return `<button onclick="lcalPickerSelYear(${y})" class="py-1 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${toFa(y)}</button>`;
+        }).join('');
+        const monthBtns = _jalMonthNames.map((mn, i) => {
+            const sel = (i + 1) === _lcalMonth && _lcalPickerYear === _lcalYear;
+            return `<button onclick="lcalSetYM(${i + 1})" class="py-1.5 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${mn}</button>`;
+        }).join('');
+        wrap.innerHTML = header + `
+        <div class="grid grid-cols-4 gap-1 mb-3">${yearBtns}</div>
+        <hr class="border-gray-100 mb-2">
+        <div class="grid grid-cols-4 gap-1">${monthBtns}</div>`;
+        return;
+    }
+
+    const days = new Set();
     for (const p of src) {
         const [py, pm, pd] = _postJalParts(p);
         if (py === _lcalYear && pm === _lcalMonth) days.add(pd);
     }
+    const dim = _jalDaysInMonth(_lcalYear, _lcalMonth), first = _jalFirstWeekday(_lcalYear, _lcalMonth);
     const [ty, tm, td] = _jalTodayParts();
     let cells = '';
     for (let i = 0; i < first; i++) cells += `<div></div>`;
@@ -130,18 +189,12 @@ function renderLecturesCalendar() {
         const click = has ? `onclick="lcalSelectDay(${d})"` : '';
         cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
     }
-    wrap.innerHTML = `
-    <div class="flex items-center justify-between mb-2 px-1 pt-1">
-        <button onclick="lcalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700">${_jalMonthNames[_lcalMonth-1]} ${toFa(_lcalYear)}</span>
-        <button onclick="lcalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
-    </div>
+    wrap.innerHTML = header + `
     <div class="grid grid-cols-7 gap-y-1">
         ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
         ${cells}
     </div>
-    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}
-    <div class="mt-2 text-left"><button onclick="toggleLecturesCalendar()" class="text-[11px] text-gray-400 hover:text-gray-600 font-bold px-2">✕ بستن</button></div>`;
+    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}`;
 }
 
 function _renderLecturesList(pairs) {
