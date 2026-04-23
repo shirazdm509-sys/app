@@ -223,8 +223,7 @@ function setMediaViewMode(mode) {
         const apv = document.getElementById('audio-playlist-view');
         if (acv && !acv.classList.contains('hidden')) { _audioCatsLoaded=false; const top=_audioNavStack[_audioNavStack.length-1]; withoutHistory(()=>loadAudioCategories(top?top.id:null,top?top.name:'')); }
         else if (apv && !apv.classList.contains('hidden') && audioCurrentTracks.length) {
-            if (_calSelDay) { const _fp=audioCurrentTracks.map((t,i)=>({tr:t,i})).filter(({tr:t})=>_jalMatchDate(t.publish_date,_calYear,_calMonth,_calSelDay)); renderAudioTrackList(_fp); }
-            else renderAudioTrackList();
+            renderAudioTrackList();
         }
     } else if (photoContent && photoContent.style.display !== 'none') {
         const gcv = document.getElementById('gallery-categories-view');
@@ -478,11 +477,6 @@ async function loadVideoList(categoryId, title, count) {
         });
     });
     _currentVideoCatId = categoryId;
-    _vCalYear = 0; _vCalMonth = 0; _vCalSelDay = 0;
-    const _vcw = document.getElementById('video-calendar-wrap');
-    if (_vcw) _vcw.classList.add('hidden');
-    const _vcb = document.getElementById('video-cal-btn');
-    if (_vcb) { _vcb.style.background = ''; _vcb.style.color = ''; }
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
@@ -611,11 +605,6 @@ function backToVideoCategories() {
     const playerView = document.getElementById('video-player-view');
     if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
     if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
-    const _vCalWrap = document.getElementById('video-calendar-wrap');
-    if (_vCalWrap) _vCalWrap.classList.add('hidden');
-    const _vCalBtn = document.getElementById('video-cal-btn');
-    if (_vCalBtn) { _vCalBtn.style.background = ''; _vCalBtn.style.color = ''; }
-    _vCalYear = 0; _vCalMonth = 0; _vCalSelDay = 0;
     if(catsView) catsView.classList.remove('hidden');
     if(_videoNavStack.length > 0) {
         _videoNavStack.pop();
@@ -1080,8 +1069,6 @@ let _videoSort = 'order'; // order | date
 // ===== تقویم شمسی =====
 const _jalMonthNames = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const _jalDayHdrs = ['ش','ی','د','س','چ','پ','ج'];
-let _calYear = 0, _calMonth = 0, _calSelDay = 0;
-
 function _jalDaysInMonth(jy, jm) {
     if (jm <= 6) return 31;
     if (jm <= 11) return 30;
@@ -1133,87 +1120,6 @@ function _jalMatchDate(dateStr, y, m, d) {
     return parseInt(p[0])===y&&parseInt(p[1])===m&&parseInt(p[2])===d;
 }
 
-function toggleAudioCalendar() {
-    const wrap=document.getElementById('audio-calendar-wrap');
-    const btn=document.getElementById('audio-cal-btn');
-    if(!wrap)return;
-    if(wrap.classList.contains('hidden')){
-        wrap.classList.remove('hidden');
-        if(btn){btn.style.background='#ccfbf1';btn.style.color='#0d9488';}
-        if(!_calYear)_calInitFromTracks();
-        renderAudioCalendar();
-    } else {
-        wrap.classList.add('hidden');
-        if(btn){btn.style.background='';btn.style.color='';}
-    }
-}
-
-function _calInitFromTracks() {
-    let found=null;
-    for(const tr of audioCurrentTracks){if(tr.publish_date){found=tr.publish_date;break;}}
-    if(found){const p=found.split('/');_calYear=parseInt(p[0]);_calMonth=parseInt(p[1]);}
-    else{const[jy,jm]=_jalTodayParts();_calYear=jy;_calMonth=jm;}
-    _calSelDay=0;
-}
-
-function calNavMonth(dir) {
-    _calMonth+=dir;
-    if(_calMonth>12){_calMonth=1;_calYear++;}
-    if(_calMonth<1){_calMonth=12;_calYear--;}
-    _calSelDay=0;
-    renderAudioTrackList();
-    renderAudioCalendar();
-}
-
-function calSelectDay(day) {
-    if(_calSelDay===day){_calSelDay=0;renderAudioTrackList();}
-    else{
-        _calSelDay=day;
-        const pairs=audioCurrentTracks.map((tr,i)=>({tr,i})).filter(({tr})=>_jalMatchDate(tr.publish_date,_calYear,_calMonth,day));
-        renderAudioTrackList(pairs);
-    }
-    renderAudioCalendar();
-}
-
-function renderAudioCalendar() {
-    const wrap=document.getElementById('audio-calendar-wrap');
-    if(!wrap||wrap.classList.contains('hidden'))return;
-    const dim=_jalDaysInMonth(_calYear,_calMonth);
-    const first=_jalFirstWeekday(_calYear,_calMonth);
-    const trackDays=new Set();
-    for(const tr of audioCurrentTracks){
-        if(!tr.publish_date)continue;
-        const p=tr.publish_date.split('/');
-        if(parseInt(p[0])===_calYear&&parseInt(p[1])===_calMonth)trackDays.add(parseInt(p[2]));
-    }
-    const[ty,tm,td]=_jalTodayParts();
-    let cells='';
-    for(let i=0;i<first;i++)cells+=`<div></div>`;
-    for(let d=1;d<=dim;d++){
-        const has=trackDays.has(d),sel=_calSelDay===d,today=ty===_calYear&&tm===_calMonth&&td===d;
-        let cls='w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
-        if(sel)cls+='text-white';
-        else if(has)cls+='text-teal-700';
-        else if(today)cls+='text-teal-500 border border-teal-300';
-        else cls+='text-gray-400';
-        const bg=sel?'style="background:#0d9488"':has?'style="background:#ccfbf1;cursor:pointer"':'';
-        const click=has?`onclick="calSelectDay(${d})"`:'';
-        cells+=`<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
-    }
-    wrap.innerHTML=`
-    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
-        <button onclick="calNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_calMonth-1]} ${toFa(_calYear)}</span>
-        <button onclick="calNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
-        <button onclick="toggleAudioCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
-    </div>
-    <div class="grid grid-cols-7 gap-y-1">
-        ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
-        ${cells}
-    </div>
-    ${_calSelDay?`<div class="mt-2 text-center"><button onclick="calSelectDay(${_calSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه صوت‌ها</button></div>`:''}`;
-}
-
 function toggleAudioSortDropdown() {
     const dd = document.getElementById('audio-sort-dropdown');
     if (dd) dd.classList.toggle('hidden');
@@ -1237,6 +1143,7 @@ async function setAudioSort(sort) {
 // ===== تقویم سراسری رسانه =====
 let _gCalYear = 0, _gCalMonth = 0, _gCalSelDay = 0;
 let _gCalAudio = [], _gCalVideo = [], _gCalLoaded = {audio: false, video: false};
+let _gCalHidPlView = false;
 
 function _gCalActiveTab() {
     return ['audio','video','photo','favorites'].find(t => {
@@ -1277,6 +1184,13 @@ function closeGlobalCal() {
     if (btn) { btn.style.background = ''; btn.style.color = ''; }
     const res = document.getElementById('global-cal-results');
     if (res) res.remove();
+    if (_gCalHidPlView) {
+        _gCalHidPlView = false;
+        const plView = document.getElementById('audio-playlist-view');
+        const hdrBar = document.getElementById('audio-playlist-header-bar');
+        if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+        if (hdrBar) hdrBar.classList.remove('hidden');
+    }
     _gCalYear = 0; _gCalMonth = 0; _gCalSelDay = 0;
 }
 
@@ -1291,6 +1205,21 @@ function gCalNavMonth(dir) {
 
 function gCalSelectDay(day) {
     _gCalSelDay = _gCalSelDay === day ? 0 : day;
+    const tab = _gCalActiveTab();
+    if (tab === 'audio') {
+        const plView = document.getElementById('audio-playlist-view');
+        const hdrBar = document.getElementById('audio-playlist-header-bar');
+        const plVisible = plView && !plView.classList.contains('hidden');
+        if (_gCalSelDay && plVisible) {
+            _gCalHidPlView = true;
+            plView.classList.add('hidden'); plView.classList.remove('flex');
+            if (hdrBar) hdrBar.classList.add('hidden');
+        } else if (!_gCalSelDay && _gCalHidPlView) {
+            _gCalHidPlView = false;
+            if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
+            if (hdrBar) hdrBar.classList.remove('hidden');
+        }
+    }
     _renderGlobalCal();
     _renderGlobalCalResults();
 }
@@ -1373,9 +1302,11 @@ function _renderGlobalCalResults() {
 
 function _gCalPlayAudio(idx) {
     const tracks = _gCalAudio.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
+    const _savedYear = _gCalYear, _savedMonth = _gCalMonth, _savedDay = _gCalSelDay;
     audioCurrentTracks = tracks;
     audioCurrentIndex = -1;
     _currentAudioCatId = null;
+    _gCalHidPlView = false;
     closeGlobalCal();
     const catsView = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
@@ -1384,12 +1315,13 @@ function _gCalPlayAudio(idx) {
     const hdrBar = document.getElementById('audio-playlist-header-bar');
     if (hdrBar) hdrBar.classList.remove('hidden');
     const titleEl = document.getElementById('audio-cat-title');
-    if (titleEl) titleEl.textContent = `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} - روز ${toFa(_gCalSelDay)}`;
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[_savedMonth-1]} ${toFa(_savedYear)} - روز ${toFa(_savedDay)}`;
     selectAudioTrack(idx, true);
 }
 
 function _gCalPlayVideo(itemId) {
     const filtered = _gCalVideo.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
+    const _savedYear = _gCalYear, _savedMonth = _gCalMonth, _savedDay = _gCalSelDay;
     videoCachedItems = filtered;
     closeGlobalCal();
     const catsView = document.getElementById('video-categories-view');
@@ -1397,89 +1329,9 @@ function _gCalPlayVideo(itemId) {
     const listView = document.getElementById('video-list-view');
     if (listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
     const titleEl = document.getElementById('video-cat-title');
-    if (titleEl) titleEl.textContent = `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} - روز ${toFa(_gCalSelDay)}`;
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[_savedMonth-1]} ${toFa(_savedYear)} - روز ${toFa(_savedDay)}`;
     _renderVideoItems();
     playVideoItem(parseInt(itemId));
-}
-
-// ===== تقویم ویدیو =====
-let _vCalYear = 0, _vCalMonth = 0, _vCalSelDay = 0;
-
-function toggleVideoCalendar() {
-    const wrap = document.getElementById('video-calendar-wrap');
-    const btn = document.getElementById('video-cal-btn');
-    if (!wrap) return;
-    if (wrap.classList.contains('hidden')) {
-        wrap.classList.remove('hidden');
-        if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
-        if (!_vCalYear) _vCalInitFromItems();
-        renderVideoCalendar();
-    } else {
-        wrap.classList.add('hidden');
-        if (btn) { btn.style.background = ''; btn.style.color = ''; }
-    }
-}
-
-function _vCalInitFromItems() {
-    let found = null;
-    for (const v of videoCachedItems) { if (v.publish_date) { found = v.publish_date; break; } }
-    if (found) { const p = found.split('/'); _vCalYear = parseInt(p[0]); _vCalMonth = parseInt(p[1]); }
-    else { const [jy, jm] = _jalTodayParts(); _vCalYear = jy; _vCalMonth = jm; }
-    _vCalSelDay = 0;
-}
-
-function vCalNavMonth(dir) {
-    _vCalMonth += dir;
-    if (_vCalMonth > 12) { _vCalMonth = 1; _vCalYear++; }
-    if (_vCalMonth < 1) { _vCalMonth = 12; _vCalYear--; }
-    _vCalSelDay = 0;
-    _renderVideoItems();
-    renderVideoCalendar();
-}
-
-function vCalSelectDay(day) {
-    if (_vCalSelDay === day) { _vCalSelDay = 0; _renderVideoItems(); }
-    else {
-        _vCalSelDay = day;
-        const pairs = videoCachedItems.map((v, i) => ({v, i})).filter(({v}) => _jalMatchDate(v.publish_date, _vCalYear, _vCalMonth, day));
-        _renderVideoItems(pairs);
-    }
-    renderVideoCalendar();
-}
-
-function renderVideoCalendar() {
-    const wrap = document.getElementById('video-calendar-wrap');
-    if (!wrap || wrap.classList.contains('hidden')) return;
-    const dim = _jalDaysInMonth(_vCalYear, _vCalMonth), first = _jalFirstWeekday(_vCalYear, _vCalMonth);
-    const days = new Set();
-    for (const v of videoCachedItems) {
-        if (!v.publish_date) continue;
-        const p = v.publish_date.split('/');
-        if (parseInt(p[0]) === _vCalYear && parseInt(p[1]) === _vCalMonth) days.add(parseInt(p[2]));
-    }
-    const [ty, tm, td] = _jalTodayParts();
-    let cells = '';
-    for (let i = 0; i < first; i++) cells += `<div></div>`;
-    for (let d = 1; d <= dim; d++) {
-        const has = days.has(d), sel = _vCalSelDay === d, today = ty === _vCalYear && tm === _vCalMonth && td === d;
-        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
-        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
-        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
-        const click = has ? `onclick="vCalSelectDay(${d})"` : '';
-        cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
-    }
-    wrap.innerHTML = `
-    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
-        <button onclick="vCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>
-        <span class="text-xs font-bold text-gray-700 flex-1 text-center">${_jalMonthNames[_vCalMonth-1]} ${toFa(_vCalYear)}</span>
-        <button onclick="vCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>
-        <button onclick="toggleVideoCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
-    </div>
-    <div class="grid grid-cols-7 gap-y-1">
-        ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
-        ${cells}
-    </div>
-    ${_vCalSelDay ? `<div class="mt-2 text-center"><button onclick="vCalSelectDay(${_vCalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه ویدیوها</button></div>` : ''}`;
 }
 
 function toggleVideoSortDropdown() {
@@ -1513,11 +1365,6 @@ async function loadAudioPlaylist(categoryId, title, count) {
         });
     });
     _currentAudioCatId = categoryId;
-    _calYear = 0; _calMonth = 0; _calSelDay = 0;
-    const _calWrap = document.getElementById('audio-calendar-wrap');
-    if (_calWrap) _calWrap.classList.add('hidden');
-    const _calBtn = document.getElementById('audio-cal-btn');
-    if (_calBtn) { _calBtn.style.background = ''; _calBtn.style.color = ''; }
     if (_mediaViewMode !== 'list') {
         _mediaViewMode = 'list';
         localStorage.setItem('mediaViewMode', 'list');
@@ -1643,12 +1490,7 @@ function selectAudioTrack(idx, autoPlay) {
     el.load();
     if(autoPlay) el.play().catch(()=>{});
 
-    if (_calSelDay) {
-        const _fp = audioCurrentTracks.map((t,i) => ({tr:t,i})).filter(({tr:t}) => _jalMatchDate(t.publish_date, _calYear, _calMonth, _calSelDay));
-        renderAudioTrackList(_fp);
-    } else {
-        renderAudioTrackList();
-    }
+    renderAudioTrackList();
 
     // Scroll track into view
     setTimeout(()=>{
@@ -1729,11 +1571,6 @@ function backToAudioCategories() {
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     const _hdrBar2 = document.getElementById('audio-playlist-header-bar');
     if(_hdrBar2) _hdrBar2.classList.add('hidden');
-    const _calWrap = document.getElementById('audio-calendar-wrap');
-    if(_calWrap) _calWrap.classList.add('hidden');
-    const _calBtn = document.getElementById('audio-cal-btn');
-    if(_calBtn) { _calBtn.style.background = ''; _calBtn.style.color = ''; }
-    _calSelDay = 0;
     if(catsView) catsView.classList.remove('hidden');
     if(_audioNavStack.length > 0) {
         _audioNavStack.pop();
