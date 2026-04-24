@@ -427,7 +427,7 @@
                         <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all">عکس</button>
                         <button onclick="switchMediaTab('favorites')" id="tab-media-favorites" class="flex-1 py-2 text-sm font-bold rounded-lg text-gray-500 transition-all"><i class="far fa-heart"></i></button>
                     </div>
-                    <button id="global-cal-btn" onclick="toggleGlobalCal()" class="hidden w-9 h-9 flex items-center justify-center bg-gray-100 rounded-xl text-gray-500 transition-colors shrink-0"><i class="fas fa-calendar-alt text-sm"></i></button>
+                    <button id="global-cal-btn" onclick="openCalendarScreen()" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-xl text-gray-500 transition-colors shrink-0"><i class="fas fa-calendar-alt text-sm"></i></button>
                     <div class="relative shrink-0">
                         <button onclick="toggleViewModeDropdown()" id="view-mode-trigger" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-xl transition text-gray-500 hover:bg-gray-200">
                             <i id="view-mode-icon" class="fas fa-th text-sm"></i>
@@ -448,7 +448,6 @@
             </header>
 
             <!-- تقویم سراسری رسانه -->
-            <div id="global-cal-wrap" class="hidden shrink-0 bg-white border-b border-gray-100 px-3 pb-3 pt-1 z-10"></div>
 
             <!-- نوار عنوان پلی‌لیست صوت — خارج از scroll تا همیشه بالا بچسبه -->
             <div id="audio-playlist-header-bar" class="hidden shrink-0 bg-white px-4 py-2 border-b border-gray-100 shadow-sm z-10">
@@ -739,9 +738,8 @@
                 <button id="btn-lectures-settings" onclick="openSettings()" class="hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm">
                     <i class="fas fa-font"></i>
                 </button>
-                <button id="lectures-cal-btn" onclick="toggleLecturesCalendar()" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm"><i class="fas fa-calendar-alt text-sm"></i></button>
+                <button id="lectures-cal-btn" onclick="openCalendarScreen('lecture')" class="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full text-gray-500 hover:bg-gray-100 transition shrink-0 ml-2 shadow-sm"><i class="fas fa-calendar-alt text-sm"></i></button>
             </header>
-            <div id="lectures-calendar-wrap" class="hidden shrink-0 bg-white border-b border-gray-100 px-3 pb-3 pt-1"></div>
 
             <div class="flex-1 overflow-y-auto px-6 pb-20 pt-6 relative">
                 <!-- اسلایدر و بنر سخنرانی -->
@@ -1402,6 +1400,35 @@
   <button onclick="document.getElementById('pwa-fab').classList.add('hidden')" class="w-6 h-6 bg-gray-700/80 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition" title="بستن">
     <i class="fas fa-times text-[10px]"></i>
   </button>
+</div>
+
+<!-- ===== صفحه تقویم ===== -->
+<div id="calendar-screen" class="fixed inset-0 bg-gray-50 z-[300] flex-col hidden" dir="rtl">
+  <!-- هدر -->
+  <div class="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 shadow-sm shrink-0">
+    <button onclick="closeCalendarScreen()" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition shrink-0">
+      <i class="fas fa-arrow-right text-sm"></i>
+    </button>
+    <h2 class="font-bold text-base text-gray-800 flex-1 text-center">تقویم</h2>
+    <div class="w-9"></div>
+  </div>
+  <!-- تب‌ها -->
+  <div class="flex gap-2 px-4 py-2.5 bg-white border-b border-gray-100 shrink-0">
+    <button id="cs-tab-audio" onclick="csSetTab('audio')" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-teal-500 text-white">
+      <i class="fas fa-headphones ml-1"></i>صوت
+    </button>
+    <button id="cs-tab-video" onclick="csSetTab('video')" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-gray-100 text-gray-500">
+      <i class="fas fa-film ml-1"></i>فیلم
+    </button>
+    <button id="cs-tab-lecture" onclick="csSetTab('lecture')" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-gray-100 text-gray-500">
+      <i class="fas fa-microphone-alt ml-1"></i>سخنرانی
+    </button>
+  </div>
+  <!-- محتوا -->
+  <div class="flex-1 overflow-y-auto">
+    <div id="cs-cal-wrap" class="bg-white mx-4 mt-4 rounded-2xl shadow-sm border border-gray-100 p-4"></div>
+    <div id="cs-results" class="px-4 pt-3 pb-24 flex flex-col gap-3"></div>
+  </div>
 </div>
 
 </body>

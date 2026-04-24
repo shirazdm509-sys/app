@@ -12,190 +12,6 @@ let wpState = { view: 'main', mainCat: { id: null, name: '' }, currentCat: { id:
 const TARGET_MAIN_CATS = ['تفسیر قرآن', 'محرم الحرام', 'مناسبت ها', 'رمضان المبارک'];
 let cachedPosts = [];
 
-// ===== تقویم سخنرانی =====
-let _lcalYear = 0, _lcalMonth = 0, _lcalSelDay = 0;
-let _lcalAllPosts = [];
-let _lcalFromCatView = false;
-let _lcalPicker = false, _lcalPickerYear = 0;
-
-function _postJalParts(post) {
-    const d = new Date(post.date);
-    return _gregToJal(d.getFullYear(), d.getMonth() + 1, d.getDate());
-}
-
-async function toggleLecturesCalendar() {
-    const wrap = document.getElementById('lectures-calendar-wrap');
-    const btn = document.getElementById('lectures-cal-btn');
-    if (!wrap) return;
-    if (wrap.classList.contains('hidden')) {
-        wrap.classList.remove('hidden');
-        if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
-        if (_lcalAllPosts.length === 0) {
-            wrap.innerHTML = '<div class="flex justify-center py-4"><i class="fas fa-spinner fa-spin text-teal-500"></i></div>';
-            try {
-                const r = await wpFetch('posts?per_page=100&_embed=1');
-                if (r.ok) _lcalAllPosts = await r.json();
-            } catch(e) {}
-        }
-        if (!_lcalYear) _lcalInitFromPosts();
-        renderLecturesCalendar();
-    } else {
-        wrap.classList.add('hidden');
-        if (btn) { btn.style.background = ''; btn.style.color = ''; }
-    }
-}
-
-function _lcalHide() {
-    const wrap = document.getElementById('lectures-calendar-wrap');
-    if (wrap) wrap.classList.add('hidden');
-    const btn = document.getElementById('lectures-cal-btn');
-    if (btn) { btn.style.background = ''; btn.style.color = ''; }
-    _lcalYear = 0; _lcalMonth = 0; _lcalSelDay = 0; _lcalFromCatView = false; _lcalPicker = false;
-}
-
-function _lcalInitFromPosts() {
-    const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
-    if (src.length) {
-        const [jy, jm] = _postJalParts(src[0]);
-        _lcalYear = jy; _lcalMonth = jm;
-    } else {
-        const [jy, jm] = _jalTodayParts();
-        _lcalYear = jy; _lcalMonth = jm;
-    }
-    _lcalSelDay = 0;
-}
-
-function lcalNavMonth(dir) {
-    _lcalMonth += dir;
-    if (_lcalMonth > 12) { _lcalMonth = 1; _lcalYear++; }
-    if (_lcalMonth < 1) { _lcalMonth = 12; _lcalYear--; }
-    if (_lcalFromCatView && _lcalSelDay) {
-        const postsView = document.getElementById('lectures-posts-view');
-        const catView = document.getElementById('lectures-categories-view');
-        if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
-        if (catView) catView.classList.remove('hidden');
-        _lcalFromCatView = false;
-    }
-    _lcalSelDay = 0;
-    if (wpState.view === 'posts') _renderLecturesList();
-    renderLecturesCalendar();
-}
-
-function lcalSelectDay(day) {
-    const postsView = document.getElementById('lectures-posts-view');
-    const catView = document.getElementById('lectures-categories-view');
-    if (_lcalSelDay === day) {
-        _lcalSelDay = 0;
-        if (_lcalFromCatView) {
-            _lcalFromCatView = false;
-            if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
-            if (catView) catView.classList.remove('hidden');
-        } else {
-            _renderLecturesList();
-        }
-    } else {
-        _lcalSelDay = day;
-        const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
-        const pairs = src.map((p, i) => ({p, i})).filter(({p}) => {
-            const [py, pm, pd] = _postJalParts(p);
-            return py === _lcalYear && pm === _lcalMonth && pd === day;
-        });
-        if (wpState.view !== 'posts') {
-            _lcalFromCatView = true;
-            if (postsView) { postsView.classList.remove('hidden'); postsView.classList.add('flex'); }
-            if (catView) catView.classList.add('hidden');
-        }
-        _renderLecturesList(pairs);
-    }
-    renderLecturesCalendar();
-}
-
-function lcalTogglePicker() {
-    _lcalPicker = !_lcalPicker;
-    _lcalPickerYear = _lcalYear;
-    renderLecturesCalendar();
-}
-function lcalPickerSelYear(y) {
-    _lcalPickerYear = y;
-    renderLecturesCalendar();
-}
-function lcalSetYM(m) {
-    _lcalYear = _lcalPickerYear;
-    _lcalMonth = m;
-    _lcalSelDay = 0;
-    _lcalPicker = false;
-    if (_lcalFromCatView) {
-        const postsView = document.getElementById('lectures-posts-view');
-        const catView = document.getElementById('lectures-categories-view');
-        if (postsView) { postsView.classList.add('hidden'); postsView.classList.remove('flex'); }
-        if (catView) catView.classList.remove('hidden');
-        _lcalFromCatView = false;
-    } else if (wpState.view === 'posts') {
-        _renderLecturesList();
-    }
-    renderLecturesCalendar();
-}
-
-function renderLecturesCalendar() {
-    const wrap = document.getElementById('lectures-calendar-wrap');
-    if (!wrap || wrap.classList.contains('hidden')) return;
-    const src = _lcalAllPosts.length ? _lcalAllPosts : cachedPosts;
-
-    // استخراج سال‌های موجود
-    const yearSet = new Set();
-    for (const p of src) { try { yearSet.add(_postJalParts(p)[0]); } catch(e) {} }
-    const years = [...yearSet].sort((a, b) => b - a);
-
-    const header = `
-    <div class="flex items-center justify-between mb-2 px-1 pt-1">
-        ${_lcalPicker ? '' : `<button onclick="lcalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>`}
-        <button onclick="lcalTogglePicker()" class="text-xs font-bold text-gray-700 flex-1 text-center hover:text-teal-600 transition">
-            ${_lcalPicker ? `انتخاب ماه <i class="fas fa-times text-[9px] mr-1 text-gray-400"></i>` : `${_jalMonthNames[_lcalMonth-1]} ${toFa(_lcalYear)} <i class="fas fa-chevron-down text-[9px] mr-1 text-gray-400"></i>`}
-        </button>
-        ${_lcalPicker ? '' : `<button onclick="lcalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>`}
-        <button onclick="toggleLecturesCalendar()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
-    </div>`;
-
-    if (_lcalPicker) {
-        const yearBtns = years.map(y => {
-            const sel = y === _lcalPickerYear;
-            return `<button onclick="lcalPickerSelYear(${y})" class="py-1 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${toFa(y)}</button>`;
-        }).join('');
-        const monthBtns = _jalMonthNames.map((mn, i) => {
-            const sel = (i + 1) === _lcalMonth && _lcalPickerYear === _lcalYear;
-            return `<button onclick="lcalSetYM(${i + 1})" class="py-1.5 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${mn}</button>`;
-        }).join('');
-        wrap.innerHTML = header + `
-        <div class="grid grid-cols-4 gap-1 mb-3">${yearBtns}</div>
-        <hr class="border-gray-100 mb-2">
-        <div class="grid grid-cols-4 gap-1">${monthBtns}</div>`;
-        return;
-    }
-
-    const days = new Set();
-    for (const p of src) {
-        const [py, pm, pd] = _postJalParts(p);
-        if (py === _lcalYear && pm === _lcalMonth) days.add(pd);
-    }
-    const dim = _jalDaysInMonth(_lcalYear, _lcalMonth), first = _jalFirstWeekday(_lcalYear, _lcalMonth);
-    const [ty, tm, td] = _jalTodayParts();
-    let cells = '';
-    for (let i = 0; i < first; i++) cells += `<div></div>`;
-    for (let d = 1; d <= dim; d++) {
-        const has = days.has(d), sel = _lcalSelDay === d, today = ty === _lcalYear && tm === _lcalMonth && td === d;
-        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
-        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
-        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
-        const click = has ? `onclick="lcalSelectDay(${d})"` : '';
-        cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
-    }
-    wrap.innerHTML = header + `
-    <div class="grid grid-cols-7 gap-y-1">
-        ${_jalDayHdrs.map(h => `<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
-        ${cells}
-    </div>
-    ${_lcalSelDay ? `<div class="mt-2 text-center"><button onclick="lcalSelectDay(${_lcalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه سخنرانی‌ها</button></div>` : ''}`;
-}
 
 function _renderLecturesList(pairs) {
     const postsView = document.getElementById('lectures-posts-view');
@@ -255,7 +71,6 @@ function renderCategoryGrid(cats, isMainView = false) {
 
 function showWPMainCategories() {
     exitReadingMode();
-    _lcalHide();
     wpState.view = 'main';
     document.getElementById('lectures-header-title').textContent = 'سخنرانی‌ها';
     document.getElementById('lectures-posts-view').classList.add('hidden');
@@ -280,7 +95,6 @@ function handleCategoryClick(catId, catName) {
 function showWPSubCategories(parentId, parentName, children) {
     _pnh(function() { withoutHistory(showWPMainCategories); });
     exitReadingMode();
-    _lcalHide();
     wpState.view = 'sub';
     document.getElementById('lectures-header-title').textContent = parentName;
     document.getElementById('lectures-posts-view').classList.add('hidden');
@@ -306,7 +120,6 @@ async function showWPPostsView(catId, catName) {
     exitReadingMode();
     wpState.view = 'posts';
     wpState.currentCat = { id: catId, name: catName };
-    _lcalHide();
     document.getElementById('lectures-categories-view').classList.add('hidden');
     document.getElementById('lectures-single-view').classList.add('hidden');
     document.getElementById('lectures-single-view').classList.remove('flex');
@@ -315,9 +128,6 @@ async function showWPPostsView(catId, catName) {
     postsView.classList.add('flex');
     postsView.innerHTML = '';
     document.getElementById('lectures-header-title').textContent = catName;
-    // نشان دادن دکمه تقویم
-    const _lCalBtn = document.getElementById('lectures-cal-btn');
-    if (_lCalBtn) _lCalBtn.classList.remove('hidden');
 
     setWPLoading(true);
     try {
@@ -509,15 +319,14 @@ function _buildAudioHtml(tracks) {
 }
 
 async function showWPSingleView(postId) {
-    let post = cachedPosts.find(p => p.id === postId) || _lcalAllPosts.find(p => p.id === postId);
+    let post = cachedPosts.find(p => p.id === postId);
     if (!post) return;
 
     const _prevCatId = wpState.currentCat.id;
     const _prevCatName = wpState.currentCat.name;
-    const _prevFromCal = _lcalFromCatView;
     _pnh(function() {
         withoutHistory(function() {
-            if (_prevCatId && !_prevFromCal) {
+            if (_prevCatId) {
                 showWPPostsView(_prevCatId, _prevCatName);
             } else {
                 showWPMainCategories();
@@ -530,11 +339,6 @@ async function showWPSingleView(postId) {
     if (screen) screen.classList.add('reading-mode');
     const btnSet = document.getElementById('btn-lectures-settings');
     if (btnSet) btnSet.classList.remove('hidden');
-    // مخفی کردن تقویم هنگام ورود به حالت خواندن
-    const _lcwSingle = document.getElementById('lectures-calendar-wrap');
-    if (_lcwSingle) _lcwSingle.classList.add('hidden');
-    const _lcbSingle = document.getElementById('lectures-cal-btn');
-    if (_lcbSingle) { _lcbSingle.style.background = ''; _lcbSingle.style.color = ''; }
 
     document.getElementById('lectures-categories-view').classList.add('hidden');
     document.getElementById('lectures-posts-view').classList.remove('flex');

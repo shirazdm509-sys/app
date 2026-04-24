@@ -295,13 +295,6 @@ function switchMediaTab(tab) {
         const _hb = document.getElementById('audio-playlist-header-bar');
         if (_hb) _hb.classList.add('hidden');
     }
-    // نمایش/مخفی دکمه تقویم سراسری
-    const _gcb = document.getElementById('global-cal-btn');
-    if (_gcb) {
-        if (tab === 'audio' || tab === 'video') { _gcb.classList.remove('hidden'); }
-        else { _gcb.classList.add('hidden'); closeGlobalCal(); }
-    }
-
     if (!_skipHistoryPush) {
         if (tab === 'video') initVideoGallery();
         if (tab === 'photo') initGallery();
@@ -1140,221 +1133,195 @@ async function setAudioSort(sort) {
     if (_currentAudioCatId) await withoutHistory(() => loadAudioPlaylist(_currentAudioCatId, document.getElementById('audio-cat-title').textContent, 0));
 }
 
-// ===== تقویم سراسری رسانه =====
-let _gCalYear = 0, _gCalMonth = 0, _gCalSelDay = 0;
-let _gCalAudio = [], _gCalVideo = [], _gCalLoaded = {audio: false, video: false};
-let _gCalHidPlView = false;
-let _gCalPicker = false, _gCalPickerYear = 0;
+// ===== صفحه تقویم یکپارچه =====
+let _csTab = 'audio', _csYear = 0, _csMonth = 0, _csSelDay = 0;
+let _csPicker = false, _csPickerYear = 0;
+const _csCache = {};
 
-function _gCalActiveTab() {
-    return ['audio','video','photo','favorites'].find(t => {
-        const c = document.getElementById('media-content-' + t);
-        return c && c.style.display !== 'none';
-    }) || 'audio';
+async function openCalendarScreen(tab) {
+    _csTab = tab || 'audio';
+    _csSelDay = 0; _csPicker = false;
+    const screen = document.getElementById('calendar-screen');
+    if (!screen) return;
+    screen.classList.remove('hidden');
+    screen.classList.add('flex');
+    _csUpdateTabs();
+    const calWrap = document.getElementById('cs-cal-wrap');
+    if (calWrap) calWrap.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-teal-500 text-2xl"></i></div>';
+    document.getElementById('cs-results').innerHTML = '';
+    await _csEnsureData(_csTab);
+    if (!_csYear) _csInitDate();
+    _renderCalScreen();
 }
 
-async function toggleGlobalCal() {
-    const wrap = document.getElementById('global-cal-wrap');
-    const btn = document.getElementById('global-cal-btn');
-    if (!wrap) return;
-    const tab = _gCalActiveTab();
-    if (tab !== 'audio' && tab !== 'video') return;
-    if (!wrap.classList.contains('hidden')) { closeGlobalCal(); return; }
-    if (btn) { btn.style.background = '#ccfbf1'; btn.style.color = '#0d9488'; }
-    if (tab === 'audio' && !_gCalLoaded.audio) {
-        try { const r = await fetch('/api/audio/all-dates'); _gCalAudio = await r.json(); _gCalLoaded.audio = true; } catch(e) {}
+function closeCalendarScreen() {
+    const screen = document.getElementById('calendar-screen');
+    if (screen) { screen.classList.add('hidden'); screen.classList.remove('flex'); }
+}
+
+async function csSetTab(tab) {
+    _csTab = tab;
+    _csSelDay = 0; _csYear = 0; _csMonth = 0; _csPicker = false;
+    _csUpdateTabs();
+    document.getElementById('cs-results').innerHTML = '';
+    const calWrap = document.getElementById('cs-cal-wrap');
+    if (calWrap) calWrap.innerHTML = '<div class="flex justify-center py-8"><i class="fas fa-spinner fa-spin text-teal-500 text-2xl"></i></div>';
+    await _csEnsureData(tab);
+    _csInitDate();
+    _renderCalScreen();
+}
+
+function _csUpdateTabs() {
+    ['audio','video','lecture'].forEach(t => {
+        const btn = document.getElementById('cs-tab-' + t);
+        if (!btn) return;
+        btn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition ' + (t === _csTab ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200');
+    });
+}
+
+async function _csEnsureData(tab) {
+    if (_csCache[tab]) return;
+    try {
+        if (tab === 'audio') { const r = await fetch('/api/audio/all-dates'); _csCache.audio = await r.json() || []; }
+        else if (tab === 'video') { const r = await fetch('/api/videos/all-dates'); _csCache.video = await r.json() || []; }
+        else if (tab === 'lecture') { const r = await fetch('/api/wp?path=' + encodeURIComponent('posts?per_page=100&_embed=1')); _csCache.lecture = await r.json() || []; }
+    } catch(e) { _csCache[tab] = []; }
+}
+
+function _csItemDate(it) {
+    if (_csTab === 'lecture') {
+        const d = new Date(it.date);
+        return _gregToJal(d.getFullYear(), d.getMonth() + 1, d.getDate());
     }
-    if (tab === 'video' && !_gCalLoaded.video) {
-        try { const r = await fetch('/api/videos/all-dates'); _gCalVideo = await r.json(); _gCalLoaded.video = true; } catch(e) {}
-    }
-    const items = tab === 'audio' ? _gCalAudio : _gCalVideo;
-    if (!_gCalYear && items.length) {
-        const p = items[0].publish_date.split('/'); _gCalYear = parseInt(p[0]); _gCalMonth = parseInt(p[1]);
-    } else if (!_gCalYear) {
-        const [jy,jm] = _jalTodayParts(); _gCalYear = jy; _gCalMonth = jm;
-    }
-    _gCalSelDay = 0;
-    wrap.classList.remove('hidden');
-    _renderGlobalCal();
+    const p = it.publish_date.split('/');
+    return [parseInt(p[0]), parseInt(p[1]), parseInt(p[2])];
 }
 
-function closeGlobalCal() {
-    const wrap = document.getElementById('global-cal-wrap');
-    if (wrap) wrap.classList.add('hidden');
-    const btn = document.getElementById('global-cal-btn');
-    if (btn) { btn.style.background = ''; btn.style.color = ''; }
-    const res = document.getElementById('global-cal-results');
-    if (res) res.remove();
-    if (_gCalHidPlView) {
-        _gCalHidPlView = false;
-        const plView = document.getElementById('audio-playlist-view');
-        const hdrBar = document.getElementById('audio-playlist-header-bar');
-        if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
-        if (hdrBar) hdrBar.classList.remove('hidden');
-    }
-    _gCalYear = 0; _gCalMonth = 0; _gCalSelDay = 0; _gCalPicker = false;
+function _csInitDate() {
+    const data = _csCache[_csTab] || [];
+    if (data.length) {
+        try { const [y,m] = _csItemDate(data[0]); _csYear = y; _csMonth = m; } catch(e) { const [y,m] = _jalTodayParts(); _csYear = y; _csMonth = m; }
+    } else { const [y,m] = _jalTodayParts(); _csYear = y; _csMonth = m; }
+    _csSelDay = 0;
 }
 
-function gCalNavMonth(dir) {
-    _gCalMonth += dir;
-    if (_gCalMonth > 12) { _gCalMonth = 1; _gCalYear++; }
-    if (_gCalMonth < 1) { _gCalMonth = 12; _gCalYear--; }
-    _gCalSelDay = 0;
-    _renderGlobalCal();
-    _renderGlobalCalResults();
+function csNavMonth(dir) {
+    _csMonth += dir;
+    if (_csMonth > 12) { _csMonth = 1; _csYear++; }
+    if (_csMonth < 1) { _csMonth = 12; _csYear--; }
+    _csSelDay = 0;
+    _renderCalScreen();
+    _renderCalResults();
 }
 
-function gCalSelectDay(day) {
-    _gCalSelDay = _gCalSelDay === day ? 0 : day;
-    const tab = _gCalActiveTab();
-    if (tab === 'audio') {
-        const plView = document.getElementById('audio-playlist-view');
-        const hdrBar = document.getElementById('audio-playlist-header-bar');
-        const plVisible = plView && !plView.classList.contains('hidden');
-        if (_gCalSelDay && plVisible) {
-            _gCalHidPlView = true;
-            plView.classList.add('hidden'); plView.classList.remove('flex');
-            if (hdrBar) hdrBar.classList.add('hidden');
-        } else if (!_gCalSelDay && _gCalHidPlView) {
-            _gCalHidPlView = false;
-            if (plView) { plView.classList.remove('hidden'); plView.classList.add('flex'); }
-            if (hdrBar) hdrBar.classList.remove('hidden');
-        }
-    }
-    _renderGlobalCal();
-    _renderGlobalCalResults();
+function csTogglePicker() { _csPicker = !_csPicker; _csPickerYear = _csYear; _renderCalScreen(); }
+function csPickerSelYear(y) { _csPickerYear = y; _renderCalScreen(); }
+function csSetYM(m) { _csYear = _csPickerYear; _csMonth = m; _csSelDay = 0; _csPicker = false; _renderCalScreen(); _renderCalResults(); }
+
+function csSelectDay(day) {
+    _csSelDay = _csSelDay === day ? 0 : day;
+    _renderCalScreen();
+    _renderCalResults();
 }
 
-function gCalTogglePicker() {
-    _gCalPicker = !_gCalPicker;
-    _gCalPickerYear = _gCalYear;
-    _renderGlobalCal();
-}
-function gCalPickerSelYear(y) {
-    _gCalPickerYear = y;
-    _renderGlobalCal();
-}
-function gCalSetYM(m) {
-    _gCalYear = _gCalPickerYear;
-    _gCalMonth = m;
-    _gCalSelDay = 0;
-    _gCalPicker = false;
-    _renderGlobalCal();
-    _renderGlobalCalResults();
-}
-
-function _renderGlobalCal() {
-    const wrap = document.getElementById('global-cal-wrap');
-    if (!wrap || wrap.classList.contains('hidden')) return;
-    const tab = _gCalActiveTab();
-    const items = tab === 'audio' ? _gCalAudio : _gCalVideo;
-
-    // استخراج سال‌های موجود در داده
+function _renderCalScreen() {
+    const calWrap = document.getElementById('cs-cal-wrap');
+    if (!calWrap) return;
+    const data = _csCache[_csTab] || [];
     const yearSet = new Set();
-    for (const it of items) {
-        if (it.publish_date) yearSet.add(parseInt(it.publish_date.split('/')[0]));
-    }
-    const years = [...yearSet].sort((a, b) => b - a);
+    for (const it of data) { try { yearSet.add(_csItemDate(it)[0]); } catch(e) {} }
+    const years = [...yearSet].sort((a,b) => b-a);
 
-    const header = `
-    <div class="flex items-center gap-1 mb-2 px-1 pt-1">
-        ${_gCalPicker ? '' : `<button onclick="gCalNavMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-[10px]"></i></button>`}
-        <button onclick="gCalTogglePicker()" class="text-xs font-bold text-gray-700 flex-1 text-center hover:text-teal-600 transition">
-            ${_gCalPicker ? `انتخاب ماه <i class="fas fa-times text-[9px] mr-1 text-gray-400"></i>` : `${_jalMonthNames[_gCalMonth-1]} ${toFa(_gCalYear)} <i class="fas fa-chevron-down text-[9px] mr-1 text-gray-400"></i>`}
+    const hdr = `<div class="flex items-center mb-4">
+        ${_csPicker ? '' : `<button onclick="csNavMonth(-1)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-right text-sm"></i></button>`}
+        <button onclick="csTogglePicker()" class="flex-1 text-center text-sm font-bold text-gray-700 hover:text-teal-600 transition py-1">
+            ${_csPicker ? `انتخاب ماه &nbsp;<i class="fas fa-times text-xs text-gray-400"></i>` : `${_jalMonthNames[_csMonth-1]} ${toFa(_csYear)} &nbsp;<i class="fas fa-chevron-down text-xs text-gray-400"></i>`}
         </button>
-        ${_gCalPicker ? '' : `<button onclick="gCalNavMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-[10px]"></i></button>`}
-        <button onclick="closeGlobalCal()" class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-400 hover:text-red-400 shrink-0 text-sm font-bold">×</button>
+        ${_csPicker ? '' : `<button onclick="csNavMonth(1)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 shrink-0"><i class="fas fa-chevron-left text-sm"></i></button>`}
     </div>`;
 
-    if (_gCalPicker) {
-        const yearBtns = years.map(y => {
-            const sel = y === _gCalPickerYear;
-            return `<button onclick="gCalPickerSelYear(${y})" class="py-1 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${toFa(y)}</button>`;
+    if (_csPicker) {
+        const yBtns = years.map(y => {
+            const s = y === _csPickerYear;
+            return `<button onclick="csPickerSelYear(${y})" class="py-2 rounded-xl text-xs font-bold transition ${s ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${toFa(y)}</button>`;
         }).join('');
-        const monthBtns = _jalMonthNames.map((mn, i) => {
-            const sel = (i + 1) === _gCalMonth && _gCalPickerYear === _gCalYear;
-            return `<button onclick="gCalSetYM(${i + 1})" class="py-1.5 rounded-lg text-[11px] font-bold transition ${sel ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${mn}</button>`;
+        const mBtns = _jalMonthNames.map((mn,i) => {
+            const s = (i+1) === _csMonth && _csPickerYear === _csYear;
+            return `<button onclick="csSetYM(${i+1})" class="py-2.5 rounded-xl text-xs font-bold transition ${s ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-teal-50 hover:text-teal-700'}">${mn}</button>`;
         }).join('');
-        wrap.innerHTML = header + `
-        <div class="grid grid-cols-4 gap-1 mb-3">${yearBtns}</div>
-        <hr class="border-gray-100 mb-2">
-        <div class="grid grid-cols-4 gap-1">${monthBtns}</div>`;
+        calWrap.innerHTML = hdr + `<div class="grid grid-cols-4 gap-2 mb-3">${yBtns}</div><hr class="border-gray-100 my-3"><div class="grid grid-cols-4 gap-2">${mBtns}</div>`;
         return;
     }
 
-    const dim = _jalDaysInMonth(_gCalYear, _gCalMonth), first = _jalFirstWeekday(_gCalYear, _gCalMonth);
     const days = new Set();
-    for (const it of items) {
-        if (!it.publish_date) continue;
-        const p = it.publish_date.split('/');
-        if (parseInt(p[0]) === _gCalYear && parseInt(p[1]) === _gCalMonth) days.add(parseInt(p[2]));
-    }
+    for (const it of data) { try { const [y,m,d] = _csItemDate(it); if (y===_csYear&&m===_csMonth) days.add(d); } catch(e) {} }
+    const dim = _jalDaysInMonth(_csYear, _csMonth), first = _jalFirstWeekday(_csYear, _csMonth);
     const [ty,tm,td] = _jalTodayParts();
     let cells = '';
     for (let i = 0; i < first; i++) cells += `<div></div>`;
     for (let d = 1; d <= dim; d++) {
-        const has = days.has(d), sel = _gCalSelDay === d, today = ty===_gCalYear&&tm===_gCalMonth&&td===d;
-        let cls = 'w-7 h-7 flex items-center justify-center rounded-full text-[11px] font-bold mx-auto transition-all ';
-        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-400';
-        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1;cursor:pointer"' : '';
-        const click = has ? `onclick="gCalSelectDay(${d})"` : '';
+        const has = days.has(d), sel = _csSelDay===d, today = ty===_csYear&&tm===_csMonth&&td===d;
+        let cls = 'w-9 h-9 flex items-center justify-center rounded-full text-xs font-bold mx-auto transition-all ';
+        if (sel) cls += 'text-white'; else if (has) cls += 'text-teal-700 cursor-pointer'; else if (today) cls += 'text-teal-500 border border-teal-300'; else cls += 'text-gray-300';
+        const bg = sel ? 'style="background:#0d9488"' : has ? 'style="background:#ccfbf1"' : '';
+        const click = has ? `onclick="csSelectDay(${d})"` : '';
         cells += `<div class="text-center"><div class="${cls}" ${bg} ${click}>${toFa(d)}</div></div>`;
     }
-    wrap.innerHTML = header + `
-    <div class="grid grid-cols-7 gap-y-1">
-        ${_jalDayHdrs.map(h=>`<div class="text-center text-[10px] font-bold text-gray-300 pb-1">${h}</div>`).join('')}
+    calWrap.innerHTML = hdr + `<div class="grid grid-cols-7 gap-y-2">
+        ${_jalDayHdrs.map(h=>`<div class="text-center text-xs font-bold text-gray-300 pb-1">${h}</div>`).join('')}
         ${cells}
-    </div>
-    ${_gCalSelDay ? `<div class="mt-2 text-center"><button onclick="gCalSelectDay(${_gCalSelDay})" class="text-[10px] text-teal-600 font-bold">نمایش همه</button></div>` : ''}`;
+    </div>${_csSelDay ? `<div class="mt-4 text-center"><button onclick="csSelectDay(${_csSelDay})" class="text-xs text-teal-600 font-bold">نمایش همه</button></div>` : ''}`;
 }
 
-function _renderGlobalCalResults() {
-    const existing = document.getElementById('global-cal-results');
-    if (existing) existing.remove();
-    if (!_gCalSelDay) return;
-    const tab = _gCalActiveTab();
-    const items = (tab === 'audio' ? _gCalAudio : _gCalVideo).filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
-    if (!items.length) return;
-    const targetContent = document.getElementById('media-content-' + tab);
-    if (!targetContent) return;
-    const div = document.createElement('div');
-    div.id = 'global-cal-results';
-    div.className = 'flex flex-col gap-3 w-full mt-1';
-    if (tab === 'audio') {
-        div.innerHTML = items.map((tr, idx) => {
+function _renderCalResults() {
+    const res = document.getElementById('cs-results');
+    if (!res) return;
+    if (!_csSelDay) { res.innerHTML = ''; return; }
+    const data = _csCache[_csTab] || [];
+    const filtered = data.filter(it => { try { const [y,m,d] = _csItemDate(it); return y===_csYear&&m===_csMonth&&d===_csSelDay; } catch(e) { return false; } });
+    if (!filtered.length) { res.innerHTML = `<div class="text-center py-10 text-gray-400 text-xs font-bold">موردی در این تاریخ وجود ندارد</div>`; return; }
+
+    if (_csTab === 'audio') {
+        res.innerHTML = filtered.map((tr, idx) => {
             const cover = tr.cover || '';
-            const coverInner = cover ? `<img src="${cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-xs"></i></div>`;
-            const dateStr = tr.publish_date ? `<p class="text-[10px] text-gray-400">${toFa(tr.publish_date)}</p>` : '';
-            return `<div onclick="_gCalPlayAudio(${idx})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center relative">${coverInner}</div>
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist?`<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>`:''}${dateStr}</div>
-                <div class="w-8 h-8 bg-brand-50 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-play text-brand-600 text-xs mr-[-1px]"></i></div>
+            const ci = cover ? `<img src="${cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
+            return `<div onclick="_csPlayAudio(${idx})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">${ci}</div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${tr.title}</h4>${tr.artist?`<p class="text-xs text-gray-400 mt-0.5">${tr.artist}</p>`:''}${tr.publish_date?`<p class="text-xs text-teal-500 mt-0.5">${toFa(tr.publish_date)}</p>`:''}</div>
+                <div class="w-9 h-9 bg-teal-50 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-play text-teal-600 text-xs mr-[-1px]"></i></div>
+            </div>`;
+        }).join('');
+    } else if (_csTab === 'video') {
+        res.innerHTML = filtered.map(v => {
+            const thumb = v.thumbnail || '';
+            const th = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+            return `<div onclick="_csPlayVideo('${v.id}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                <div class="w-28 h-16 bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${th}<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div></div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.publish_date?`<p class="text-xs text-teal-500 mt-1">${toFa(v.publish_date)}</p>`:''}</div>
             </div>`;
         }).join('');
     } else {
-        div.innerHTML = items.map(v => {
-            const thumb = v.thumbnail || '';
-            const thumbHtml = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
-            const dateStr = v.publish_date ? `<p class="text-[10px] text-gray-400 mt-0.5">${toFa(v.publish_date)}</p>` : '';
-            return `<div onclick="_gCalPlayVideo('${v.id}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                <div class="w-28 h-[63px] bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${thumbHtml}<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/30"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div></div>
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${dateStr}</div>
+        res.innerHTML = filtered.map(post => {
+            const img = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+            const dt = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
+            return `<div onclick="_csOpenLecture(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
+                ${img ? `<img src="${img}" class="w-16 h-16 rounded-xl object-cover shrink-0">` : `<div class="w-16 h-16 bg-teal-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-teal-300 text-2xl"></i></div>`}
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${post.title.rendered}</h4><p class="text-xs text-teal-500 mt-1"><i class="far fa-calendar ml-1"></i>${dt}</p></div>
             </div>`;
         }).join('');
     }
-    const firstChild = targetContent.firstChild;
-    if (firstChild) targetContent.insertBefore(div, firstChild);
-    else targetContent.appendChild(div);
 }
 
-function _gCalPlayAudio(idx) {
-    const tracks = _gCalAudio.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
-    const _savedYear = _gCalYear, _savedMonth = _gCalMonth, _savedDay = _gCalSelDay;
-    audioCurrentTracks = tracks;
-    audioCurrentIndex = -1;
-    _currentAudioCatId = null;
-    _gCalHidPlView = false;
-    closeGlobalCal();
+function _csPlayAudio(idx) {
+    const filtered = (_csCache.audio||[]).filter(it=>{ try{const[y,m,d]=_csItemDate(it);return y===_csYear&&m===_csMonth&&d===_csSelDay;}catch(e){return false;} });
+    const sy=_csYear, sm=_csMonth, sd=_csSelDay;
+    audioCurrentTracks = filtered; audioCurrentIndex = -1; _currentAudioCatId = null;
+    closeCalendarScreen();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-media')?.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelector('[data-nav="media"]')?.classList.add('active');
+    switchMediaTab('audio');
     const catsView = document.getElementById('audio-categories-view');
     const plView = document.getElementById('audio-playlist-view');
     if (catsView) catsView.classList.add('hidden');
@@ -1362,23 +1329,46 @@ function _gCalPlayAudio(idx) {
     const hdrBar = document.getElementById('audio-playlist-header-bar');
     if (hdrBar) hdrBar.classList.remove('hidden');
     const titleEl = document.getElementById('audio-cat-title');
-    if (titleEl) titleEl.textContent = `${_jalMonthNames[_savedMonth-1]} ${toFa(_savedYear)} - روز ${toFa(_savedDay)}`;
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[sm-1]} ${toFa(sy)} - روز ${toFa(sd)}`;
     selectAudioTrack(idx, true);
 }
 
-function _gCalPlayVideo(itemId) {
-    const filtered = _gCalVideo.filter(it => _jalMatchDate(it.publish_date, _gCalYear, _gCalMonth, _gCalSelDay));
-    const _savedYear = _gCalYear, _savedMonth = _gCalMonth, _savedDay = _gCalSelDay;
+function _csPlayVideo(itemId) {
+    const filtered = (_csCache.video||[]).filter(it=>{ try{const[y,m,d]=_csItemDate(it);return y===_csYear&&m===_csMonth&&d===_csSelDay;}catch(e){return false;} });
+    const sy=_csYear, sm=_csMonth, sd=_csSelDay;
     videoCachedItems = filtered;
-    closeGlobalCal();
-    const catsView = document.getElementById('video-categories-view');
-    if (catsView) catsView.classList.add('hidden');
+    closeCalendarScreen();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-media')?.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelector('[data-nav="media"]')?.classList.add('active');
+    switchMediaTab('video');
+    document.getElementById('video-categories-view')?.classList.add('hidden');
     const listView = document.getElementById('video-list-view');
     if (listView) { listView.classList.remove('hidden'); listView.classList.add('flex'); }
     const titleEl = document.getElementById('video-cat-title');
-    if (titleEl) titleEl.textContent = `${_jalMonthNames[_savedMonth-1]} ${toFa(_savedYear)} - روز ${toFa(_savedDay)}`;
+    if (titleEl) titleEl.textContent = `${_jalMonthNames[sm-1]} ${toFa(sy)} - روز ${toFa(sd)}`;
     _renderVideoItems();
     playVideoItem(parseInt(itemId));
+}
+
+async function _csOpenLecture(postId) {
+    const post = (_csCache.lecture||[]).find(p=>p.id===postId);
+    const sy=_csYear, sm=_csMonth;
+    closeCalendarScreen();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-lectures')?.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelector('[data-nav="lectures"]')?.classList.add('active');
+    if (post) {
+        if (_csCache.lecture) cachedPosts = _csCache.lecture;
+        wpState.view = 'posts';
+        wpState.currentCat = { id: null, name: `${_jalMonthNames[sm-1]} ${toFa(sy)}` };
+        if (typeof allWPCats !== 'undefined' && allWPCats.length === 0) {
+            try { allWPCats = await wpFetch('categories?per_page=100').then(r=>r.json()); } catch(e) {}
+        }
+        showWPSingleView(postId);
+    }
 }
 
 function toggleVideoSortDropdown() {
