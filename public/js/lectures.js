@@ -131,11 +131,19 @@ async function showWPPostsView(catId, catName) {
 
     setWPLoading(true);
     try {
-        const res = await wpFetch(`posts?categories=${catId}&_embed=1&per_page=30`);
-        if (!res.ok) throw new Error('API ERROR');
-        cachedPosts = await res.json();
+        let allPosts = [], page = 1;
+        while (true) {
+            const res = await wpFetch(`posts?categories=${catId}&_embed=1&per_page=100&page=${page}`);
+            if (!res.ok) { if (page === 1) throw new Error('API ERROR'); break; }
+            const batch = await res.json();
+            if (!Array.isArray(batch) || batch.length === 0) break;
+            allPosts = allPosts.concat(batch);
+            if (batch.length < 100) break;
+            page++;
+        }
+        cachedPosts = allPosts;
 
-        if(!Array.isArray(cachedPosts) || cachedPosts.length === 0) {
+        if (cachedPosts.length === 0) {
             postsView.innerHTML = `<div class="text-center py-20 text-gray-400 text-sm font-bold">هیچ نوشته‌ای در این بخش یافت نشد.</div>`;
         } else {
             _renderLecturesList();

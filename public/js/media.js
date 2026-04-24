@@ -1184,7 +1184,19 @@ async function _csEnsureData(tab) {
     try {
         if (tab === 'audio') { const r = await fetch('/api/audio/all-dates'); _csCache.audio = await r.json() || []; }
         else if (tab === 'video') { const r = await fetch('/api/videos/all-dates'); _csCache.video = await r.json() || []; }
-        else if (tab === 'lecture') { const r = await fetch('/api/wp?path=' + encodeURIComponent('posts?per_page=100&_embed=1')); _csCache.lecture = await r.json() || []; }
+        else if (tab === 'lecture') {
+            let all = [], pg = 1;
+            while (true) {
+                const r = await fetch('/api/wp?path=' + encodeURIComponent(`posts?per_page=100&_embed=1&page=${pg}`));
+                if (!r.ok) break;
+                const batch = await r.json();
+                if (!Array.isArray(batch) || batch.length === 0) break;
+                all = all.concat(batch);
+                if (batch.length < 100) break;
+                pg++;
+            }
+            _csCache.lecture = all;
+        }
     } catch(e) { _csCache[tab] = []; }
 }
 
