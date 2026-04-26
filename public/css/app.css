@@ -277,7 +277,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     /* ── Two-column section ── */
     #home-two-col-wrap {
         display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
+        grid-template-columns: 2fr 1fr !important;
         gap: 0 16px !important;
         padding: 0 20px !important;
         align-items: start !important;
