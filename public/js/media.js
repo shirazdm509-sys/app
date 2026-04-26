@@ -276,12 +276,12 @@ function switchMediaTab(tab) {
         if (!btn || !content) return;
         if(t === tab) {
             btn.classList.add('bg-white', 'shadow-sm', 'text-brand-600');
-            btn.classList.remove('text-gray-500');
+            btn.classList.remove('text-gray-400');
             content.classList.remove('hidden');
             content.style.display = 'block';
         } else {
             btn.classList.remove('bg-white', 'shadow-sm', 'text-brand-600');
-            btn.classList.add('text-gray-500');
+            btn.classList.add('text-gray-400');
             content.classList.add('hidden');
             content.style.display = 'none';
         }
