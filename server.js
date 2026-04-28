@@ -262,7 +262,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => {
