@@ -296,6 +296,9 @@ function extractMediaFromPost(post) {
         '.mejs-captions-button', '.mejs-volume-button', '.mejs-speed-button',
         '.wp-audio-shortcode', '.wp-video-shortcode',
         '.audio-player', '[class*="audio-player"]', '[class*="sound-player"]',
+        '.app-player', '.app-player-header', '.app-waveform-wrap', '.app-waveform',
+        '.app-time-row', '.app-time-tot', '.app-time-cur', '.app-controls',
+        '.app-playlist', '.app-playlist-hd',
         'figure.wp-block-audio', 'figure.wp-block-video', 'figure.wp-block-embed',
         'figure.wp-block-image', 'figure.wp-block-gallery'
     ];
