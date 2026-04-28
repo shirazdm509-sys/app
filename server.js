@@ -216,6 +216,7 @@ function initDb() {
             ['primary_color','#0d9488'],
             ['secondary_color','#0f766e'],
             ['logo_url',''],
+            ['header_logo_url',''],
             ['favicon_url',''],
             ['live_url',''],
             ['live_active','0'],
@@ -1009,6 +1010,11 @@ app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل لوگو ارائه نشده'});
     const lu=`/logos/${req.file.filename}`;
     mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,logo_url:lu}));
+});
+app.post('/api/admin/header-logo',adminAuth,uploadImage.single('header_logo'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل لوگو هدر ارائه نشده'});
+    const lu=`/logos/${req.file.filename}`;
+    mainDb.run('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ("header_logo_url",?,CURRENT_TIMESTAMP)',[lu],()=>res.json({success:true,header_logo_url:lu}));
 });
 // آپلود فایل (بدون ذخیره در تنظیمات - فقط آپلود و برگشت URL)
 app.post('/api/admin/upload-logo',adminAuth,uploadImage.single('logo'),(req,res)=>{

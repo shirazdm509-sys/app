@@ -728,7 +728,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <!-- Logo & Favicon -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-image text-teal-600 ml-2"></i>لوگو و آیکون سایت</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- Logo -->
         <div>
           <p class="text-xs font-bold text-gray-600 mb-3">لوگو اصلی سایت</p>
@@ -741,6 +741,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
               <input type="file" id="logo-input" accept="image/*" class="hidden" onchange="previewLogo(this)">
               <button onclick="document.getElementById('logo-input').click()" class="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-100 transition mb-2 block w-full"><i class="fas fa-upload ml-2"></i>انتخاب لوگو</button>
               <button onclick="uploadLogo()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 transition w-full"><i class="fas fa-save ml-2"></i>آپلود لوگو</button>
+            </div>
+          </div>
+        </div>
+        <!-- Header Logo -->
+        <div>
+          <p class="text-xs font-bold text-gray-600 mb-3">لوگو هدر برنامه</p>
+          <div class="flex items-start gap-4">
+            <div class="w-20 h-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+              <img id="header-logo-preview" src="" class="w-full h-full object-contain hidden">
+              <i id="header-logo-placeholder" class="fas fa-heading text-gray-300 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+              <input type="file" id="header-logo-input" accept="image/*" class="hidden" onchange="previewHeaderLogo(this)">
+              <button onclick="document.getElementById('header-logo-input').click()" class="bg-gray-50 border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-100 transition mb-2 block w-full"><i class="fas fa-upload ml-2"></i>انتخاب لوگو</button>
+              <button onclick="uploadHeaderLogo()" class="bg-teal-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-teal-700 transition w-full"><i class="fas fa-save ml-2"></i>آپلود لوگو</button>
             </div>
           </div>
         </div>
@@ -2187,6 +2202,11 @@ async function loadSettings(){
       const ph=document.getElementById('favicon-placeholder');
       if(prev&&ph){prev.src=s.favicon_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
     }
+    if(s.header_logo_url){
+      const prev=document.getElementById('header-logo-preview');
+      const ph=document.getElementById('header-logo-placeholder');
+      if(prev&&ph){prev.src=s.header_logo_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
+    }
   }catch(e){}
 }
 async function saveSettings(){
@@ -2361,6 +2381,27 @@ function previewFavicon(input){
     const prev=document.getElementById('favicon-preview'),ph=document.getElementById('favicon-placeholder');
     prev.src=e.target.result;prev.classList.remove('hidden');ph.classList.add('hidden');
   };reader.readAsDataURL(input.files[0]);
+}
+function previewHeaderLogo(input){
+  if(!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const prev=document.getElementById('header-logo-preview'),ph=document.getElementById('header-logo-placeholder');
+    prev.src=e.target.result;prev.classList.remove('hidden');ph.classList.add('hidden');
+  };reader.readAsDataURL(input.files[0]);
+}
+async function uploadHeaderLogo(){
+  const f=document.getElementById('header-logo-input').files[0];
+  if(!f) return showToast('ابتدا لوگو انتخاب کنید',false);
+  if(f.size > 10*1024*1024) return showToast('حجم لوگو نباید بیشتر از ۱۰ مگابایت باشد',false);
+  const fd=new FormData();fd.append('header_logo',f);
+  try{
+    const r=await adminFetch('/api/admin/header-logo',{method:'POST',body:fd});
+    let d; try{d=await r.json();}catch(je){d={};}
+    if(r.ok&&d.success){showToast('لوگو هدر آپلود شد');}
+    else if(r.status===413) showToast('حجم فایل بیش از حد مجاز است',false);
+    else showToast(d.error||'خطا در آپلود',false);
+  }catch(e){ showToast('خطا در اتصال',false); }
 }
 
 // ====================================================
