@@ -308,7 +308,7 @@ async function loadHomeLatestMedia() {
         const imgSec = document.getElementById('home-media-images-section');
         const imgEl = document.getElementById('home-latest-images');
         if (imgEl && _homeLatestImages.length > 0) {
-            imgEl.innerHTML = _homeLatestImages.map((ph, i) => `<div onclick="openHomeImage(${i})" class="aspect-[9/16] rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm active:scale-95 transition-transform"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover"></div>`).join('');
+            imgEl.innerHTML = _homeLatestImages.map((ph, i) => `<div onclick="openHomeImage(${i})" class="aspect-[9/16] rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm active:scale-95 transition-transform"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'"></div>`).join('');
             if (imgSec) imgSec.classList.remove('hidden');
         }
 
@@ -339,7 +339,7 @@ async function loadHomeLatestMedia() {
         if (audEl && _homeLatestAudios.length > 0) {
             audEl.innerHTML = _homeLatestAudios.map((tr, i) => `<div onclick="openHomeAudio(${i})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.98] transition items-center">
                 <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
-                    ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
+                    ${tr.cover ? `<img src="${tr.cover}" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\\'w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center\\'><i class=\\'fas fa-music text-white text-sm\\'></i></div>'">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`}
                 </div>
                 <div class="flex-1 min-w-0"><h4 class="font-bold text-xs text-gray-800 line-clamp-1">${tr.title}</h4>${tr.artist ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.artist}</p>` : ''}</div>
                 <i class="fas fa-play text-brand-400 text-xs shrink-0"></i>
