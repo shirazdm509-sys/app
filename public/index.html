@@ -18,22 +18,7 @@
     <link href="/vendor/fonts/shabnam/font-face-local.css" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/fa/all.local.min.css">
 
-    <script src="/vendor/tailwind.js"></script>
-    <script>
-        if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-                darkMode: 'class',
-                theme: {
-                    extend: {
-                        fontFamily: { vazir: ['Vazir', 'sans-serif'], shabnam: ['Shabnam', 'sans-serif'], tahoma: ['Tahoma', 'sans-serif'] },
-                        colors: {
-                            brand: { 50:'#f0fdfa', 100:'#ccfbf1', 200:'#99f6e4', 300:'#5eead4', 400:'#2dd4bf', 500:'#14b8a6', 600:'#0d9488', 700:'#0f766e', 800:'#115e59', 900:'#134e4a' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="/css/tailwind.dist.css">
     <link rel="stylesheet" href="/css/app.css">
 </head>
 <body class="font-vazir antialiased text-gray-800">
@@ -1309,13 +1294,13 @@
 
 <script src="/vendor/pdfjs/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.min.js';</script>
-<script src="/js/utils.js"></script>
-<script src="/js/offline.js"></script>
-<script src="/js/books.js"></script>
-<script src="/js/lectures.js"></script>
-<script src="/js/media.js"></script>
-<script src="/js/news.js"></script>
-<script src="/js/app.js"></script>
+<script src="/js/dist/utils.min.js"></script>
+<script src="/js/dist/offline.min.js"></script>
+<script src="/js/dist/books.min.js"></script>
+<script src="/js/dist/lectures.min.js"></script>
+<script src="/js/dist/media.min.js"></script>
+<script src="/js/dist/news.min.js"></script>
+<script src="/js/dist/app.min.js"></script>
 
 <!-- PWA Install Modal -->
 <div id="pwa-install-modal" class="hidden fixed inset-0 z-[9999] flex items-end justify-center p-4" style="background:rgba(0,0,0,0.5)" onclick="closePwaModal()">
