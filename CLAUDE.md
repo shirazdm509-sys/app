@@ -6,7 +6,7 @@
 
 - **Backend:** Node.js + Express.js 5
 - **Database:** SQLite (`library.sqlite`)
-- **Frontend:** SPA فارسی با Tailwind CSS (بدون build step)
+- **Frontend:** SPA فارسی با Tailwind CSS (pre-compiled — نیاز به build step دارد)
 - **PWA:** قابل نصب روی موبایل با پشتیبانی آفلاین
 
 ---
@@ -17,6 +17,9 @@
 /
 ├── server.js              # سرور اصلی Express (~1900 خط)
 ├── package.json
+├── build.js               # Build pipeline: Tailwind CLI + esbuild minify
+├── tailwind.config.js     # تنظیمات Tailwind
+├── src/tailwind.css       # نقطه ورودی Tailwind (@tailwind directives)
 ├── .env                   # متغیرهای محیطی (از .env.example)
 ├── nginx.conf.example     # تنظیمات reverse proxy
 ├── library.sqlite         # دیتابیس اصلی (در runtime ساخته می‌شود)
@@ -31,10 +34,13 @@
     │   ├── media.js       # گالری، صوت، ویدیو + تقویم یکپارچه
     │   ├── news.js        # اخبار و news slider
     │   ├── utils.js       # توابع مشترک: toFa، تقویم جلالی، API helper
-    │   └── offline.js     # Service Worker registration
+    │   ├── offline.js     # Service Worker registration
+    │   └── dist/          # فایل‌های minified (generated — git tracked)
+    │       └── *.min.js
     └── css/
-        ├── app.css        # استایل‌های اختصاصی + Tailwind customization
-        └── style.css      # فونت‌ها (Vazir/Shabnam)، layout پایه
+        ├── app.css        # استایل‌های اختصاصی
+        ├── style.css      # فونت‌ها (Vazir/Shabnam)، layout پایه
+        └── tailwind.dist.css  # Tailwind compiled (generated — git tracked)
 ```
 
 ---
@@ -72,20 +78,26 @@ document.querySelector('[data-nav="X"]').classList.add('active');
 | `GET /api/notifications/public` | اعلان‌های عمومی |
 | `GET /manifest.json` | PWA manifest (دینامیک از دیتابیس) |
 
-### کاربر (`x-user-id` header)
+### کاربر (JWT Bearer token)
 | Route | توضیح |
 |-------|-------|
-| `POST /api/auth/register` | ثبت‌نام |
-| `POST /api/auth/login` | ورود |
+| `POST /api/auth/register` | ثبت‌نام — برمی‌گرداند `{id, username, token}` |
+| `POST /api/auth/login` | ورود — برمی‌گرداند `{id, username, token}` |
 | `GET /api/tickets` | تیکت‌های کاربر |
 | `POST /api/tickets` | ایجاد تیکت |
 | `GET /api/notifications` | اعلان‌های کاربر |
 
-### ادمین (`x-admin-token` header)
+احراز هویت کاربر: header `Authorization: Bearer <token>` (JWT)
+
+### ادمین (httpOnly cookie)
 - مدیریت کامل کتاب، صوت، ویدیو، گالری، بنر، اسلایدر
 - مدیریت کاربران و تیکت‌ها
 - تنظیمات سایت و برندینگ
-- `POST /api/admin/login` — ورود ادمین
+- `POST /api/admin/login` — ورود ادمین (کوکی `admin_token` ست می‌شود)
+- `POST /api/admin/logout` — خروج (کوکی پاک می‌شود)
+- `GET /api/admin/auth-check` — بررسی وضعیت session
+
+احراز هویت ادمین: httpOnly cookie `admin_token` (JWT) — نه header
 
 ---
 
@@ -172,13 +184,26 @@ showWPSingleView(postId)   // نمایش پست منفرد
 ## فناوری‌های Frontend
 
 ```
-Tailwind CSS (runtime CDN)  — استایل‌دهی
-FontAwesome 6 (local)       — آیکون‌ها
-Vazir / Shabnam             — فونت‌های فارسی
-PDF.js                      — نمایش PDF
-Quill.js                    — ویرایشگر rich text (admin)
-Sortable.js                 — drag-and-drop (admin)
+Tailwind CSS 3 (pre-compiled) — استایل‌دهی — node build.js
+esbuild (minify)              — فشرده‌سازی JS — node build.js
+FontAwesome 6 (local)         — آیکون‌ها
+Vazir / Shabnam               — فونت‌های فارسی
+PDF.js                        — نمایش PDF
+Quill.js                      — ویرایشگر rich text (admin)
+Sortable.js                   — drag-and-drop (admin)
 ```
+
+### Build step
+
+هر بار که فایل‌های JS یا HTML ویرایش می‌شوند باید build مجدد اجرا شود:
+
+```bash
+node build.js          # یک‌بار build
+node build.js --watch  # watch mode (CSS + JS همزمان)
+npm run build          # معادل node build.js
+```
+
+فایل‌های خروجی (`tailwind.dist.css` و `public/js/dist/*.min.js`) در git tracked هستند و باید بعد از هر تغییر JS/HTML دوباره build و commit شوند.
 
 ---
 
@@ -196,9 +221,9 @@ JWT_SECRET=...
 
 ## نکات مهم
 
-- **بدون build step:** Tailwind به صورت runtime اجرا می‌شود؛ فایل‌های JS مستقیم ویرایش می‌شوند.
+- **Build step الزامی:** بعد از هر تغییر در JS یا HTML، باید `node build.js` اجرا شود تا dist files به‌روز شوند.
 - **RTL:** همه رابط کاربری راست‌به‌چپ (`dir="rtl"`).
 - **toFa():** برای نمایش اعداد فارسی در UI از این تابع استفاده شود.
 - **WordPress proxy:** هیچ‌گاه مستقیم به `dastgheibqoba.info` درخواست نزنید؛ همیشه از `/api/wp?path=...` استفاده شود.
-- **ادمین:** احراز هویت با header `x-admin-token` (مقدار = رمز ادمین).
-- **کاربر:** احراز هویت با header `x-user-id` (مقدار = شناسه کاربر).
+- **ادمین:** احراز هویت با httpOnly cookie `admin_token` (JWT) — نه header.
+- **کاربر:** احراز هویت با `Authorization: Bearer <token>` header (JWT) — نه `x-user-id`.
