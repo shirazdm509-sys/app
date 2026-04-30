@@ -61,6 +61,17 @@
       if (sub) sub.style.display = 'none';
     }
   } catch(e) {}
+  // absolute fallback: if JS files fail to load, show app after 10s
+  setTimeout(function() {
+    var ls = document.getElementById('loading-screen');
+    if (ls && ls.style.display !== 'none' && !ls.classList.contains('hidden')) {
+      ls.style.opacity = '0';
+      ls.style.pointerEvents = 'none';
+      setTimeout(function() { ls.style.display = 'none'; }, 500);
+      var appWr = document.getElementById('app-wrapper');
+      if (appWr) appWr.classList.remove('hidden');
+    }
+  }, 10000);
 })();
 </script>
 
