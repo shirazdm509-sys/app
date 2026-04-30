@@ -119,11 +119,11 @@ let proxyLimiter = (req, res, next) => next();
 let searchLimiter = (req, res, next) => next();
 if (rateLimit) {
     // فقط روی API اعمال میشه نه فایل‌های استاتیک
-    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500, standardHeaders: true, legacyHeaders: false });
-    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'تعداد تلاش بیش از حد است' } });
-    adminLoginLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, standardHeaders: true, legacyHeaders: false, skipSuccessfulRequests: true, message: { error: 'تعداد تلاش‌های ورود بیش از حد است. بعداً تلاش کنید.' } });
-    proxyLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false });
-    searchLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false });
+    const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 1500, standardHeaders: true, legacyHeaders: false, validate: {xForwardedForHeader: false} });
+    const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 20, standardHeaders: true, legacyHeaders: false, validate: {xForwardedForHeader: false}, message: { error: 'تعداد تلاش بیش از حد است' } });
+    adminLoginLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, standardHeaders: true, legacyHeaders: false, skipSuccessfulRequests: true, validate: {xForwardedForHeader: false}, message: { error: 'تعداد تلاش‌های ورود بیش از حد است. بعداً تلاش کنید.' } });
+    proxyLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false, validate: {xForwardedForHeader: false} });
+    searchLimiter = rateLimit({ windowMs: 60*1000, max: 30, standardHeaders: true, legacyHeaders: false, validate: {xForwardedForHeader: false} });
     app.use('/api/auth', authLimiter);
     app.use('/api/', apiLimiter);
 }
