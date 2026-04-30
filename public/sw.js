@@ -1,7 +1,7 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v17';
-const STATIC_CACHE = 'nashr-static-v17';
-const DYNAMIC_CACHE = 'nashr-dynamic-v17';
+const CACHE_NAME = 'nashr-asar-v18';
+const STATIC_CACHE = 'nashr-static-v18';
+const DYNAMIC_CACHE = 'nashr-dynamic-v18';
 
 // فقط فونت‌ها و فایل‌های ثابت را pre-cache می‌کنیم
 // فایل‌های JS/CSS با استراتژی network-first بارگذاری می‌شوند (همیشه به‌روز)
@@ -9,10 +9,16 @@ const STATIC_ASSETS = [
   '/vendor/fa/webfonts/fa-solid-900.woff2',
   '/vendor/fa/webfonts/fa-regular-400.woff2',
   '/vendor/fa/webfonts/fa-brands-400.woff2',
+  '/vendor/fonts/vazir/Vazir-Thin.woff2',
+  '/vendor/fonts/vazir/Vazir-Light.woff2',
   '/vendor/fonts/vazir/Vazir-Regular.woff2',
-  '/vendor/fonts/vazir/Vazir-Bold.woff2',
   '/vendor/fonts/vazir/Vazir-Medium.woff2',
+  '/vendor/fonts/vazir/Vazir-Bold.woff2',
+  '/vendor/fonts/vazir/Vazir-Black.woff2',
+  '/vendor/fonts/shabnam/Shabnam-Thin.woff2',
+  '/vendor/fonts/shabnam/Shabnam-Light.woff2',
   '/vendor/fonts/shabnam/Shabnam.woff2',
+  '/vendor/fonts/shabnam/Shabnam-Medium.woff2',
   '/vendor/fonts/shabnam/Shabnam-Bold.woff2',
 ];
 

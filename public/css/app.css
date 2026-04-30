@@ -1,6 +1,20 @@
 /* ====================================================
    استایل‌های اصلی اپلیکیشن
    ==================================================== */
+
+/* فونت وزیر — مستقل از Tailwind تا در هر شرایطی لود شود */
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Thin.woff2') format('woff2'); font-weight: 100; font-display: swap; }
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Light.woff2') format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+@font-face { font-family: Vazir; src: url('/vendor/fonts/vazir/Vazir-Black.woff2') format('woff2'); font-weight: 900; font-display: swap; }
+@font-face { font-family: Shabnam; src: url('/vendor/fonts/shabnam/Shabnam-Thin.woff2') format('woff2'); font-weight: 100; font-display: swap; }
+@font-face { font-family: Shabnam; src: url('/vendor/fonts/shabnam/Shabnam-Light.woff2') format('woff2'); font-weight: 300; font-display: swap; }
+@font-face { font-family: Shabnam; src: url('/vendor/fonts/shabnam/Shabnam.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: Shabnam; src: url('/vendor/fonts/shabnam/Shabnam-Medium.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: Shabnam; src: url('/vendor/fonts/shabnam/Shabnam-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
 :root { --safe-bottom: 20px; --title-color: inherit; --text-color: inherit; --line-height: 2.2; --home-gap: 16px; }
 #home-scroll-content > div { margin-bottom: var(--home-gap) !important; }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
@@ -8,7 +22,7 @@
 }
 
 * { -webkit-tap-highlight-color: transparent; }
-body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margin: 0; padding: 0; }
+body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margin: 0; padding: 0; font-family: 'Vazir', 'Tahoma', sans-serif; }
 
 .hidden { display: none !important; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
