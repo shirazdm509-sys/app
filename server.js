@@ -24,14 +24,34 @@ if (webpush) {
     webpush.setVapidDetails('mailto:admin@localhost', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
-let rateLimit, helmet, compression;
+let rateLimit, helmet, compression, jwt, cookieParser;
 try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; }
 try { helmet = require('helmet'); } catch(e) { helmet = null; }
 try { compression = require('compression'); } catch(e) { compression = null; }
+try { jwt = require('jsonwebtoken'); } catch(e) { jwt = null; }
+try { cookieParser = require('cookie-parser'); } catch(e) { cookieParser = null; }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@secure2024';
+
+// رمز ادمین — الزامی است؛ اگر تنظیم نشده، random fallback تولید می‌شود تا app اجرا بشه
+// ولی هشدار جدی نمایش داده می‌شود تا deployer متوجه شود
+let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8) {
+    ADMIN_PASSWORD = crypto.randomBytes(24).toString('hex');
+    console.error('========================================================');
+    console.error('⚠️  ADMIN_PASSWORD env var is not set or is too short.');
+    console.error('   A random password was generated for this session:');
+    console.error('   ' + ADMIN_PASSWORD);
+    console.error('   Set ADMIN_PASSWORD in .env to make it persistent.');
+    console.error('========================================================');
+}
+
+// JWT secret — اگر env تنظیم نشده، یک کلید پایدار در دیتابیس ذخیره می‌شود
+// مقدار اولیه random است؛ بعد از مقداردهی DB با کلید پایدار جایگزین می‌شود
+let JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(48).toString('hex');
+const JWT_USER_TTL = '30d';
+const JWT_ADMIN_TTL = '24h';
 
 // Digital Asset Links — قبل از هر middleware تا هیچ‌چیزی بلاکش نکنه
 app.get('/.well-known/assetlinks.json', (req, res) => {
@@ -73,20 +93,21 @@ app.use((req, res, next) => {
     next();
 });
 
-// CORS — محدود به همان origin و لیست مجاز
+// CORS — same-origin پیش‌فرض؛ cross-origin فقط با لیست صریح ALLOWED_ORIGINS
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s=>s.trim()).filter(Boolean);
 app.use(cors({
     origin: (origin, cb) => {
-        // درخواست‌های هم‌origin (بدون Origin header) مجاز
+        // درخواست‌های هم‌origin (بدون Origin header) همیشه مجاز
         if (!origin) return cb(null, true);
-        if (ALLOWED_ORIGINS.length === 0) return cb(null, true); // اگر تنظیم نشده، same-origin
         if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+        // بدون لیست صریح، cross-origin پذیرفته نمی‌شود
         return cb(new Error('CORS: origin not allowed'));
     },
-    credentials: false,
+    credentials: true,
     methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','x-admin-token','x-user-id','Authorization']
+    allowedHeaders: ['Content-Type','Authorization']
 }));
+if (cookieParser) app.use(cookieParser());
 
 // Rate limiting
 let adminLoginLimiter = (req, res, next) => next();
@@ -171,7 +192,32 @@ const mainDb = new sqlite3.Database(mainDbPath, (err) => {
     if (err) { console.error('DB Error:', err.message); return; }
     console.log('✅ دیتابیس آماده است.');
     initDb();
+    // تاخیر کوچک تا اطمینان از اتمام initDb و قابل دسترس بودن جدول settings
+    mainDb.serialize(() => { ensureJwtSecret(); });
 });
+
+// JWT secret loader — persists in settings so tokens survive restarts
+function ensureJwtSecret() {
+    // اگر از env تنظیم شده، نیازی به DB نیست
+    if (process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32) return;
+    mainDb.get(`SELECT value FROM settings WHERE key='_jwt_secret'`, [], (err, row) => {
+        if (row && row.value && row.value.length >= 32) {
+            JWT_SECRET = row.value;
+        } else {
+            // ذخیره مقدار random ایجاد شده در startup تا بعد از restart پایدار بماند
+            mainDb.run(`INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('_jwt_secret', ?, CURRENT_TIMESTAMP)`, [JWT_SECRET]);
+        }
+    });
+}
+
+function signUserToken(uid, username) {
+    if (!jwt) return null;
+    return jwt.sign({ uid, username, kind: 'user' }, JWT_SECRET, { expiresIn: JWT_USER_TTL });
+}
+function signAdminToken() {
+    if (!jwt) return null;
+    return jwt.sign({ kind: 'admin' }, JWT_SECRET, { expiresIn: JWT_ADMIN_TTL });
+}
 
 function initDb() {
     mainDb.serialize(() => {
@@ -326,25 +372,30 @@ const uploadAudio = multer({ storage, limits:{fileSize:60*1024*1024, files:5}, f
 // آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf — کتاب‌های pdf حجیم هستند
 const upload = multer({ storage, limits:{fileSize:200*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
 
-// Auth middleware
+// Auth middleware — JWT-based
 function adminAuth(req,res,next) {
-    const tok = req.headers['x-admin-token'];
-    if (!tok || typeof tok !== 'string' || tok.trim() === '') {
-        return res.status(401).json({error:'دسترسی غیرمجاز'});
-    }
-    // Constant-time comparison: pad both to 128 bytes to avoid timing oracle
+    if (!jwt) return res.status(500).json({error:'JWT not available'});
+    const tok = req.cookies && req.cookies.admin_token;
+    if (!tok) return res.status(401).json({error:'دسترسی غیرمجاز'});
     try {
-        const a = Buffer.alloc(128); Buffer.from(tok, 'utf8').copy(a);
-        const b = Buffer.alloc(128); Buffer.from(ADMIN_PASSWORD, 'utf8').copy(b);
-        if (crypto.timingSafeEqual(a, b)) return next();
+        const decoded = jwt.verify(tok, JWT_SECRET);
+        if (decoded && decoded.kind === 'admin') return next();
     } catch(e) {}
     return res.status(401).json({error:'دسترسی غیرمجاز'});
 }
 function userAuth(req,res,next) {
-    const uid = req.headers['x-user-id'];
-    const n = parseInt(uid, 10);
-    if(!uid || isNaN(n) || n <= 0 || n > 2147483647) return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
-    req.userId = n; next();
+    if (!jwt) return res.status(500).json({error:'JWT not available'});
+    const auth = req.headers['authorization'] || '';
+    const m = auth.match(/^Bearer\s+(.+)$/i);
+    if (!m) return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
+    try {
+        const decoded = jwt.verify(m[1], JWT_SECRET);
+        if (decoded && decoded.kind === 'user' && Number.isInteger(decoded.uid) && decoded.uid > 0) {
+            req.userId = decoded.uid;
+            return next();
+        }
+    } catch(e) {}
+    return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
 }
 // path helper: ensure resolved path stays within base (prevents traversal/symlink escape)
 function safePath(base, userFile) {
@@ -773,14 +824,15 @@ app.post('/api/auth/register',(req,res)=>{
     const hash = bcrypt.hashSync(p, 12);
     mainDb.run('INSERT INTO users (username,password) VALUES (?,?)',[u,hash],function(err){
         if(err){if(err.message.includes('UNIQUE')) return res.status(400).json({error:'این نام کاربری قبلاً ثبت شده'});return res.status(500).json({error:err.message});}
-        // Auto-assign existing broadcast notifications to new user
-        mainDb.all('SELECT id FROM notifications WHERE type="broadcast"',[],(err2,notifs)=>{
-            if(notifs&&notifs.length){
-                const uid=this.lastID;
-                notifs.forEach(n=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[uid,n.id]));
-            }
-        });
-        res.json({success:true,id:this.lastID,username:u});
+        const uid=this.lastID;
+        // Auto-assign existing broadcast notifications to new user (single batched insert)
+        mainDb.run(
+            `INSERT OR IGNORE INTO user_notifications (user_id, notification_id)
+             SELECT ?, id FROM notifications WHERE type='broadcast'`,
+            [uid]
+        );
+        const token = signUserToken(uid, u);
+        res.json({success:true,id:uid,username:u,token});
     });
 });
 app.post('/api/auth/login',(req,res)=>{
@@ -792,9 +844,10 @@ app.post('/api/auth/login',(req,res)=>{
         // Support both hashed and plaintext (migration)
         let valid = false;
         if(row.password.startsWith('$2')) { valid = bcrypt.compareSync(p, row.password); }
-        else { valid = (p === row.password); if(valid){ const h=bcrypt.hashSync(p,10); mainDb.run('UPDATE users SET password=? WHERE id=?',[h,row.id]); } }
+        else { valid = (p === row.password); if(valid){ const h=bcrypt.hashSync(p,12); mainDb.run('UPDATE users SET password=? WHERE id=?',[h,row.id]); } }
         if(!valid) return res.status(401).json({error:'نام کاربری یا رمز عبور اشتباه است'});
-        res.json({success:true,id:row.id,username:row.username});
+        const token = signUserToken(row.id, row.username);
+        res.json({success:true,id:row.id,username:row.username,token});
     });
 });
 
@@ -910,15 +963,33 @@ app.post('/api/notifications/read-all',userAuth,(req,res)=>{
 app.post('/api/admin/login', adminLoginLimiter, (req,res)=>{
     const pw = (req.body && typeof req.body.password === 'string') ? req.body.password : '';
     // Constant-time comparison to prevent timing attacks
-    const a = Buffer.from(pw.padEnd(64, '\0').slice(0, 64), 'utf8');
-    const b = Buffer.from(ADMIN_PASSWORD.padEnd(64, '\0').slice(0, 64), 'utf8');
-    const ok = pw.length === ADMIN_PASSWORD.length && crypto.timingSafeEqual(a, b);
-    if (ok) res.json({success:true,token:ADMIN_PASSWORD});
+    const a = Buffer.alloc(128); Buffer.from(pw, 'utf8').copy(a);
+    const b = Buffer.alloc(128); Buffer.from(ADMIN_PASSWORD, 'utf8').copy(b);
+    let ok = false;
+    try { ok = crypto.timingSafeEqual(a, b); } catch(e) {}
+    if (ok) {
+        const token = signAdminToken();
+        if (!token) return res.status(500).json({error:'JWT unavailable'});
+        const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+        res.cookie('admin_token', token, {
+            httpOnly: true,
+            secure,
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24*60*60*1000
+        });
+        res.json({success:true});
+    }
     else {
         // تاخیر رندوم برای جلوگیری از timing oracle
         setTimeout(()=>res.status(401).json({error:'رمز عبور اشتباه است'}), 300 + Math.floor(Math.random()*300));
     }
 });
+app.post('/api/admin/logout', (req, res) => {
+    res.clearCookie('admin_token', { path: '/' });
+    res.json({ success: true });
+});
+app.get('/api/admin/auth-check', adminAuth, (req, res) => res.json({ ok: true }));
 
 app.post('/api/admin/books',adminAuth,upload.fields([{name:'database',maxCount:1},{name:'pdf_file',maxCount:1},{name:'cover',maxCount:1}]),async(req,res)=>{
     try{
@@ -1987,9 +2058,6 @@ async function ensureMaskableIcons() {
 app.listen(PORT,()=>{
     console.log(`\n🚀 سرور: http://localhost:${PORT}`);
     console.log(`🔐 ادمین: http://localhost:${PORT}/admin`);
-    if (!process.env.ADMIN_PASSWORD) {
-        console.warn('⚠️  WARNING: ADMIN_PASSWORD env var is not set — using default. Change it in production!');
-    }
     console.log('');
     ensureMaskableIcons();
 });

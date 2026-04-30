@@ -1011,19 +1011,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 </div>
 
 <script>
-let adminToken = localStorage.getItem('adminToken');
+// Admin auth uses httpOnly cookie set on login. No client-side token storage.
+let adminAuthed = false;
 let activeTicketId = null, activeUserId = null;
 let adminQaInterval = null;
 let bannerData = [{},{},{}];
 let currentSupportMode = 'tickets'; // 'tickets' or 'qa'
 
 async function adminFetch(url, options={}) {
-  if(!adminToken) { showToast('لطفاً دوباره وارد شوید',false); setTimeout(()=>window.location.reload(),1000); throw new Error('no token'); }
-  options.headers = Object.assign({'x-admin-token': String(adminToken)}, options.headers||{});
+  options.credentials = 'same-origin';
+  options.headers = Object.assign({}, options.headers||{});
   const r = await fetch(url, options);
   if(r.status === 401) {
-    localStorage.removeItem('adminToken');
-    adminToken = null;
+    adminAuthed = false;
     showToast('نشست منقضی شده. لطفاً دوباره وارد شوید.', false);
     setTimeout(() => window.location.reload(), 1500);
     throw new Error('401 Unauthorized');
@@ -1032,11 +1032,12 @@ async function adminFetch(url, options={}) {
 }
 
 window.onload = async () => {
-  if(adminToken){
-    try {
-      const r = await fetch('/api/admin/settings', {headers:{'x-admin-token':adminToken}});
-      if(r.status === 401) { localStorage.removeItem('adminToken'); adminToken = null; return; }
-    } catch(e) {}
+  // بررسی نشست فعلی از طریق cookie
+  try {
+    const r = await fetch('/api/admin/auth-check', { credentials: 'same-origin' });
+    adminAuthed = r.ok;
+  } catch(e) { adminAuthed = false; }
+  if(adminAuthed){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('main-content').classList.remove('hidden');
@@ -1058,12 +1059,17 @@ function showToast(msg, ok=true) {
 async function loginAdmin() {
   const p=document.getElementById('admin-pass').value;
   try{
-    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
-    if(r.ok){const d=await r.json();adminToken=d.token;localStorage.setItem('adminToken',adminToken);window.location.reload();}
+    const r=await fetch('/api/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
+    if(r.ok){ window.location.reload(); }
     else showToast('رمز عبور اشتباه!',false);
   }catch(e){showToast('خطا در ارتباط با سرور',false);}
 }
-function logoutAdmin(){localStorage.removeItem('adminToken');window.location.reload();}
+async function logoutAdmin(){
+  try { await fetch('/api/admin/logout',{method:'POST',credentials:'same-origin'}); } catch(e) {}
+  // پاک کردن توکن قدیمی اگر هنوز در localStorage مانده
+  try { localStorage.removeItem('adminToken'); } catch(e) {}
+  window.location.reload();
+}
 
 function openMobileMenu(){
   document.getElementById('sidebar').classList.add('sidebar-open');

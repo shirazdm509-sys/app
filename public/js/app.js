@@ -600,7 +600,7 @@ async function mainLogin() {
         const r = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
         const d = await r.json();
         if (r.ok && d.success) {
-            qaUser = { id: d.id, username: d.username };
+            qaUser = { id: d.id, username: d.username, token: d.token };
             localStorage.setItem('qa_user', JSON.stringify(qaUser));
             updateAuthScreenUI(); updateQAUserUI();
             showToast('خوش آمدید ' + d.username);
@@ -624,7 +624,7 @@ async function mainRegister() {
         const r = await fetch('/api/auth/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
         const d = await r.json();
         if (r.ok && d.success) {
-            qaUser = { id: d.id, username: d.username };
+            qaUser = { id: d.id, username: d.username, token: d.token };
             localStorage.setItem('qa_user', JSON.stringify(qaUser));
             updateAuthScreenUI(); updateQAUserUI();
             showToast('ثبت‌نام با موفقیت انجام شد');
@@ -645,6 +645,18 @@ function authLogout() {
 // بخش پرسش و پاسخ (QA)
 // ====================================================
 let qaUser = JSON.parse(localStorage.getItem('qa_user') || 'null');
+// اگر کاربر قدیمی توکن نداره، باید مجدد لاگین کنه (مهاجرت از x-user-id)
+if (qaUser && !qaUser.token) { qaUser = null; try { localStorage.removeItem('qa_user'); } catch(e) {} }
+function userAuthHeaders(extra) {
+    const h = Object.assign({}, extra || {});
+    if (qaUser && qaUser.token) h['Authorization'] = 'Bearer ' + qaUser.token;
+    return h;
+}
+function _onAuthFailure() {
+    qaUser = null;
+    try { localStorage.removeItem('qa_user'); } catch(e) {}
+    try { updateAuthScreenUI(); updateQAUserUI(); } catch(e) {}
+}
 let _notifPollingInterval = null;
 function startNotifPolling() {
     if (_notifPollingInterval) return;
@@ -678,7 +690,7 @@ async function qaLogin() {
         const r = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
         const d = await r.json();
         if (r.ok && d.success) {
-            qaUser = { id: d.id, username: d.username };
+            qaUser = { id: d.id, username: d.username, token: d.token };
             localStorage.setItem('qa_user', JSON.stringify(qaUser));
             hideQAAuth(); updateQAUserUI(); renderQATickets();
             showToast('خوش آمدید ' + d.username);
@@ -736,7 +748,7 @@ async function submitQATicket() {
     try {
         const res = await fetch('/api/tickets', {
             method: 'POST',
-            headers: {'Content-Type':'application/json', 'x-user-id': String(qaUser.id)},
+            headers: userAuthHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify({subject, message})
         });
         const d = await res.json();
@@ -755,7 +767,7 @@ async function renderQATickets() {
     if (!qaUser) { showQAAuth(); return; }
     c.innerHTML = `<div class="flex justify-center py-8"><div class="w-8 h-8 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>`;
     try {
-        const res = await fetch('/api/tickets', { headers: {'x-user-id': String(qaUser.id)} });
+        const res = await fetch('/api/tickets', { headers: userAuthHeaders() });
         if (res.status === 401) { qaLogout(); return; }
         const tickets = await res.json();
         qaTickets = Array.isArray(tickets) ? tickets : [];
@@ -804,7 +816,7 @@ async function sendQAConvMessage() {
     try {
         const r = await fetch('/api/tickets/' + activeQATicketId + '/messages', {
             method: 'POST',
-            headers: {'Content-Type':'application/json','x-user-id': String(qaUser.id)},
+            headers: userAuthHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify({text: t})
         });
         const d = await r.json();
@@ -905,7 +917,7 @@ let _notifications = [];
 async function loadNotifications() {
     try {
         if (qaUser) {
-            const r = await fetch('/api/notifications', { headers: {'x-user-id': String(qaUser.id)} });
+            const r = await fetch('/api/notifications', { headers: userAuthHeaders() });
             if (r.ok) _notifications = await r.json();
         } else {
             const r = await fetch('/api/notifications/public');
@@ -970,7 +982,7 @@ function markNotifRead(id, el) {
     const n = _notifications.find(x=>x.id===id);
     if (n) n.is_read = 1;
     renderNotifications();
-    fetch('/api/notifications/read', {method:'POST',headers:{'Content-Type':'application/json','x-user-id':String(qaUser.id)},body:JSON.stringify({notification_id:id})}).catch(()=>{});
+    fetch('/api/notifications/read', {method:'POST',headers:userAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({notification_id:id})}).catch(()=>{});
     const badge = document.getElementById('notif-badge');
     const unread = _notifications.filter(n => !n.is_read).length;
     if (badge && unread===0) badge.classList.add('hidden');
@@ -979,7 +991,7 @@ function markNotifRead(id, el) {
 async function markAllNotifsRead() {
     if (!qaUser) return;
     try {
-        await fetch('/api/notifications/read-all', {method:'POST',headers:{'x-user-id':String(qaUser.id)}});
+        await fetch('/api/notifications/read-all', {method:'POST',headers:userAuthHeaders()});
         _notifications.forEach(n=>n.is_read=1);
         renderNotifications();
         const badge = document.getElementById('notif-badge');
@@ -1342,7 +1354,7 @@ async function subscribeToPush(reg) {
         });
         await fetch('/api/push/subscribe', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-user-id': qaUser.id },
+            headers: userAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ subscription: sub })
         });
         console.log('Push subscribed');
