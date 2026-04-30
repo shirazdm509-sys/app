@@ -34,6 +34,8 @@ try { cookieParser = require('cookie-parser'); } catch(e) { cookieParser = null;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// اپ پشت nginx reverse proxy است — به X-Forwarded-For اعتماد کن
+app.set('trust proxy', 1);
 // رمز ادمین — الزامی است؛ اگر تنظیم نشده، random fallback تولید می‌شود تا app اجرا بشه
 // ولی هشدار جدی نمایش داده می‌شود تا deployer متوجه شود
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;

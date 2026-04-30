@@ -1061,6 +1061,8 @@ async function loginAdmin() {
   try{
     const r=await fetch('/api/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:p})});
     if(r.ok){ window.location.reload(); }
+    else if(r.status===429) showToast('تعداد تلاش‌ها بیش از حد. چند دقیقه صبر کنید.',false);
+    else if(r.status>=500) showToast('خطای سرور. لاگ را بررسی کنید.',false);
     else showToast('رمز عبور اشتباه!',false);
   }catch(e){showToast('خطا در ارتباط با سرور',false);}
 }
