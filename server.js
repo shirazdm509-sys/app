@@ -215,12 +215,37 @@ function ensureJwtSecret() {
 }
 
 function signUserToken(uid, username) {
-    if (!jwt) return null;
-    return jwt.sign({ uid, username, kind: 'user' }, JWT_SECRET, { expiresIn: JWT_USER_TTL });
+    return signSimpleToken({ uid, username, kind: 'user' }, 30*24*60*60);
 }
 function signAdminToken() {
-    if (!jwt) return null;
-    return jwt.sign({ kind: 'admin' }, JWT_SECRET, { expiresIn: JWT_ADMIN_TTL });
+    return signSimpleToken({ kind: 'admin' }, 24*60*60);
+}
+
+// JWT-compatible signing using built-in crypto only (HS256)
+function signSimpleToken(payload, expiresInSec) {
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const exp = Math.floor(Date.now()/1000) + expiresInSec;
+    const body = Object.assign({}, payload, { exp, iat: Math.floor(Date.now()/1000) });
+    const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
+    const bodyB64 = Buffer.from(JSON.stringify(body)).toString('base64url');
+    const signed = headerB64 + '.' + bodyB64;
+    const sig = crypto.createHmac('sha256', JWT_SECRET).update(signed).digest('base64url');
+    return signed + '.' + sig;
+}
+function verifySimpleToken(token) {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [headerB64, bodyB64, sig] = parts;
+    const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(headerB64 + '.' + bodyB64).digest('base64url');
+    const a = Buffer.from(sig); const b = Buffer.from(expectedSig);
+    if (a.length !== b.length) return null;
+    try { if (!crypto.timingSafeEqual(a, b)) return null; } catch(e) { return null; }
+    try {
+        const body = JSON.parse(Buffer.from(bodyB64, 'base64url').toString('utf8'));
+        if (body.exp && body.exp < Math.floor(Date.now()/1000)) return null;
+        return body;
+    } catch(e) { return null; }
 }
 
 function initDb() {
@@ -378,27 +403,21 @@ const upload = multer({ storage, limits:{fileSize:200*1024*1024, files:10}, file
 
 // Auth middleware — JWT-based
 function adminAuth(req,res,next) {
-    if (!jwt) return res.status(500).json({error:'JWT not available'});
     const tok = req.cookies && req.cookies.admin_token;
     if (!tok) return res.status(401).json({error:'دسترسی غیرمجاز'});
-    try {
-        const decoded = jwt.verify(tok, JWT_SECRET);
-        if (decoded && decoded.kind === 'admin') return next();
-    } catch(e) {}
+    const decoded = verifySimpleToken(tok);
+    if (decoded && decoded.kind === 'admin') return next();
     return res.status(401).json({error:'دسترسی غیرمجاز'});
 }
 function userAuth(req,res,next) {
-    if (!jwt) return res.status(500).json({error:'JWT not available'});
     const auth = req.headers['authorization'] || '';
     const m = auth.match(/^Bearer\s+(.+)$/i);
     if (!m) return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
-    try {
-        const decoded = jwt.verify(m[1], JWT_SECRET);
-        if (decoded && decoded.kind === 'user' && Number.isInteger(decoded.uid) && decoded.uid > 0) {
-            req.userId = decoded.uid;
-            return next();
-        }
-    } catch(e) {}
+    const decoded = verifySimpleToken(m[1]);
+    if (decoded && decoded.kind === 'user' && Number.isInteger(decoded.uid) && decoded.uid > 0) {
+        req.userId = decoded.uid;
+        return next();
+    }
     return res.status(401).json({error:'لطفاً وارد حساب کاربری شوید'});
 }
 // path helper: ensure resolved path stays within base (prevents traversal/symlink escape)
