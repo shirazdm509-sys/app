@@ -191,7 +191,15 @@ function openToc() {
 }
 function closeToc() { document.getElementById('toc-overlay').classList.remove('open'); }
 function openReader() { document.getElementById('reader-overlay').classList.add('open'); }
-function closeReader() { document.getElementById('reader-overlay').classList.remove('open'); openToc(); }
+function closeReader() { _flushSavePage(); document.getElementById('reader-overlay').classList.remove('open'); openToc(); }
+function _flushSavePage() {
+    if (_savePageTimer) {
+        clearTimeout(_savePageTimer);
+        _savePageTimer = null;
+        try { if (currentBookId != null) localStorage.setItem('book_'+currentBookId+'_page', currentIndex); } catch(e) {}
+    }
+}
+window.addEventListener('beforeunload', () => { try { _flushSavePage(); } catch(e) {} });
 
 function buildTOC() {
     const container=document.getElementById('main-toc-container'); if(!container||!bookData.length) return;
@@ -277,8 +285,16 @@ function goToPage(index) {
     const cc=document.getElementById('content-container'); if(cc) cc.scrollTop=0;
     const bmi=document.getElementById('menu-bookmark-icon');
     if(bmi) bmi.className=bookmarks.includes(currentIndex)?'fas fa-bookmark ml-3 w-4 text-center text-brand-600':'far fa-bookmark ml-3 w-4 text-center';
-    if(currentBookId) localStorage.setItem('book_'+currentBookId+'_page',currentIndex);
+    if(currentBookId) _scheduleSavePage(currentBookId, currentIndex);
     closeToc(); openReader();
+}
+let _savePageTimer = null;
+function _scheduleSavePage(bookId, idx) {
+    if (_savePageTimer) clearTimeout(_savePageTimer);
+    _savePageTimer = setTimeout(() => {
+        try { localStorage.setItem('book_'+bookId+'_page', idx); } catch(e) {}
+        _savePageTimer = null;
+    }, 400);
 }
 
 function nextPage(){goToPage(currentIndex-1);}

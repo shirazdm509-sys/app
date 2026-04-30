@@ -53,6 +53,8 @@ self.addEventListener('activate', event => {
 
 // پیام skipWaiting از اپ برای فعال‌سازی فوری SW جدید
 self.addEventListener('message', event => {
+  // فقط پیام‌های same-origin پذیرفته می‌شوند
+  if (event.origin && event.origin !== self.location.origin) return;
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

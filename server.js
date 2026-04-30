@@ -24,9 +24,10 @@ if (webpush) {
     webpush.setVapidDetails('mailto:admin@localhost', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 }
 
-let rateLimit, helmet;
+let rateLimit, helmet, compression;
 try { rateLimit = require('express-rate-limit'); } catch(e) { rateLimit = null; }
 try { helmet = require('helmet'); } catch(e) { helmet = null; }
+try { compression = require('compression'); } catch(e) { compression = null; }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,6 +46,11 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
         return res.end('[]');
     }
 });
+
+// Compression — gzip/brotli for API + static
+if (compression) {
+    app.use(compression({ threshold: 1024, level: 6 }));
+}
 
 // Security middleware
 if (helmet) {
@@ -100,7 +106,7 @@ if (rateLimit) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09', dir: __dirname }));
+app.get('/api/version', (req, res) => res.json({ v: '2.4.0', built: '2026-04-09' }));
 
 // Dynamic manifest.json (reads PWA settings from DB)
 app.get('/manifest.json', (req, res) => {
@@ -157,7 +163,7 @@ app.use((req, res, next) => {
     }
     next();
 });
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true, dotfiles: 'allow' }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d', etag: true, dotfiles: 'deny' }));
 
 // DB
 const mainDbPath = path.resolve(__dirname, 'library.sqlite');
@@ -250,6 +256,25 @@ function initDb() {
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
         // Migration: add notifications tables if not exists (already created above)
+
+        // Performance indexes for hot query paths
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_audio_tracks_category ON audio_tracks(category_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_audio_tracks_pubdate ON audio_tracks(publish_date)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_video_items_category ON video_items(category_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_video_items_pubdate ON video_items(publish_date)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_gallery_photos_category ON gallery_photos(category_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_audio_categories_parent ON audio_categories(parent_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_video_categories_parent ON video_categories(parent_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_gallery_categories_parent ON gallery_categories(parent_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_tickets_user ON tickets(user_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_tickets_updated ON tickets(updated_at DESC)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_user_notifications_notif ON user_notifications(notification_id)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_books_sort ON books(sort_order)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id)`, () => {});
     });
 }
 
@@ -294,11 +319,12 @@ function _makeFilter(types){
         cb(Object.assign(new Error('نوع فایل مجاز نیست'), { code: 'LIMIT_UNEXPECTED_FILE' }));
     };
 }
-const uploadImage = multer({ storage, limits:{fileSize:50*1024*1024, files:10}, fileFilter: _makeFilter(['image']) });
+// محدودیت‌ها بر اساس نوع endpoint — حداقل اندازه ممکن
+const uploadImage = multer({ storage, limits:{fileSize:10*1024*1024, files:10}, fileFilter: _makeFilter(['image']) });
 const uploadIconMemory = multer({ storage: multer.memoryStorage(), limits:{fileSize:2*1024*1024, files:1}, fileFilter: _makeFilter(['image']) });
-const uploadAudio = multer({ storage, limits:{fileSize:100*1024*1024, files:5}, fileFilter: _makeFilter(['audio','image']) });
-// آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf
-const upload = multer({ storage, limits:{fileSize:400*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
+const uploadAudio = multer({ storage, limits:{fileSize:60*1024*1024, files:5}, fileFilter: _makeFilter(['audio','image']) });
+// آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf — کتاب‌های pdf حجیم هستند
+const upload = multer({ storage, limits:{fileSize:200*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
 
 // Auth middleware
 function adminAuth(req,res,next) {
@@ -310,7 +336,7 @@ function adminAuth(req,res,next) {
     try {
         const a = Buffer.alloc(128); Buffer.from(tok, 'utf8').copy(a);
         const b = Buffer.alloc(128); Buffer.from(ADMIN_PASSWORD, 'utf8').copy(b);
-        if (tok === ADMIN_PASSWORD && crypto.timingSafeEqual(a, b)) return next();
+        if (crypto.timingSafeEqual(a, b)) return next();
     } catch(e) {}
     return res.status(401).json({error:'دسترسی غیرمجاز'});
 }
@@ -327,6 +353,18 @@ function safePath(base, userFile) {
     const full = path.resolve(baseAbs, safe);
     if (!full.startsWith(baseAbs + path.sep) && full !== baseAbs) return null;
     return full;
+}
+// Safely unlink a file path stored in DB (e.g. "/covers/abc.jpg") — verifies it
+// resolves under public/ to prevent path traversal via crafted DB values.
+function unlinkPublicFile(rel) {
+    if (!rel || typeof rel !== 'string') return;
+    if (/^https?:\/\//i.test(rel)) return; // remote URL
+    const base = path.resolve(__dirname, 'public');
+    const cleaned = rel.replace(/^\/+/, '').replace(/\\/g, '/');
+    if (cleaned.includes('..')) return; // hard reject any traversal token
+    const full = path.resolve(base, cleaned);
+    if (full !== base && !full.startsWith(base + path.sep)) return; // outside public/
+    try { if (fs.existsSync(full)) fs.unlinkSync(full); } catch(e) {}
 }
 // sanitize رشته ورودی: حذف tag های خطرناک و event handlerها
 function san(s){
@@ -554,7 +592,7 @@ function _validateProxyHost(hostname) {
     });
 }
 async function _proxyFetch(url, res, redirectCount) {
-    if (redirectCount > 10) return res.status(502).send('Too many redirects');
+    if (redirectCount > 5) return res.status(502).send('Too many redirects');
     if (!/^https?:\/\/.+/.test(url)) return res.status(400).send('Invalid URL');
     let parsed;
     try { parsed = new URL(url); } catch(e) { return res.status(400).send('Invalid URL'); }
@@ -572,7 +610,7 @@ async function _proxyFetch(url, res, redirectCount) {
         timeout: 15000
     }, (proxyRes) => {
         const status = proxyRes.statusCode;
-        // دنبال کردن redirect
+        // دنبال کردن redirect — هر redirect مجدداً validate می‌شود (SSRF guard)
         if ((status === 301 || status === 302 || status === 303 || status === 307 || status === 308) && proxyRes.headers.location) {
             proxyReq.destroy();
             let loc = proxyRes.headers.location;
@@ -580,6 +618,7 @@ async function _proxyFetch(url, res, redirectCount) {
                 const base = new URL(url);
                 loc = new URL(loc, base).href;
             }
+            // _proxyFetch خودش hostname مقصد جدید را اعتبارسنجی می‌کند
             return _proxyFetch(loc, res, redirectCount + 1);
         }
         const headers = {...proxyRes.headers};
@@ -631,13 +670,36 @@ app.get('/api/proxy', proxyLimiter, (req, res) => {
 
 // === پروکسی عمومی برای WordPress REST API ===
 // مسیریابی درخواست‌های WP API از سرور (دور زدن CORS و مشکلات شبکه در سمت کلاینت)
+const _wpCache = new Map();
+const WP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 دقیقه
+const WP_CACHE_MAX_ENTRIES = 200;
+function _wpCacheGet(key) {
+    const e = _wpCache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.t > WP_CACHE_TTL_MS) { _wpCache.delete(key); return null; }
+    return e.body;
+}
+function _wpCacheSet(key, body) {
+    if (_wpCache.size >= WP_CACHE_MAX_ENTRIES) {
+        const first = _wpCache.keys().next().value;
+        if (first) _wpCache.delete(first);
+    }
+    _wpCache.set(key, { body, t: Date.now() });
+}
 app.get('/api/wp', (req, res) => {
-    const path = req.query.path;
-    if (!path || typeof path !== 'string') return res.status(400).json({error:'path required'});
+    const wpPath = req.query.path;
+    if (!wpPath || typeof wpPath !== 'string') return res.status(400).json({error:'path required'});
     // فقط مسیرهای ایمن مجاز هستند
-    if (!/^[a-zA-Z0-9\/_\-?=&%+.,]+$/.test(path)) return res.status(400).json({error:'invalid path'});
+    if (!/^[a-zA-Z0-9\/_\-?=&%+.,]+$/.test(wpPath)) return res.status(400).json({error:'invalid path'});
+    const cached = _wpCacheGet(wpPath);
+    if (cached) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=300');
+        res.setHeader('X-WP-Cache', 'HIT');
+        return res.end(cached);
+    }
     const WP_BASE = 'https://dastgheibqoba.info/wp-json/wp/v2/';
-    const fullUrl = WP_BASE + path;
+    const fullUrl = WP_BASE + wpPath;
     const {request: httpsReq} = require('https');
     const pr = httpsReq(fullUrl, {
         headers: {
@@ -648,12 +710,22 @@ app.get('/api/wp', (req, res) => {
         timeout: 15000
     }, (wpRes) => {
         const enc = wpRes.headers['content-encoding'] || '';
-        const headers = {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60'};
         if (wpRes.statusCode !== 200) return res.status(wpRes.statusCode).json({error:'WP API error'});
-        res.writeHead(200, headers);
-        if (enc === 'gzip') wpRes.pipe(zlib.createGunzip()).pipe(res);
-        else if (enc === 'deflate') wpRes.pipe(zlib.createInflate()).pipe(res);
-        else wpRes.pipe(res);
+        const chunks = [];
+        const collect = (stream) => {
+            stream.on('data', c => chunks.push(c));
+            stream.on('end', () => {
+                const body = Buffer.concat(chunks).toString('utf8');
+                _wpCacheSet(wpPath, body);
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.setHeader('Cache-Control', 'public, max-age=300');
+                res.setHeader('X-WP-Cache', 'MISS');
+                res.end(body);
+            });
+        };
+        if (enc === 'gzip') collect(wpRes.pipe(zlib.createGunzip()));
+        else if (enc === 'deflate') collect(wpRes.pipe(zlib.createInflate()));
+        else collect(wpRes);
     });
     pr.on('error', e => { if (!res.headersSent) res.status(502).json({error: e.message}); });
     pr.on('timeout', () => { pr.destroy(); if (!res.headersSent) res.status(504).json({error:'timeout'}); });
@@ -662,7 +734,7 @@ app.get('/api/wp', (req, res) => {
 
 // === API BANNERS (PUBLIC) ===
 app.get('/api/banners',(req,res)=>{
-    res.set('Cache-Control','no-store');
+    res.set('Cache-Control','public, max-age=300');
     const page = (req.query.page || 'home').replace(/[^a-z]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM banners WHERE ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY position ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
@@ -670,7 +742,7 @@ app.get('/api/banners',(req,res)=>{
 
 // === API SLIDERS (PUBLIC) ===
 app.get('/api/sliders',(req,res)=>{
-    res.set('Cache-Control','no-store');
+    res.set('Cache-Control','public, max-age=300');
     const page = (req.query.page || 'home').replace(/[^a-z]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM sliders WHERE active=1 AND ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY sort_order ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
@@ -678,6 +750,7 @@ app.get('/api/sliders',(req,res)=>{
 
 // === API PAGE CONTENTS (PUBLIC) ===
 app.get('/api/page-content/:id',(req,res)=>{
+    res.set('Cache-Control','public, max-age=300');
     const id = req.params.id.replace(/[^a-z_]/g,'');
     mainDb.get('SELECT * FROM page_contents WHERE id=?',[id],(err,row)=>{
         if(err||!row) return res.json({id,title:'',content:''});
@@ -687,7 +760,7 @@ app.get('/api/page-content/:id',(req,res)=>{
 
 // === API NEWS SLIDERS (PUBLIC) ===
 app.get('/api/news-sliders',(req,res)=>{
-    res.set('Cache-Control','no-store');
+    res.set('Cache-Control','public, max-age=300');
     mainDb.all('SELECT * FROM news_sliders WHERE active=1 ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
 
@@ -697,7 +770,7 @@ app.post('/api/auth/register',(req,res)=>{
     if(!u||!p) return res.status(400).json({error:'نام کاربری و رمز عبور الزامی است'});
     if(u.length<3) return res.status(400).json({error:'نام کاربری حداقل ۳ کاراکتر باشد'});
     if(p.length<6) return res.status(400).json({error:'رمز عبور حداقل ۶ کاراکتر باشد'});
-    const hash = bcrypt.hashSync(p, 10);
+    const hash = bcrypt.hashSync(p, 12);
     mainDb.run('INSERT INTO users (username,password) VALUES (?,?)',[u,hash],function(err){
         if(err){if(err.message.includes('UNIQUE')) return res.status(400).json({error:'این نام کاربری قبلاً ثبت شده'});return res.status(500).json({error:err.message});}
         // Auto-assign existing broadcast notifications to new user
@@ -884,7 +957,7 @@ app.delete('/api/admin/books/:id',adminAuth,(req,res)=>{
         if(err||!b) return res.status(404).json({error:'کتاب یافت نشد'});
         if(b.book_type==='pdf'&&b.pdf_filename){const pp=path.resolve(__dirname,'books',path.basename(b.pdf_filename));if(fs.existsSync(pp)) fs.unlinkSync(pp);}
         else if(b.db_filename){const dp=path.resolve(__dirname,'books',path.basename(b.db_filename));if(fs.existsSync(dp)) fs.unlinkSync(dp);}
-        if(b.cover){const cp=path.resolve(__dirname,'public',b.cover.replace(/^\//,''));if(fs.existsSync(cp)) fs.unlinkSync(cp);}
+        unlinkPublicFile(b.cover);
         mainDb.run('DELETE FROM books WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
@@ -901,7 +974,7 @@ app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1
         const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
         const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
         let cp=b.cover;
-        if(cf){if(b.cover){const op=path.resolve(__dirname,'public',b.cover.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}cp=`/covers/${cf.filename}`;}
+        if(cf){unlinkPublicFile(b.cover);cp=`/covers/${cf.filename}`;}
         let pdfFn=b.pdf_filename||'';
         if(pf){if(b.pdf_filename){const op=path.resolve(__dirname,'books',path.basename(b.pdf_filename));if(fs.existsSync(op)) fs.unlinkSync(op);}pdfFn=pf.filename;}
         mainDb.run('UPDATE books SET title=?,author=?,description=?,cover=?,pdf_filename=? WHERE id=?',[san(req.body.title)||b.title,san(req.body.author)||b.author,san(req.body.description)||b.description,cp,pdfFn,id],()=>res.json({success:true}));
@@ -1084,7 +1157,7 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
     mainDb.get('SELECT * FROM banners WHERE position=?',[pos],(err,bn)=>{
         let img=bn?bn.image:'';
         if(req.file){
-            if(img&&img.length>2&&img.trim().length>0&&!img.startsWith('http')){const op=path.resolve(__dirname,'public',img.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}
+            unlinkPublicFile(img);
             img=`/banners/${req.file.filename}`;
         } else if(req.body.image_url&&req.body.image_url.trim().length>5) {
             img=san(req.body.image_url.trim());
@@ -1123,7 +1196,7 @@ app.post('/api/admin/sliders',adminAuth,uploadImage.single('slider_image'),(req,
 app.delete('/api/admin/sliders/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT image FROM sliders WHERE id=?',[id],(err,sl)=>{
-        if(sl&&sl.image&&sl.image.length>2){const p=path.resolve(__dirname,'public',sl.image.replace(/^\//,''));if(fs.existsSync(p)) fs.unlinkSync(p);}
+        if(sl) unlinkPublicFile(sl.image);
         mainDb.run('DELETE FROM sliders WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
@@ -1198,8 +1271,8 @@ app.put('/api/admin/page-content/:id',adminAuth,(req,res)=>{
     const validIds=['social','biography','mosque','contact'];
     const id=req.params.id;
     if(!validIds.includes(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    const content=req.body.content||'';
-    const title=req.body.title||'';
+    const content=san(req.body.content||'');
+    const title=san(req.body.title||'');
     mainDb.run('INSERT OR REPLACE INTO page_contents (id,title,content,updated_at) VALUES (?,?,?,CURRENT_TIMESTAMP)',
         [id,title,content],err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
@@ -1283,13 +1356,15 @@ app.post('/api/admin/notifications',adminAuth,(req,res)=>{
     mainDb.run('INSERT INTO notifications (title,message,type) VALUES (?,?,"broadcast")',[title,msg],function(err){
         if(err) return res.status(500).json({error:err.message});
         const notifId=this.lastID;
-        // Assign to all users, then send push after inserts are queued
-        mainDb.all('SELECT id FROM users',[],(err2,users)=>{
-            if(users&&users.length) users.forEach(u=>mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id) VALUES (?,?)',[u.id,notifId]));
-            // Push is called after inserts are queued - SQLite serial queue ensures inserts complete first
-            sendPushToAll({title, body: msg, icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', tag:'broadcast-'+notifId, data:{url:'/'}});
-            res.json({success:true,id:notifId});
-        });
+        // Single batched INSERT...SELECT to avoid N+1 inserts on broadcast
+        mainDb.run(
+            'INSERT OR IGNORE INTO user_notifications (user_id,notification_id) SELECT id, ? FROM users',
+            [notifId],
+            ()=>{
+                sendPushToAll({title, body: msg, icon:'/icons/icon-192.png', badge:'/icons/icon-72.png', tag:'broadcast-'+notifId, data:{url:'/'}});
+                res.json({success:true,id:notifId});
+            }
+        );
     });
 });
 app.delete('/api/admin/notifications/:id',adminAuth,(req,res)=>{
@@ -1387,7 +1462,7 @@ app.put('/api/admin/gallery/categories/:id',adminAuth,uploadImage.single('galler
         const desc=san(req.body.description||cat.description);
         let cover=cat.cover;
         if(req.file){
-            if(cover&&!cover.startsWith('http')){const op=path.resolve(__dirname,'public',cover.replace(/^\//,''));if(fs.existsSync(op)) fs.unlinkSync(op);}
+            unlinkPublicFile(cover);
             cover=`/gallery/${req.file.filename}`;
         } else if(req.body.image_url&&req.body.image_url.trim().length>5){
             cover=san(req.body.image_url.trim());
@@ -1403,11 +1478,11 @@ app.delete('/api/admin/gallery/categories/:id',adminAuth,(req,res)=>{
         const allIds=[id,...subIds];
         allIds.forEach(catId=>{
             mainDb.all('SELECT image FROM gallery_photos WHERE category_id=?',[catId],(e2,photos)=>{
-                (photos||[]).forEach(p=>{if(p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
+                (photos||[]).forEach(p=>unlinkPublicFile(p&&p.image));
                 mainDb.run('DELETE FROM gallery_photos WHERE category_id=?',[catId]);
             });
             mainDb.get('SELECT cover FROM gallery_categories WHERE id=?',[catId],(e3,cat)=>{
-                if(cat&&cat.cover&&!cat.cover.startsWith('http')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+                if(cat) unlinkPublicFile(cat.cover);
             });
         });
         const placeholders=allIds.map(()=>'?').join(',');
@@ -1449,7 +1524,7 @@ app.put('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
 app.delete('/api/admin/gallery/photos/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT image FROM gallery_photos WHERE id=?',[id],(err,p)=>{
-        if(p&&p.image&&!p.image.startsWith('http')){const fp=path.resolve(__dirname,'public',p.image.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        if(p) unlinkPublicFile(p.image);
         mainDb.run('DELETE FROM gallery_photos WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
@@ -1499,9 +1574,9 @@ app.post('/api/admin/audio/categories',adminAuth,uploadImage.single('audio_cover
 app.delete('/api/admin/audio/categories/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.all('SELECT audio_url FROM audio_tracks WHERE category_id=?',[id],(err,tracks)=>{
-        (tracks||[]).forEach(t=>{if(t.audio_url&&t.audio_url.startsWith('/audio/')){const fp=path.resolve(__dirname,'public',t.audio_url.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}});
+        (tracks||[]).forEach(t=>{ if(t&&t.audio_url&&t.audio_url.startsWith('/audio/')) unlinkPublicFile(t.audio_url); });
         mainDb.get('SELECT cover FROM audio_categories WHERE id=?',[id],(err2,cat)=>{
-            if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+            if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')) unlinkPublicFile(cat.cover);
             mainDb.run('DELETE FROM audio_tracks WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM audio_categories WHERE id=?',[id],()=>res.json({success:true})));
         });
     });
@@ -1545,8 +1620,8 @@ app.post('/api/admin/audio/tracks',adminAuth,uploadAudio.fields([{name:'audio_fi
 app.delete('/api/admin/audio/tracks/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT audio_url,cover FROM audio_tracks WHERE id=?',[id],(err,t)=>{
-        if(t&&t.audio_url&&t.audio_url.startsWith('/audio/')){const fp=path.resolve(__dirname,'public',t.audio_url.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
-        if(t&&t.cover&&t.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',t.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        if(t&&t.audio_url&&t.audio_url.startsWith('/audio/')) unlinkPublicFile(t.audio_url);
+        if(t&&t.cover&&t.cover.startsWith('/gallery/')) unlinkPublicFile(t.cover);
         mainDb.run('DELETE FROM audio_tracks WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
@@ -1684,7 +1759,7 @@ app.post('/api/admin/video/categories',adminAuth,uploadImage.single('gallery_ima
 app.delete('/api/admin/video/categories/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT cover FROM video_categories WHERE id=?',[id],(err,cat)=>{
-        if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',cat.cover.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        if(cat&&cat.cover&&cat.cover.startsWith('/gallery/')) unlinkPublicFile(cat.cover);
         mainDb.run('DELETE FROM video_items WHERE category_id=?',[id],()=>mainDb.run('DELETE FROM video_categories WHERE id=?',[id],()=>res.json({success:true})));
     });
 });
@@ -1713,7 +1788,7 @@ app.post('/api/admin/video/items',adminAuth,uploadImage.single('gallery_image'),
 app.delete('/api/admin/video/items/:id',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
     mainDb.get('SELECT thumbnail FROM video_items WHERE id=?',[id],(err,v)=>{
-        if(v&&v.thumbnail&&v.thumbnail.startsWith('/gallery/')){const fp=path.resolve(__dirname,'public',v.thumbnail.replace(/^\//,''));if(fs.existsSync(fp)) fs.unlinkSync(fp);}
+        if(v&&v.thumbnail&&v.thumbnail.startsWith('/gallery/')) unlinkPublicFile(v.thumbnail);
         mainDb.run('DELETE FROM video_items WHERE id=?',[id],()=>res.json({success:true}));
     });
 });
