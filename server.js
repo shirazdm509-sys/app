@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -45,6 +45,8 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8) {
     console.error('   ' + ADMIN_PASSWORD);
     console.error('   Set ADMIN_PASSWORD in .env to make it persistent.');
     console.error('========================================================');
+} else {
+    console.log('🔑 ADMIN_PASSWORD loaded from env (' + ADMIN_PASSWORD.length + ' chars, starts with: ' + ADMIN_PASSWORD.substring(0,2) + '***)');
 }
 
 // JWT secret — اگر env تنظیم نشده، یک کلید پایدار در دیتابیس ذخیره می‌شود
