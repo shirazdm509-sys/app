@@ -403,7 +403,11 @@ const upload = multer({ storage, limits:{fileSize:200*1024*1024, files:10}, file
 
 // Auth middleware — JWT-based
 function adminAuth(req,res,next) {
-    const tok = req.cookies && req.cookies.admin_token;
+    let tok = (req.cookies && req.cookies.admin_token) || '';
+    if (!tok && req.headers.cookie) {
+        const m = req.headers.cookie.match(/(?:^|;\s*)admin_token=([^;]+)/);
+        if (m) tok = decodeURIComponent(m[1]);
+    }
     if (!tok) return res.status(401).json({error:'دسترسی غیرمجاز'});
     const decoded = verifySimpleToken(tok);
     if (decoded && decoded.kind === 'admin') return next();
