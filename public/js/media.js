@@ -178,7 +178,7 @@ function _viewClasses(context) {
     const m = _mediaViewMode;
     if (context === 'cats')   return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'flex flex-col gap-3' : 'grid grid-cols-2 gap-3';
     if (context === 'items')  return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'flex flex-col gap-3' : 'grid grid-cols-2 gap-3';
-    if (context === 'photos') return m === 'list' ? 'flex flex-col gap-2' : m === 'large' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-2';
+    if (context === 'photos') return m === 'large' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-2';
     return '';
 }
 
@@ -249,7 +249,6 @@ function _reRenderGalleryPhotos() {
     if (!grid || !galleryCurrentPhotos.length) return;
     grid.className = _viewClasses('photos') + ' w-full';
     grid.innerHTML = galleryCurrentPhotos.map((ph, idx) => {
-        if (_mediaViewMode === 'list') return `<div onclick="openGalleryImage(${idx})" class="w-full rounded-2xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full object-cover"></div>`;
         return `<div onclick="openGalleryImage(${idx})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer relative group shadow-sm"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"><div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200"></div></div>`;
     }).join('');
 }
