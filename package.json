@@ -8,7 +8,11 @@
     "dev": "nodemon server.js",
     "build": "node build.js",
     "build:watch": "node build.js --watch",
-    "postinstall": "node build.js || true"
+    "postinstall": "node build.js || true",
+    "twa:init": "bubblewrap init --manifest=https://app.dastgheibqoba.info/manifest.json",
+    "twa:update": "bubblewrap update",
+    "twa:build": "bubblewrap build",
+    "twa:fingerprint": "bubblewrap fingerprint list"
   },
   "keywords": [],
   "author": "",

@@ -1449,12 +1449,56 @@ function showPwaInstallPrompt() {
         // Chrome / Android / Edge - دکمه نصب مستقیم
         if (confirmBtn) {
             confirmBtn.classList.remove('hidden');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-download"></i>نصب اپلیکیشن';
             confirmBtn.onclick = () => {
+                if (!_pwaInstallPrompt) return;
+                // وضعیت در حال نصب
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>در حال آماده‌سازی نصب...';
+
+                // پیام راهنمای انتظار (روی WebAPK ممکن است ۱۰-۳۰ ثانیه طول بکشد)
+                const waitMsg = document.createElement('div');
+                waitMsg.id = 'pwa-wait-msg';
+                waitMsg.className = 'mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 leading-relaxed text-center';
+                waitMsg.innerHTML = '<i class="fas fa-info-circle ml-1"></i>نصب اپ ممکن است تا ۳۰ ثانیه طول بکشد. لطفاً صبر کنید و صفحه را نبندید.';
+                confirmBtn.parentElement.parentElement.appendChild(waitMsg);
+
+                let installed = false;
+                const onInstalled = () => { installed = true; };
+                window.addEventListener('appinstalled', onInstalled, { once: true });
+
                 _pwaInstallPrompt.prompt();
-                _pwaInstallPrompt.userChoice.then(() => {
+                _pwaInstallPrompt.userChoice.then((choice) => {
                     _pwaInstallPrompt = null;
-                    closePwaModal();
-                    _hideFab();
+                    if (choice && choice.outcome === 'accepted') {
+                        // کاربر قبول کرد — منتظر appinstalled یا timeout
+                        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>در حال نصب روی گوشی...';
+                        // timeout: اگر بعد از 30s نصب کامل نشد، راهنمای fallback نشان بده
+                        setTimeout(() => {
+                            window.removeEventListener('appinstalled', onInstalled);
+                            const wm = document.getElementById('pwa-wait-msg');
+                            if (wm) wm.remove();
+                            if (installed) { closePwaModal(); _hideFab(); return; }
+                            // نصب طولانی شد — راهنمای دستی نشان بده
+                            confirmBtn.classList.add('hidden');
+                            const fb = document.createElement('div');
+                            fb.id = 'pwa-fallback-msg';
+                            fb.className = 'bg-rose-50 border border-rose-200 rounded-2xl p-4 text-xs text-rose-800 leading-relaxed';
+                            fb.innerHTML = '<div class="font-bold mb-2"><i class="fas fa-exclamation-triangle ml-1"></i>نصب طول کشید یا انجام نشد</div><div class="mb-2">احتمالاً به دلیل قطعی اتصال به سرورهای گوگل است. می‌توانید به صورت دستی نصب کنید:</div><div class="bg-white rounded-xl p-3 mt-2"><b>روش دستی:</b><br>۱. منوی مرورگر <b>(⋮ بالای صفحه)</b> را باز کنید<br>۲. گزینه <b>«افزودن به صفحه اصلی»</b> یا <b>«Install app»</b> را انتخاب کنید<br>۳. روی <b>«نصب»</b> تأیید کنید</div>';
+                            confirmBtn.parentElement.parentElement.appendChild(fb);
+                        }, 30000);
+                    } else {
+                        // کاربر کنسل کرد
+                        const wm = document.getElementById('pwa-wait-msg');
+                        if (wm) wm.remove();
+                        closePwaModal();
+                    }
+                }).catch(() => {
+                    const wm = document.getElementById('pwa-wait-msg');
+                    if (wm) wm.remove();
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-download"></i>نصب اپلیکیشن';
                 });
             };
         }
@@ -1486,6 +1530,8 @@ function closePwaModal(dismissed = false) {
         document.getElementById('pwa-ios-guide')?.classList.add('hidden');
         document.getElementById('pwa-generic-guide')?.classList.add('hidden');
         document.getElementById('pwa-install-confirm')?.classList.add('hidden');
+        document.getElementById('pwa-wait-msg')?.remove();
+        document.getElementById('pwa-fallback-msg')?.remove();
     }
     if (dismissed) {
         localStorage.setItem(PWA_DISMISS_KEY, Date.now().toString());

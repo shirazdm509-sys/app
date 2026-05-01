@@ -2,7 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "info.dastgheibqoba.app.twa",
-    "sha256_cert_fingerprints": ["F3:36:A5:45:5D:EF:A1:75:E2:23:F5:3F:5A:46:82:1B:7E:C3:6D:A3:30:99:F7:27:18:5A:A6:9F:1C:49:1E:F5"]
+    "package_name": "info.dastgheibqoba.app",
+    "sha256_cert_fingerprints": ["REPLACE_WITH_YOUR_KEYSTORE_FINGERPRINT_AFTER_BUBBLEWRAP_INIT"]
   }
 }]
