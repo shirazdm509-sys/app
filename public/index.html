@@ -303,17 +303,6 @@
 
                 <!-- BANNERS position: after_shortcuts -->
                 <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
-
-                <!-- LATEST BOOKS (داخل ستون shortcuts در دسکتاپ) -->
-                <div id="home-books-section" class="mb-4">
-                    <div class="flex items-center justify-between px-6 mb-3">
-                        <h3 id="home-books-title" class="text-sm font-black text-gray-800">آخرین کتاب‌ها</h3>
-                        <button onclick="navToScreen('library')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">ورود به کتابخانه</button>
-                    </div>
-                    <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
-                </div>
-                <!-- BANNERS position: after_books -->
-                <div id="home-banner-after_books" class="px-4 mb-4 flex flex-col gap-3"></div>
                 </div><!-- /home-col-shortcuts -->
 
                 <div id="home-col-lectures">
@@ -331,6 +320,17 @@
                 <div id="home-banner-after_lectures" class="px-4 mb-4 flex flex-col gap-3"></div>
                 </div><!-- /home-col-lectures -->
                 </div><!-- /home-two-col-wrap -->
+
+                <!-- LATEST BOOKS (زیر two-col، تمام عرض) -->
+                <div id="home-books-section" class="mb-4">
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 id="home-books-title" class="text-sm font-black text-gray-800">آخرین کتاب‌ها</h3>
+                        <button onclick="navToScreen('library')" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">ورود به کتابخانه</button>
+                    </div>
+                    <div id="home-books-container" class="flex overflow-x-auto hide-scrollbar gap-4 px-6 pb-4 snap-x"></div>
+                </div>
+                <!-- BANNERS position: after_books -->
+                <div id="home-banner-after_books" class="px-4 mb-4 flex flex-col gap-3"></div>
 
                 <!-- LATEST IMAGES -->
                 <div id="home-media-images-section" class="mb-4 hidden">

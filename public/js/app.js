@@ -377,8 +377,8 @@ async function loadBanners() {
         for (const [sec, items] of Object.entries(groups)) {
             const container = document.getElementById('home-banner-' + sec);
             if (!container) continue;
-            container.style.padding = isDesktop ? '0' : '0 ' + padding + 'px';
-            const bRadius = isDesktop ? '0' : radius + 'px';
+            container.style.padding = isDesktop ? '0 20px' : '0 ' + padding + 'px';
+            const bRadius = radius + 'px';
             container.innerHTML = items.map(b => {
                 const onclick = b.link ? `onclick="handleBannerLink('${b.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
                 return `<div class="overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${bRadius};" ${onclick}>

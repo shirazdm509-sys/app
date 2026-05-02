@@ -209,6 +209,9 @@ body.global-dark .sdi:hover i { color: #2dd4bf; }
 body.global-dark .nav-item.sdi.active { background: rgba(13,148,136,0.14); color: #2dd4bf; }
 body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
 
+/* موبایل: آخرین تصاویر فقط ۴ تا */
+#home-latest-images > *:nth-child(n+5) { display: none; }
+
 /* Desktop Full-Width Layout */
 @media (min-width: 640px) {
     html { background: #f1f5f9; }
@@ -309,22 +312,24 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #home-lectures-section > div:first-child { padding: 0 4px 10px !important; }
     #home-lectures-container { padding: 0 4px !important; }
 
-    /* ── Books: یک ردیف با کارت‌های کوچک ── */
+    /* ── Books: full-width below two-col ── */
+    #home-books-section { padding: 0 20px !important; }
+    #home-books-section > div:first-child { padding: 0 0 8px !important; }
     #home-books-container {
         display: flex !important;
         flex-direction: row !important;
         overflow-x: visible !important;
         flex-wrap: nowrap !important;
-        gap: 8px !important;
-        padding: 0 4px 8px !important;
+        gap: 10px !important;
+        padding: 0 0 8px !important;
     }
     #home-books-container > * { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
-    #home-books-container .book-cover-wrap { height: 110px !important; max-height: 110px !important; }
+    #home-books-container .book-cover-wrap { height: 120px !important; max-height: 120px !important; }
     #home-books-container img { height: 100% !important; object-fit: cover !important; }
     #home-books-container .book-title { font-size: 9px !important; line-height: 1.3 !important; }
-    #home-books-section > div:first-child { padding: 0 4px 8px !important; }
 
     /* ── آخرین تصاویر: ۸ تا در ۸ ستون (مربعی کوچک) ── */
+    #home-latest-images > *:nth-child(n+5) { display: block !important; }
     #home-latest-images {
         grid-template-columns: repeat(8, 1fr) !important;
         gap: 6px !important;
