@@ -296,7 +296,7 @@ function openHomeAudio(idx) {
 async function loadHomeLatestMedia() {
     try {
         const [imgRes, vidRes, audRes] = await Promise.all([
-            fetch('/api/gallery/latest?limit=4').catch(()=>null),
+            fetch('/api/gallery/latest?limit=12').catch(()=>null),
             fetch('/api/videos/latest?limit=5').catch(()=>null),
             fetch('/api/audio/latest?limit=6').catch(()=>null)
         ]);
@@ -308,7 +308,7 @@ async function loadHomeLatestMedia() {
         const imgSec = document.getElementById('home-media-images-section');
         const imgEl = document.getElementById('home-latest-images');
         if (imgEl && _homeLatestImages.length > 0) {
-            imgEl.innerHTML = _homeLatestImages.map((ph, i) => `<div onclick="openHomeImage(${i})" class="aspect-[9/16] rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm active:scale-95 transition-transform"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'"></div>`).join('');
+            imgEl.innerHTML = _homeLatestImages.map((ph, i) => `<div onclick="openHomeImage(${i})" class="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer shadow-sm active:scale-95 transition-transform"><img src="${ph.image}" loading="lazy" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'"></div>`).join('');
             if (imgSec) imgSec.classList.remove('hidden');
         }
 
