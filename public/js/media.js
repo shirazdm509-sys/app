@@ -1179,14 +1179,15 @@ function _csUpdateTabs() {
 }
 
 async function _csEnsureData(tab) {
-    if (_csCache[tab]) return;
+    if (_csCache[tab] && _csCache[tab].length > 0) return;
     try {
         if (tab === 'audio') { const r = await fetch('/api/audio/all-dates'); _csCache.audio = await r.json() || []; }
         else if (tab === 'video') { const r = await fetch('/api/videos/all-dates'); _csCache.video = await r.json() || []; }
         else if (tab === 'lecture') {
             let all = [], pg = 1;
-            while (true) {
-                const r = await fetch('/api/wp?path=' + encodeURIComponent(`posts?per_page=100&_embed=1&page=${pg}`));
+            const MAX_PAGES = 20;
+            while (pg <= MAX_PAGES) {
+                const r = await fetch('/api/wp?path=' + encodeURIComponent(`posts?per_page=100&_fields=id,date,title&page=${pg}`));
                 if (!r.ok) break;
                 const batch = await r.json();
                 if (!Array.isArray(batch) || batch.length === 0) break;
@@ -1313,11 +1314,14 @@ function _renderCalResults() {
         }).join('');
     } else {
         res.innerHTML = filtered.map(post => {
-            const img = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
-            const dt = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
+            const title = (post.title && post.title.rendered) ? post.title.rendered : (post.title || '');
+            const d = new Date(post.date);
+            const [jy,jm,jd] = _gregToJal(d.getFullYear(), d.getMonth()+1, d.getDate());
+            const dt = `${toFa(jd)} ${_jalMonthNames[jm-1]} ${toFa(jy)}`;
             return `<div onclick="_csOpenLecture(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
-                ${img ? `<img src="${img}" class="w-16 h-16 rounded-xl object-cover shrink-0">` : `<div class="w-16 h-16 bg-teal-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-file-alt text-teal-300 text-2xl"></i></div>`}
-                <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${post.title.rendered}</h4><p class="text-xs text-teal-500 mt-1"><i class="far fa-calendar ml-1"></i>${dt}</p></div>
+                <div class="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-microphone text-teal-400 text-xl"></i></div>
+                <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${title}</h4><p class="text-xs text-teal-500 mt-1"><i class="far fa-calendar ml-1"></i>${dt}</p></div>
+                <i class="fas fa-chevron-left text-gray-300 text-xs shrink-0"></i>
             </div>`;
         }).join('');
     }
