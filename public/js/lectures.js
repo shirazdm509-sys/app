@@ -446,7 +446,7 @@ async function fetchLatestLectures() {
     const container = document.getElementById('home-lectures-container');
     if (!container) return;
     try {
-        const res = await wpFetch('posts?per_page=6&_embed=1&orderby=date&order=desc');
+        const res = await wpFetch('posts?per_page=5&_embed=1&orderby=date&order=desc');
         if (!res.ok) throw new Error();
         const posts = await res.json();
         if (!Array.isArray(posts) || posts.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-400 text-xs">محتوایی یافت نشد</div>'; return; }

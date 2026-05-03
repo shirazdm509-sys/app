@@ -320,7 +320,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
         flex-direction: row !important;
         overflow-x: visible !important;
         flex-wrap: nowrap !important;
-        gap: 10px !important;
+        gap: 6px !important;
         padding: 0 0 8px !important;
     }
     #home-books-container > * { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }

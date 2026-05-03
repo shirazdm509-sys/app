@@ -63,7 +63,7 @@ function renderLibrary() {
                     <i class="fas ${offline ? 'fa-check' : 'fa-download'} text-[9px]"></i>
                 </button>` : offline ? `<span class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md z-20 bg-brand-500 text-white" title="آفلاین"><i class="fas fa-check text-[9px]"></i></span>` : ''}
             </div>
-            <h3 class="book-title font-bold text-[11px] text-gray-800 truncate mt-1.5 leading-tight transition-all duration-200">${book.title}</h3>
+            <h3 class="book-title font-bold text-[10px] text-gray-800 line-clamp-2 mt-1 leading-tight transition-all duration-200">${book.title}</h3>
             <p class="text-[9px] text-gray-400 truncate">${book.author||''}</p>
         </div>`;
     };
@@ -76,7 +76,7 @@ function renderLibrary() {
     const titleEl = document.getElementById('home-books-title');
     if (titleEl) titleEl.textContent = 'کتاب‌ها';
     const homeBooks = [...allBooks].sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
-    homeContainer.innerHTML = homeBooks.slice(0, 6).map((b, i) => renderCard(b, i, true)).join('') +
+    homeContainer.innerHTML = homeBooks.slice(0, 8).map((b, i) => renderCard(b, i, true)).join('') +
         `<div class="shrink-0 w-4"></div>`;
 }
 
