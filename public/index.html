@@ -262,11 +262,9 @@
                     </div>
                 </div>
 
-                <!-- دو ستون دسکتاپ: دسترسی سریع (راست) + آخرین مطالب (چپ) -->
-                <div id="home-two-col-wrap">
+                <!-- SHORTCUTS: یک ردیف زیر اسلایدر -->
                 <div id="home-col-shortcuts">
-                <!-- SHORTCUTS GRID (8 items, responsive) -->
-                <div id="home-shortcuts-section" class="grid grid-cols-4 sm:grid-cols-8 gap-x-1 gap-y-3 px-4 mb-6">
+                <div id="home-shortcuts-section" class="grid grid-cols-4 gap-x-1 gap-y-3 px-4 mb-6">
                     <div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="openContentPage('social','شبکه‌های اجتماعی')">
                         <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><i class="fab fa-instagram"></i></div>
                         <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">شبکه‌های اجتماعی</span>
@@ -300,26 +298,9 @@
                         <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">پخش زنده</span>
                     </div>
                 </div>
-
                 <!-- BANNERS position: after_shortcuts -->
                 <div id="home-banner-after_shortcuts" class="px-4 mb-4 flex flex-col gap-3"></div>
                 </div><!-- /home-col-shortcuts -->
-
-                <div id="home-col-lectures">
-                <!-- LATEST LECTURES -->
-                <div id="home-lectures-section" class="mb-4">
-                    <div class="flex items-center justify-between px-6 mb-3">
-                        <h3 class="text-sm font-black text-gray-800">آخرین مطالب</h3>
-                        <button onclick="navToScreen('lectures')" class="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">مشاهده همه</button>
-                    </div>
-                    <div id="home-lectures-container" class="flex flex-col gap-2 px-4">
-                        <div class="text-center py-6 text-gray-400 text-xs">در حال بارگذاری...</div>
-                    </div>
-                </div>
-                <!-- BANNERS position: after_lectures -->
-                <div id="home-banner-after_lectures" class="px-4 mb-4 flex flex-col gap-3"></div>
-                </div><!-- /home-col-lectures -->
-                </div><!-- /home-two-col-wrap -->
 
                 <!-- LATEST BOOKS (زیر two-col، تمام عرض) -->
                 <div id="home-books-section" class="mb-4">
@@ -343,18 +324,23 @@
                 <!-- BANNERS position: after_images -->
                 <div id="home-banner-after_images" class="mb-4 flex flex-col gap-3"></div>
 
-                <!-- LATEST VIDEOS + AUDIO (desktop: 2 cols) -->
-                <div id="home-media-av-wrap">
-                <!-- LATEST VIDEOS -->
-                <div id="home-media-videos-section" class="mb-4 hidden">
+                <!-- ۳ ستون دسکتاپ: مطالب | صوت | ویدیو -->
+                <div id="home-three-col-wrap">
+                <!-- ستون ۱: آخرین مطالب -->
+                <div id="home-col-lectures">
+                <div id="home-lectures-section" class="mb-4">
                     <div class="flex items-center justify-between px-6 mb-3">
-                        <h3 class="text-sm font-black text-gray-800">آخرین ویدیوها</h3>
-                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('video'),80)" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                        <h3 class="text-sm font-black text-gray-800">آخرین مطالب</h3>
+                        <button onclick="navToScreen('lectures')" class="text-[10px] font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
-                    <div id="home-latest-videos" class="flex flex-col gap-2 px-4"></div>
+                    <div id="home-lectures-container" class="flex flex-col gap-2 px-4">
+                        <div class="text-center py-6 text-gray-400 text-xs">در حال بارگذاری...</div>
+                    </div>
                 </div>
+                <div id="home-banner-after_lectures" class="px-4 mb-4 flex flex-col gap-3"></div>
+                </div><!-- /home-col-lectures -->
 
-                <!-- LATEST AUDIO -->
+                <!-- ستون ۲: آخرین صوت‌ها -->
                 <div id="home-media-audio-section" class="mb-6 hidden">
                     <div class="flex items-center justify-between px-6 mb-3">
                         <h3 class="text-sm font-black text-gray-800">آخرین صوت‌ها</h3>
@@ -362,7 +348,16 @@
                     </div>
                     <div id="home-latest-audio" class="flex flex-col gap-2 px-4"></div>
                 </div>
-                </div><!-- /home-media-av-wrap -->
+
+                <!-- ستون ۳: آخرین ویدیوها -->
+                <div id="home-media-videos-section" class="mb-4 hidden">
+                    <div class="flex items-center justify-between px-6 mb-3">
+                        <h3 class="text-sm font-black text-gray-800">آخرین ویدیوها</h3>
+                        <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('video'),80)" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
+                    </div>
+                    <div id="home-latest-videos" class="flex flex-col gap-2 px-4"></div>
+                </div>
+                </div><!-- /home-three-col-wrap -->
                 <!-- BANNERS position: after_videos -->
                 <div id="home-banner-after_videos" class="mb-4 flex flex-col gap-3"></div>
                 <!-- BANNERS position: after_audio -->

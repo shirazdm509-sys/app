@@ -291,23 +291,23 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #screen-home > header { display: none !important; }
     #home-desktop-header { display: flex !important; }
 
-    /* ── Two-column section ── */
-    #home-two-col-wrap {
+    /* ── Shortcuts: یک ردیف تمام عرض ── */
+    #home-col-shortcuts { padding: 0 20px !important; }
+    #home-shortcuts-section {
+        grid-template-columns: repeat(8, 1fr) !important;
+        padding: 0 !important;
+        gap: 8px 4px !important;
+    }
+
+    /* ── سه ستون: مطالب | صوت | ویدیو ── */
+    #home-three-col-wrap {
         display: grid !important;
-        grid-template-columns: 2fr 1fr !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
         gap: 0 16px !important;
         padding: 0 20px !important;
         align-items: start !important;
     }
-    /* ستون آیکن‌ها: سمت چپ (دوم) */
-    #home-col-shortcuts { order: 2 !important; padding: 0 !important; margin-top: 0 !important; }
-    #home-shortcuts-section {
-        grid-template-columns: repeat(4, 1fr) !important;
-        padding: 0 4px !important;
-        gap: 8px 4px !important;
-    }
-    /* ستون آخرین مطالب: سمت راست (اول) */
-    #home-col-lectures { order: 1 !important; padding: 0 !important; }
+    #home-col-lectures { padding: 0 !important; }
     #home-lectures-section { margin-bottom: 0 !important; }
     #home-lectures-section > div:first-child { padding: 0 4px 10px !important; }
     #home-lectures-container { padding: 0 4px !important; }
@@ -338,13 +338,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #home-latest-images > *:nth-child(n+9) { display: none !important; }
     #home-media-images-section > div:first-child { padding: 0 20px 10px !important; }
 
-    /* ── ویدیو + صوت دو ستون ── */
-    #home-media-av-wrap {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 16px !important;
-        padding: 0 20px !important;
-    }
+    /* ── ویدیو + صوت (داخل three-col-wrap) ── */
     #home-media-videos-section, #home-media-audio-section {
         margin-bottom: 0 !important;
         padding: 0 !important;
@@ -352,4 +346,8 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #home-media-videos-section > div:first-child,
     #home-media-audio-section > div:first-child { padding-right: 0 !important; padding-left: 0 !important; }
     #home-latest-videos, #home-latest-audio { padding: 0 !important; }
+
+    /* تصاویر روی دسکتاپ مخفی */
+    #home-media-images-section { display: none !important; }
+    #home-banner-after_images { display: none !important; }
 }
