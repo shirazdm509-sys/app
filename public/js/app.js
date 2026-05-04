@@ -1220,6 +1220,9 @@ function handleBackButton() {
     if (_hasClass('toc-overlay', 'open'))   { closeToc();           return; }
     if (_isVisible('qa-conversation'))      { closeQAConversation();return; }
 
+    // رسانه: ناوبری داخلی پوشه‌ها — قبل از _navHistory
+    if (typeof handleMediaBack === 'function' && handleMediaBack()) return;
+
     // بازیابی مرحله قبل از تاریخچه یکپارچه
     if (_navHistory.length > 0) {
         const restore = _navHistory.pop();

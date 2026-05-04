@@ -264,11 +264,6 @@ function switchMediaTab(tab) {
         return c && c.style.display !== 'none';
     }) || 'video';
 
-    if (_prevTab !== tab) {
-        const capturedPrev = _prevTab;
-        _pnh(function() { withoutHistory(function() { switchMediaTab(capturedPrev); }); });
-    }
-
     _tabs.forEach(t => {
         const btn = document.getElementById('tab-media-' + t);
         const content = document.getElementById('media-content-' + t);
@@ -444,15 +439,6 @@ async function loadVideoCategories(parentId, parentName) {
 }
 
 function videoNavToSub(catId, catName) {
-    const _snapStack = [..._videoNavStack];
-    _pnh(function() {
-        withoutHistory(function() {
-            _videoNavStack = _snapStack;
-            _videoCatsLoaded = false;
-            const top = _snapStack[_snapStack.length - 1];
-            loadVideoCategories(top ? top.id : null, top ? top.name : '');
-        });
-    });
     _videoNavStack.push({id: catId, name: catName});
     _videoCatsLoaded = false;
     loadVideoCategories(catId, catName);
@@ -460,14 +446,6 @@ function videoNavToSub(catId, catName) {
 
 async function loadVideoList(categoryId, title, count) {
     if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
-    _pnh(function() {
-        withoutHistory(function() {
-            const listView = document.getElementById('video-list-view');
-            const catsView = document.getElementById('video-categories-view');
-            if (listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
-            if (catsView) catsView.classList.remove('hidden');
-        });
-    });
     _currentVideoCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
@@ -506,17 +484,6 @@ async function loadVideoList(categoryId, title, count) {
 function playVideoItem(itemId) {
     const item = videoCachedItems.find(v => v.id === itemId);
     if(!item) return;
-
-    _pnh(function() {
-        withoutHistory(function() {
-            const iframe = document.getElementById('video-aparat-iframe');
-            if (iframe) iframe.src = '';
-            const pv = document.getElementById('video-player-view');
-            const lv = document.getElementById('video-list-view');
-            if (pv) { pv.classList.add('hidden'); pv.classList.remove('flex'); }
-            if (lv) { lv.classList.remove('hidden'); lv.classList.add('flex'); }
-        });
-    });
 
     const listView = document.getElementById('video-list-view');
     const playerView = document.getElementById('video-player-view');
@@ -737,29 +704,12 @@ async function loadGalleryCategories(parentId, parentName) {
 }
 
 function galleryNavToSub(catId, catName) {
-    const _snapStack = [..._galleryNavStack];
-    _pnh(function() {
-        withoutHistory(function() {
-            _galleryNavStack = _snapStack;
-            _galleryCatsLoaded = false;
-            const top = _snapStack[_snapStack.length - 1];
-            loadGalleryCategories(top ? top.id : null, top ? top.name : '');
-        });
-    });
     _galleryNavStack.push({id: catId, name: catName});
     _galleryCatsLoaded = false;
     loadGalleryCategories(catId, catName);
 }
 
 async function loadGalleryPhotos(categoryId, title, count) {
-    _pnh(function() {
-        withoutHistory(function() {
-            const photosView = document.getElementById('gallery-photos-view');
-            const catsView = document.getElementById('gallery-categories-view');
-            if (photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
-            if (catsView) catsView.classList.remove('hidden');
-        });
-    });
     setMediaLoading(true);
     const catsView = document.getElementById('gallery-categories-view');
     const photosView = document.getElementById('gallery-photos-view');
@@ -1039,15 +989,6 @@ async function loadAudioCategories(parentId, parentName) {
 }
 
 function audioNavToSub(catId, catName) {
-    const _snapStack = [..._audioNavStack];
-    _pnh(function() {
-        withoutHistory(function() {
-            _audioNavStack = _snapStack;
-            _audioCatsLoaded = false;
-            const top = _snapStack[_snapStack.length - 1];
-            loadAudioCategories(top ? top.id : null, top ? top.name : '');
-        });
-    });
     _audioNavStack.push({id: catId, name: catName});
     _audioCatsLoaded = false;
     loadAudioCategories(catId, catName);
@@ -1408,14 +1349,6 @@ async function setVideoSort(sort) {
 
 async function loadAudioPlaylist(categoryId, title, count) {
     if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
-    _pnh(function() {
-        withoutHistory(function() {
-            if (audioEl) { try { audioEl.pause(); audioEl.src = ''; } catch(e) {} }
-            const playerCard = document.getElementById('audio-player-card');
-            if (playerCard) playerCard.classList.add('hidden');
-            backToAudioCategories();
-        });
-    });
     _currentAudioCatId = categoryId;
     if (_mediaViewMode !== 'list') {
         _mediaViewMode = 'list';
@@ -1685,15 +1618,6 @@ function handleMediaBack() {
     // صوت: playlist → categories
     if (isVis('audio-playlist-view')) { backToAudioCategories();   return true; }
     if (_audioNavStack.length > 0)    { backToAudioCategories();   return true; }
-
-    // اگه در یکی از تب‌های غیر پیش‌فرض رسانه هستیم، برگرد به تب ویدیو (مرحله اضافه)
-    const audioTab = document.getElementById('media-content-audio');
-    const photoTab = document.getElementById('media-content-photo');
-    if ((audioTab && !audioTab.classList.contains('hidden')) ||
-        (photoTab && !photoTab.classList.contains('hidden'))) {
-        if (typeof switchMediaTab === 'function') switchMediaTab('video');
-        return true;
-    }
 
     return false;
 }
