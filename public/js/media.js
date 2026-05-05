@@ -99,9 +99,7 @@ function renderFavoritesTab() {
         } else {
             aList.innerHTML = f.audio.map(tr => {
                 const cover = tr.cover || '';
-                const coverHtml = cover
-                    ? `<img src="${cover}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-xs"></i></div>`;
+                const coverHtml = `<img src="${cover || '/img/default-audio.svg'}" class="w-full h-full object-cover">`;
                 return `
                 <div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100">
                     <div class="w-11 h-11 rounded-xl overflow-hidden shrink-0 bg-gray-100 cursor-pointer" onclick="playFavAudio(${tr.id})">
@@ -958,7 +956,7 @@ async function loadAudioCategories(parentId, parentName) {
             const colors = ['from-brand-500 to-brand-700','from-violet-500 to-violet-700','from-rose-500 to-rose-700','from-amber-500 to-amber-700','from-emerald-500 to-emerald-700','from-blue-500 to-blue-700','from-pink-500 to-pink-700','from-teal-500 to-teal-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
-                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-headphones text-white text-3xl opacity-80"></i></div>`;
+                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<img src="/img/default-audio.svg" class="w-full h-full object-cover">`;
                 const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.track_count} صوت`;
                 const clickFn = cat.sub_count > 0 ? `audioNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadAudioPlaylist(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.track_count})`;
                 if (_mediaViewMode === 'list') return `
@@ -1237,7 +1235,7 @@ function _renderCalResults() {
     if (_csTab === 'audio') {
         res.innerHTML = filtered.map((tr, idx) => {
             const cover = tr.cover || '';
-            const ci = cover ? `<img src="${cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
+            const ci = `<img src="${cover || '/img/default-audio.svg'}" class="w-full h-full object-cover">`;
             return `<div onclick="_csPlayAudio(${idx})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
                 <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">${ci}</div>
                 <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${tr.title}</h4>${tr.artist?`<p class="text-xs text-gray-400 mt-0.5">${tr.artist}</p>`:''}${tr.publish_date?`<p class="text-xs text-teal-500 mt-0.5">${toFa(tr.publish_date)}</p>`:''}</div>
@@ -1411,7 +1409,7 @@ function renderAudioTrackList(pairs) {
         const isActive = idx === audioCurrentIndex;
         const activeCls = isActive ? 'bg-brand-50 border border-brand-100' : 'bg-white border border-gray-100 hover:bg-gray-50';
         const coverSrc = tr.cover || tr._catCover || '';
-        const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><i class="fas fa-music text-white text-sm"></i></div>`;
+        const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<img src="/img/default-audio.svg" class="w-full h-full object-cover">`;
         const activeOverlay = isActive ? `<div class="absolute inset-0 bg-brand-600/40 flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs animate-pulse"></i></div>` : '';
         window._mfTmp['audio_' + tr.id] = {id: tr.id, title: tr.title, artist: tr.artist||'', cover: coverSrc, url: tr.url||''};
         const isFav = _isFav('audio', tr.id);
@@ -1459,9 +1457,7 @@ function selectAudioTrack(idx, autoPlay) {
     const coverEl = document.getElementById('audio-player-cover');
     if(coverEl) {
         const coverSrc = tr.cover || tr._catCover || '';
-        coverEl.innerHTML = coverSrc
-            ? `<img src="${coverSrc}" class="w-full h-full object-cover">`
-            : `<div class="w-full h-full bg-white/20 flex items-center justify-center"><i class="fas fa-music text-white/60 text-3xl"></i></div>`;
+        coverEl.innerHTML = `<img src="${coverSrc || '/img/default-audio.svg'}" class="w-full h-full object-cover">`;
     }
 
     // Reset progress
