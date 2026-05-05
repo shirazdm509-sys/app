@@ -131,6 +131,7 @@ async function init() {
         }
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
+        try { await loadHomeShortcuts(); } catch(e) { console.warn('Shortcuts err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
         try { loadHomeLatestMedia(); } catch(e) {}
         if (qaUser) { try { startNotifPolling(); } catch(e) {} }
@@ -143,6 +144,41 @@ async function init() {
         if(appWr) appWr.classList.remove('hidden');
         setTimeout(() => { try { loadSliders(); } catch(e) {} }, 50);
     }
+}
+
+// ====================================================
+// آیکن‌های میانبر صفحه اصلی (از API)
+// ====================================================
+async function loadHomeShortcuts() {
+    const container = document.getElementById('home-shortcuts-section');
+    if (!container) return;
+    let shortcuts = [];
+    try {
+        const r = await fetch('/api/shortcuts');
+        shortcuts = await r.json();
+        if (!Array.isArray(shortcuts)) shortcuts = [];
+    } catch(e) { return; }
+    container.innerHTML = shortcuts.map(sc => {
+        const onclick = _shortcutOnclick(sc);
+        return `<div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="${onclick}">
+            <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,${sc.color1||'#14b8a6'},${sc.color2||'#0f766e'});"><i class="${sc.icon||'fas fa-star'}"></i></div>
+            <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">${sc.label||''}</span>
+        </div>`;
+    }).join('');
+}
+
+function _shortcutOnclick(sc) {
+    const action = sc.action || '';
+    if (action.startsWith('page:')) {
+        const page = action.slice(5);
+        const label = (sc.label||'').replace(/'/g, "\\'");
+        return `openContentPage('${page}','${label}')`;
+    }
+    if (action.startsWith('screen:')) {
+        const screen = action.slice(7);
+        return `navToScreen('${screen}')`;
+    }
+    return '';
 }
 
 // ====================================================

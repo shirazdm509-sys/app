@@ -78,6 +78,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('users')" id="tab-btn-users" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-users w-5"></i>کاربران</button>
     <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-palette w-5"></i>تنظیمات</button>
     <button onclick="switchTab('pagecontent')" id="tab-btn-pagecontent" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-file-alt w-5"></i>صفحات محتوا</button>
+    <button onclick="switchTab('shortcuts')" id="tab-btn-shortcuts" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-th w-5"></i>آیکن‌های خانه</button>
   </nav>
   <button onclick="logoutAdmin()" class="m-3 p-3 text-rose-400 hover:bg-slate-800 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i>خروج</button>
 </aside>
@@ -1094,8 +1095,8 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا'};
-  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings','pagecontent'];
+  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا',shortcuts:'آیکن‌های خانه'};
+  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings','pagecontent','shortcuts'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -1122,6 +1123,7 @@ function switchTab(tab) {
   if(tab==='users') loadUsers();
   if(tab==='settings') loadSettings();
   if(tab==='pagecontent') initPageContentTab();
+  if(tab==='shortcuts') loadShortcuts();
 }
 
 function switchSupportTab(mode) {
@@ -3369,6 +3371,129 @@ function clearJalaliDate(){
   if(_jalaliTarget) _jalaliTarget.value='';
   document.getElementById('jalali-picker-overlay').remove();
 }
+
+// ====== آیکن‌های خانه ======
+const _SHORTCUT_ICONS = ['fas fa-home','fas fa-mosque','fas fa-book','fas fa-book-open','fas fa-user-graduate','fas fa-headset','fas fa-newspaper','fas fa-scroll','fas fa-credit-card','fas fa-broadcast-tower','fas fa-film','fas fa-music','fas fa-headphones','fas fa-camera','fas fa-images','fas fa-microphone','fas fa-phone','fas fa-envelope','fas fa-star','fas fa-heart','fas fa-bell','fas fa-calendar-alt','fas fa-map-marker-alt','fas fa-globe','fas fa-search','fas fa-info-circle','fas fa-cog','fas fa-download','fas fa-share-alt','fas fa-comment','fas fa-bullhorn','fas fa-donate','fab fa-instagram','fab fa-telegram','fab fa-whatsapp','fab fa-youtube','fas fa-place-of-worship','fas fa-pray','fas fa-hands-praying','fas fa-link','fas fa-users','fas fa-shield-alt'];
+const _SHORTCUT_ACTIONS = [
+  {v:'page:social',l:'شبکه‌های اجتماعی (صفحه)'},{v:'page:biography',l:'زندگی‌نامه (صفحه)'},{v:'page:mosque',l:'مسجد قبا (صفحه)'},{v:'page:contact',l:'ارتباط با ما (صفحه)'},
+  {v:'screen:news',l:'اخبار'},{v:'screen:statements',l:'بیانیه‌ها'},{v:'screen:payment',l:'پرداخت'},{v:'screen:live',l:'پخش زنده'},
+  {v:'screen:library',l:'کتابخانه'},{v:'screen:media',l:'رسانه'},{v:'screen:lectures',l:'سخنرانی‌ها'},{v:'screen:auth',l:'حساب کاربری'}
+];
+let _iconPickerIdx = -1;
+
+async function loadShortcuts() {
+  try {
+    const res = await fetch('/api/shortcuts');
+    const shortcuts = await res.json();
+    const container = document.getElementById('shortcuts-editor');
+    if (!container) return;
+    container.innerHTML = shortcuts.map((s, i) => {
+      const opts = _SHORTCUT_ACTIONS.map(a => `<option value="${a.v}"${s.action===a.v?' selected':''}>${a.l}</option>`).join('');
+      return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-14 h-14 rounded-2xl shadow flex items-center justify-center text-xl text-white shrink-0" id="sc-prev-${i}" style="background:linear-gradient(135deg,${s.color1},${s.color2})"><i id="sc-iprv-${i}" class="${s.icon}"></i></div>
+          <div class="font-bold text-sm" id="sc-lprv-${i}">${s.label}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">نام</label>
+            <input type="text" id="sc-lbl-${i}" value="${s.label}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" oninput="updateScPrev(${i})">
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">آیکن (کلاس FontAwesome)</label>
+            <div class="flex gap-2">
+              <input type="text" id="sc-ico-${i}" value="${s.icon}" class="flex-1 bg-white border border-gray-200 p-2.5 rounded-xl text-xs outline-none focus:border-teal-500 font-mono" oninput="updateScPrev(${i})">
+              <button onclick="openScIconPicker(${i})" class="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0">انتخاب</button>
+            </div>
+          </div>
+          <div><label class="text-xs font-bold text-gray-500 mb-1 block">رنگ ۱</label>
+            <input type="color" id="sc-c1-${i}" value="${s.color1}" class="w-full h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" oninput="updateScPrev(${i})">
+          </div>
+          <div><label class="text-xs font-bold text-gray-500 mb-1 block">رنگ ۲</label>
+            <input type="color" id="sc-c2-${i}" value="${s.color2}" class="w-full h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" oninput="updateScPrev(${i})">
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">عملکرد</label>
+            <select id="sc-act-${i}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">${opts}</select>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+function updateScPrev(i) {
+  const ico = document.getElementById('sc-ico-' + i)?.value || '';
+  const lbl = document.getElementById('sc-lbl-' + i)?.value || '';
+  const c1  = document.getElementById('sc-c1-' + i)?.value  || '#0d9488';
+  const c2  = document.getElementById('sc-c2-' + i)?.value  || '#065f46';
+  const p = document.getElementById('sc-prev-' + i);
+  const pi = document.getElementById('sc-iprv-' + i);
+  const pl = document.getElementById('sc-lprv-' + i);
+  if (p)  p.style.background = `linear-gradient(135deg,${c1},${c2})`;
+  if (pi) pi.className = ico;
+  if (pl) pl.textContent = lbl;
+}
+
+function openScIconPicker(idx) {
+  _iconPickerIdx = idx;
+  const grid = document.getElementById('sc-icon-picker-grid');
+  if (grid) grid.innerHTML = _SHORTCUT_ICONS.map(ic =>
+    `<button onclick="selectScIcon('${ic}')" class="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-teal-50 rounded-xl transition text-gray-600 hover:text-teal-600 border border-transparent hover:border-teal-200 text-base" title="${ic}"><i class="${ic}"></i></button>`
+  ).join('');
+  document.getElementById('sc-icon-picker-modal')?.classList.remove('hidden');
+}
+function closeScIconPicker() {
+  document.getElementById('sc-icon-picker-modal')?.classList.add('hidden');
+  _iconPickerIdx = -1;
+}
+function selectScIcon(ic) {
+  if (_iconPickerIdx < 0) return;
+  const inp = document.getElementById('sc-ico-' + _iconPickerIdx);
+  if (inp) { inp.value = ic; updateScPrev(_iconPickerIdx); }
+  closeScIconPicker();
+}
+
+async function saveShortcuts() {
+  const shortcuts = [];
+  for (let i = 0; i < 8; i++) {
+    shortcuts.push({
+      icon:   document.getElementById('sc-ico-' + i)?.value.trim() || 'fas fa-star',
+      label:  document.getElementById('sc-lbl-' + i)?.value.trim() || '',
+      color1: document.getElementById('sc-c1-'  + i)?.value || '#0d9488',
+      color2: document.getElementById('sc-c2-'  + i)?.value || '#065f46',
+      action: document.getElementById('sc-act-' + i)?.value || 'screen:news'
+    });
+  }
+  try {
+    const res = await fetch('/api/admin/shortcuts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({shortcuts}), credentials:'include'});
+    const d = await res.json();
+    alert(d.success ? '✅ آیکن‌ها ذخیره شدند' : 'خطا: ' + d.error);
+  } catch(e) { alert('خطا: ' + e.message); }
+}
 </script>
+
+<!-- SHORTCUTS TAB -->
+<div id="tab-shortcuts" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-lg font-black mb-2"><i class="fas fa-th text-teal-600 ml-2"></i>آیکن‌های صفحه اصلی</h2>
+    <p class="text-xs text-gray-500 mb-6">۸ آیکن میانبر را می‌توانید از اینجا سفارشی کنید — آیکن، نام، رنگ و عملکرد هر کدام قابل تغییر است.</p>
+    <div id="shortcuts-editor" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="col-span-full text-center text-gray-400 text-sm py-10"><i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...</div>
+    </div>
+    <div class="mt-6 border-t pt-5">
+      <button onclick="saveShortcuts()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره آیکن‌ها</button>
+    </div>
+  </div>
+</div>
+
+<!-- Icon Picker Modal -->
+<div id="sc-icon-picker-modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onclick="if(event.target===this)closeScIconPicker()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <h3 class="font-black text-sm">انتخاب آیکن</h3>
+      <button onclick="closeScIconPicker()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="sc-icon-picker-grid" class="p-4 grid grid-cols-7 gap-2 max-h-72 overflow-y-auto"></div>
+  </div>
+</div>
+
 </body>
 </html>

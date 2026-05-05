@@ -1177,6 +1177,37 @@ app.post('/api/admin/assetlinks', adminAuth, (req, res) => {
     );
 });
 
+// === آیکن‌های صفحه اصلی ===
+const _defaultHomeShortcuts = () => [
+    {icon:'fab fa-instagram',label:'شبکه‌های اجتماعی',color1:'#3b82f6',color2:'#1d4ed8',action:'page:social'},
+    {icon:'fas fa-user-graduate',label:'زندگی‌نامه',color1:'#f59e0b',color2:'#b45309',action:'page:biography'},
+    {icon:'fas fa-mosque',label:'مسجد قبا',color1:'#14b8a6',color2:'#0f766e',action:'page:mosque'},
+    {icon:'fas fa-headset',label:'ارتباط با ما',color1:'#f43f5e',color2:'#be123c',action:'page:contact'},
+    {icon:'fas fa-newspaper',label:'اخبار',color1:'#0ea5e9',color2:'#0284c7',action:'screen:news'},
+    {icon:'fas fa-scroll',label:'بیانیه‌ها',color1:'#f43f5e',color2:'#e11d48',action:'screen:statements'},
+    {icon:'fas fa-credit-card',label:'پرداخت',color1:'#10b981',color2:'#059669',action:'screen:payment'},
+    {icon:'fas fa-broadcast-tower',label:'پخش زنده',color1:'#ef4444',color2:'#dc2626',action:'screen:live'}
+];
+app.get('/api/shortcuts',(req,res)=>{
+    mainDb.get("SELECT value FROM settings WHERE key='home_shortcuts'",[],( err,row)=>{
+        if(err||!row||!row.value) return res.json(_defaultHomeShortcuts());
+        try{res.json(JSON.parse(row.value));}catch(e){res.json(_defaultHomeShortcuts());}
+    });
+});
+app.post('/api/admin/shortcuts',adminAuth,(req,res)=>{
+    const {shortcuts}=req.body;
+    if(!Array.isArray(shortcuts)) return res.status(400).json({error:'داده نامعتبر'});
+    const safe=shortcuts.slice(0,8).map(s=>({
+        icon:String(s.icon||'fas fa-star').slice(0,60),
+        label:String(s.label||'').slice(0,40),
+        color1:String(s.color1||'#0d9488').slice(0,10),
+        color2:String(s.color2||'#065f46').slice(0,10),
+        action:String(s.action||'screen:news').slice(0,60)
+    }));
+    mainDb.run("INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('home_shortcuts',?,CURRENT_TIMESTAMP)",[JSON.stringify(safe)],
+        err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+});
+
 app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل لوگو ارائه نشده'});
     const lu=`/logos/${req.file.filename}`;
