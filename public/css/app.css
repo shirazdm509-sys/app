@@ -325,9 +325,53 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     #home-latest-images > *:nth-child(n+9) { display: none !important; }
     #home-media-images-section > div:first-child { padding: 0 20px 10px !important; }
 
+    /* ── سه ستون دسکتاپ: مطالب | صوت | ویدیو ── */
+    #home-three-col-wrap {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 0 16px !important;
+        padding: 0 20px !important;
+        align-items: start !important;
+    }
+    #home-col-lectures { padding: 0 !important; }
+    #home-lectures-section { margin-bottom: 0 !important; }
+    #home-lectures-section > div:first-child,
+    #home-media-audio-section > div:first-child,
+    #home-media-videos-section > div:first-child { padding: 0 4px 10px !important; }
+    /* containers: عمودی در دسکتاپ */
+    #home-lectures-container, #home-latest-audio, #home-latest-videos {
+        flex-direction: column !important;
+        overflow-x: visible !important;
+        padding: 0 4px !important;
+        gap: 8px !important;
+    }
+    /* کارت‌ها: افقی (عکس چپ، متن راست) در دسکتاپ */
+    #home-lectures-container > *, #home-latest-audio > *, #home-latest-videos > * {
+        width: auto !important;
+        flex-shrink: unset !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        background: white !important;
+        border-radius: 16px !important;
+        padding: 10px !important;
+        border: 1px solid #f1f5f9 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05) !important;
+        align-items: center !important;
+    }
+    /* تصویر داخل کارت: مربع کوچک */
+    #home-lectures-container > * > div:first-child,
+    #home-latest-audio > * > div:first-child,
+    #home-latest-videos > * > div:first-child {
+        width: 52px !important;
+        height: 52px !important;
+        aspect-ratio: unset !important;
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
     /* ── ویدیو + صوت ── */
-    #home-media-videos-section > div:first-child,
-    #home-media-audio-section > div:first-child { padding-right: 4px !important; padding-left: 4px !important; }
+    #home-media-videos-section, #home-media-audio-section { margin-bottom: 0 !important; padding: 0 !important; }
 
     /* تصاویر زیر کتابخانه — نسبت طبیعی */
     #home-media-images-section { display: block !important; }

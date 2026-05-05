@@ -344,8 +344,8 @@ async function loadHomeLatestMedia() {
     try {
         const [imgRes, vidRes, audRes] = await Promise.all([
             fetch('/api/gallery/latest?limit=12').catch(()=>null),
-            fetch('/api/videos/latest?limit=5').catch(()=>null),
-            fetch('/api/audio/latest?limit=6').catch(()=>null)
+            fetch('/api/videos/latest?limit=10').catch(()=>null),
+            fetch('/api/audio/latest?limit=10').catch(()=>null)
         ]);
         _homeLatestImages = imgRes ? await imgRes.json().catch(()=>[]) : [];
         _homeLatestVideos = vidRes ? await vidRes.json().catch(()=>[]) : [];
