@@ -181,6 +181,10 @@ function _shortcutOnclick(sc) {
         const label = (sc.label||'').replace(/'/g, "\\'");
         return `openContentPage('${page}','${label}')`;
     }
+    if (action.startsWith('media-tab:')) {
+        const tab = action.slice(10);
+        return `navToScreen('media');setTimeout(function(){switchMediaTab('${tab}');},80)`;
+    }
     if (action.startsWith('screen:')) {
         const screen = action.slice(7);
         return `navToScreen('${screen}')`;

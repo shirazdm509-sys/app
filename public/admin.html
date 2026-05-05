@@ -3377,7 +3377,8 @@ const _SHORTCUT_ICONS = ['fas fa-home','fas fa-mosque','fas fa-book','fas fa-boo
 const _SHORTCUT_ACTIONS = [
   {v:'page:social',l:'شبکه‌های اجتماعی (صفحه)'},{v:'page:biography',l:'زندگی‌نامه (صفحه)'},{v:'page:mosque',l:'مسجد قبا (صفحه)'},{v:'page:contact',l:'ارتباط با ما (صفحه)'},
   {v:'screen:news',l:'اخبار'},{v:'screen:statements',l:'بیانیه‌ها'},{v:'screen:payment',l:'پرداخت'},{v:'screen:live',l:'پخش زنده'},
-  {v:'screen:library',l:'کتابخانه'},{v:'screen:media',l:'رسانه'},{v:'screen:lectures',l:'سخنرانی‌ها'},{v:'screen:auth',l:'حساب کاربری'}
+  {v:'screen:library',l:'کتابخانه'},{v:'screen:media',l:'رسانه'},{v:'screen:lectures',l:'سخنرانی‌ها'},{v:'screen:qa',l:'پرسش و پاسخ'},{v:'screen:auth',l:'حساب کاربری'},
+  {v:'media-tab:audio',l:'صوت (تب رسانه)'},{v:'media-tab:video',l:'ویدیو (تب رسانه)'},{v:'media-tab:photo',l:'تصاویر (تب رسانه)'}
 ];
 let _iconPickerIdx = -1;
 
@@ -3395,8 +3396,9 @@ async function loadShortcuts() {
         : `<i id="sc-iprv-${i}" class="${s.icon}"></i>`;
       const prevStyle = img ? '' : `background:linear-gradient(135deg,${s.color1},${s.color2})`;
       const thumbInner = img ? `<img src="${img}" class="w-full h-full object-cover">` : `<i class="fas fa-image text-gray-300 text-lg"></i>`;
-      return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50">
-        <div class="flex items-center gap-3 mb-4">
+      return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50 relative" data-sc-idx="${i}">
+        <div class="sc-drag-handle absolute left-3 top-3 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 touch-none" title="جابجایی"><i class="fas fa-grip-vertical text-base"></i></div>
+        <div class="flex items-center gap-3 mb-4 pr-1">
           <div class="w-14 h-14 rounded-2xl shadow flex items-center justify-center text-xl text-white shrink-0 overflow-hidden" id="sc-prev-${i}" style="${prevStyle}">${prevInner}</div>
           <div class="font-bold text-sm" id="sc-lprv-${i}">${s.label}</div>
         </div>
@@ -3431,6 +3433,14 @@ async function loadShortcuts() {
         </div>
       </div>`;
     }).join('');
+    if (typeof Sortable !== 'undefined') {
+      if (window._scSortable) { try { window._scSortable.destroy(); } catch(e) {} }
+      window._scSortable = Sortable.create(container, {
+        animation: 150,
+        handle: '.sc-drag-handle',
+        ghostClass: 'opacity-40',
+      });
+    }
   } catch(e) { console.error(e); }
 }
 
@@ -3503,7 +3513,8 @@ function selectScIcon(ic) {
 
 async function saveShortcuts() {
   const shortcuts = [];
-  for (let i = 0; i < 8; i++) {
+  document.querySelectorAll('#shortcuts-editor [data-sc-idx]').forEach(card => {
+    const i = card.dataset.scIdx;
     shortcuts.push({
       icon:   document.getElementById('sc-ico-' + i)?.value.trim() || 'fas fa-star',
       label:  document.getElementById('sc-lbl-' + i)?.value.trim() || '',
@@ -3512,7 +3523,7 @@ async function saveShortcuts() {
       action: document.getElementById('sc-act-' + i)?.value || 'screen:news',
       image:  document.getElementById('sc-img-' + i)?.value.trim() || ''
     });
-  }
+  });
   try {
     const res = await fetch('/api/admin/shortcuts', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({shortcuts}), credentials:'include'});
     const d = await res.json();
@@ -3525,7 +3536,7 @@ async function saveShortcuts() {
 <div id="tab-shortcuts" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
   <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
     <h2 class="text-lg font-black mb-2"><i class="fas fa-th text-teal-600 ml-2"></i>آیکن‌های صفحه اصلی</h2>
-    <p class="text-xs text-gray-500 mb-6">۸ آیکن میانبر را می‌توانید از اینجا سفارشی کنید — آیکن، نام، رنگ و عملکرد هر کدام قابل تغییر است.</p>
+    <p class="text-xs text-gray-500 mb-6">۸ آیکن میانبر را می‌توانید از اینجا سفارشی کنید — آیکن، نام، رنگ و عملکرد هر کدام قابل تغییر است. برای جابجایی ترتیب، کارت‌ها را با <i class="fas fa-grip-vertical text-gray-400"></i> بکشید.</p>
     <div id="shortcuts-editor" class="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div class="col-span-full text-center text-gray-400 text-sm py-10"><i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...</div>
     </div>
