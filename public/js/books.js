@@ -462,7 +462,7 @@ function applySettingsObject(s) {
     const _sectionGapMap = {gap_slider:'home-slider',gap_shortcuts:'home-col-shortcuts',gap_books:'home-books-section',gap_images:'home-media-images-section',gap_sections:'home-three-col-wrap'};
     Object.entries(_sectionGapMap).forEach(([key, id]) => {
         const val = s[key];
-        if (val !== undefined) { const el = document.getElementById(id); if (el) el.style.marginBottom = val + 'px'; }
+        if (val !== undefined) { const el = document.getElementById(id); if (el) el.style.setProperty('margin-bottom', val + 'px', 'important'); }
     });
     const themeBtn = document.getElementById('global-theme-btn');
     if (themeBtn) {
