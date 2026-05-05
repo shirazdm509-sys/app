@@ -160,8 +160,15 @@ async function loadHomeShortcuts() {
     } catch(e) { return; }
     container.innerHTML = shortcuts.map(sc => {
         const onclick = _shortcutOnclick(sc);
+        const inner = sc.image
+            ? `<img src="${sc.image}" class="w-full h-full object-cover">`
+            : `<i class="${sc.icon||'fas fa-star'}"></i>`;
+        const style = sc.image
+            ? ''
+            : `background:linear-gradient(135deg,${sc.color1||'#14b8a6'},${sc.color2||'#0f766e'});`;
+        const textClass = sc.image ? '' : 'text-white';
         return `<div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="${onclick}">
-            <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 text-white" style="background:linear-gradient(135deg,${sc.color1||'#14b8a6'},${sc.color2||'#0f766e'});"><i class="${sc.icon||'fas fa-star'}"></i></div>
+            <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 overflow-hidden ${textClass}" style="${style}">${inner}</div>
             <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">${sc.label||''}</span>
         </div>`;
     }).join('');

@@ -362,7 +362,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => {
@@ -1202,10 +1202,15 @@ app.post('/api/admin/shortcuts',adminAuth,(req,res)=>{
         label:String(s.label||'').slice(0,40),
         color1:String(s.color1||'#0d9488').slice(0,10),
         color2:String(s.color2||'#065f46').slice(0,10),
-        action:String(s.action||'screen:news').slice(0,60)
+        action:String(s.action||'screen:news').slice(0,60),
+        image:String(s.image||'').slice(0,500)
     }));
     mainDb.run("INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('home_shortcuts',?,CURRENT_TIMESTAMP)",[JSON.stringify(safe)],
         err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+});
+app.post('/api/admin/shortcuts/upload-icon',adminAuth,uploadImage.single('shortcut_icon'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
+    res.json({success:true,url:`/img/shortcuts/${req.file.filename}`});
 });
 
 app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{

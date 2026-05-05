@@ -3389,16 +3389,31 @@ async function loadShortcuts() {
     if (!container) return;
     container.innerHTML = shortcuts.map((s, i) => {
       const opts = _SHORTCUT_ACTIONS.map(a => `<option value="${a.v}"${s.action===a.v?' selected':''}>${a.l}</option>`).join('');
+      const img = s.image || '';
+      const prevInner = img
+        ? `<img src="${img}" class="w-full h-full object-cover rounded-2xl">`
+        : `<i id="sc-iprv-${i}" class="${s.icon}"></i>`;
+      const prevStyle = img ? '' : `background:linear-gradient(135deg,${s.color1},${s.color2})`;
+      const thumbInner = img ? `<img src="${img}" class="w-full h-full object-cover">` : `<i class="fas fa-image text-gray-300 text-lg"></i>`;
       return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50">
         <div class="flex items-center gap-3 mb-4">
-          <div class="w-14 h-14 rounded-2xl shadow flex items-center justify-center text-xl text-white shrink-0" id="sc-prev-${i}" style="background:linear-gradient(135deg,${s.color1},${s.color2})"><i id="sc-iprv-${i}" class="${s.icon}"></i></div>
+          <div class="w-14 h-14 rounded-2xl shadow flex items-center justify-center text-xl text-white shrink-0 overflow-hidden" id="sc-prev-${i}" style="${prevStyle}">${prevInner}</div>
           <div class="font-bold text-sm" id="sc-lprv-${i}">${s.label}</div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">نام</label>
             <input type="text" id="sc-lbl-${i}" value="${s.label}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500" oninput="updateScPrev(${i})">
           </div>
-          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">آیکن (کلاس FontAwesome)</label>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">تصویر سفارشی (اختیاری — جایگزین آیکن می‌شود)</label>
+            <div class="flex items-center gap-2">
+              <div id="sc-imgprev-${i}" class="w-10 h-10 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center bg-gray-100 shrink-0">${thumbInner}</div>
+              <input type="file" id="sc-imgfile-${i}" accept="image/*" class="hidden" onchange="uploadScIcon(${i})">
+              <button onclick="document.getElementById('sc-imgfile-${i}').click()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap">آپلود تصویر</button>
+              <button id="sc-imgclear-${i}" onclick="clearScIcon(${i})" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap${img ? '' : ' hidden'}">حذف تصویر</button>
+              <input type="hidden" id="sc-img-${i}" value="${img}">
+            </div>
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">آیکن FontAwesome (وقتی تصویر ندارید)</label>
             <div class="flex gap-2">
               <input type="text" id="sc-ico-${i}" value="${s.icon}" class="flex-1 bg-white border border-gray-200 p-2.5 rounded-xl text-xs outline-none focus:border-teal-500 font-mono" oninput="updateScPrev(${i})">
               <button onclick="openScIconPicker(${i})" class="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0">انتخاب</button>
@@ -3424,12 +3439,47 @@ function updateScPrev(i) {
   const lbl = document.getElementById('sc-lbl-' + i)?.value || '';
   const c1  = document.getElementById('sc-c1-' + i)?.value  || '#0d9488';
   const c2  = document.getElementById('sc-c2-' + i)?.value  || '#065f46';
-  const p = document.getElementById('sc-prev-' + i);
-  const pi = document.getElementById('sc-iprv-' + i);
+  const img = document.getElementById('sc-img-' + i)?.value || '';
+  const p  = document.getElementById('sc-prev-' + i);
   const pl = document.getElementById('sc-lprv-' + i);
-  if (p)  p.style.background = `linear-gradient(135deg,${c1},${c2})`;
-  if (pi) pi.className = ico;
+  if (p) {
+    if (img) {
+      p.style.background = '';
+      p.innerHTML = `<img src="${img}" class="w-full h-full object-cover rounded-2xl">`;
+    } else {
+      p.style.background = `linear-gradient(135deg,${c1},${c2})`;
+      p.innerHTML = `<i id="sc-iprv-${i}" class="${ico}"></i>`;
+    }
+  }
   if (pl) pl.textContent = lbl;
+}
+
+async function uploadScIcon(i) {
+  const file = document.getElementById('sc-imgfile-' + i)?.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('shortcut_icon', file);
+  try {
+    const res = await fetch('/api/admin/shortcuts/upload-icon', {method:'POST', body:fd, credentials:'include'});
+    const d = await res.json();
+    if (d.url) {
+      document.getElementById('sc-img-' + i).value = d.url;
+      document.getElementById('sc-imgclear-' + i)?.classList.remove('hidden');
+      const tp = document.getElementById('sc-imgprev-' + i);
+      if (tp) tp.innerHTML = `<img src="${d.url}" class="w-full h-full object-cover">`;
+      updateScPrev(i);
+    } else { alert('خطا در آپلود: ' + (d.error||'')); }
+  } catch(e) { alert('خطا: ' + e.message); }
+}
+
+function clearScIcon(i) {
+  document.getElementById('sc-img-' + i).value = '';
+  const fi = document.getElementById('sc-imgfile-' + i);
+  if (fi) fi.value = '';
+  document.getElementById('sc-imgclear-' + i)?.classList.add('hidden');
+  const tp = document.getElementById('sc-imgprev-' + i);
+  if (tp) tp.innerHTML = '<i class="fas fa-image text-gray-300 text-lg"></i>';
+  updateScPrev(i);
 }
 
 function openScIconPicker(idx) {
@@ -3459,7 +3509,8 @@ async function saveShortcuts() {
       label:  document.getElementById('sc-lbl-' + i)?.value.trim() || '',
       color1: document.getElementById('sc-c1-'  + i)?.value || '#0d9488',
       color2: document.getElementById('sc-c2-'  + i)?.value || '#065f46',
-      action: document.getElementById('sc-act-' + i)?.value || 'screen:news'
+      action: document.getElementById('sc-act-' + i)?.value || 'screen:news',
+      image:  document.getElementById('sc-img-' + i)?.value.trim() || ''
     });
   }
   try {
