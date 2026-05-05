@@ -904,12 +904,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <!-- Home Section Gap -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
       <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-arrows-alt-v text-teal-600 ml-2"></i>فاصله عمودی بخش‌های صفحه اصلی</h2>
-      <div class="flex items-center gap-4">
-        <div class="flex-1">
-          <label class="block text-xs font-bold text-gray-500 mb-2">فاصله بین بخش‌ها (پیکسل)</label>
-          <input type="number" id="s-home_section_gap" min="0" max="80" value="16" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500">
+      <p class="text-xs text-gray-400 mb-5">فاصله پایینی هر بخش را با بخش بعدی تنظیم کنید (پیکسل)</p>
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از اسلایدر</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_slider" oninput="document.getElementById('sv-gap_slider').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_slider" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
         </div>
-        <div class="text-xs text-gray-400 mt-5">پیش‌فرض: ۱۶</div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از آیکن‌ها</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_shortcuts" oninput="document.getElementById('sv-gap_shortcuts').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_shortcuts" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از کتاب‌ها</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_books" oninput="document.getElementById('sv-gap_books').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_books" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از تصاویر</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_images" oninput="document.getElementById('sv-gap_images').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_images" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از مطالب/صوت/ویدیو</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_sections" oninput="document.getElementById('sv-gap_sections').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_sections" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
       </div>
     </div>
 
@@ -2187,9 +2213,17 @@ async function loadSettings(){
     const r=await adminFetch('/api/admin/settings');
     const s=await r.json();
     ['site_name','site_subtitle','primary_color','secondary_color','live_embed','pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color',
-     'splash_title','splash_subtitle','splash_bg_color','splash_spinner_color','home_section_gap'].forEach(k=>{
+     'splash_title','splash_subtitle','splash_bg_color','splash_spinner_color'].forEach(k=>{
       const el=document.getElementById('s-'+k);
       if(el) el.value=s[k]||'';
+    });
+    // فاصله بخش‌ها
+    ['gap_slider','gap_shortcuts','gap_books','gap_images','gap_sections'].forEach(k=>{
+      const val = s[k] !== undefined ? s[k] : '16';
+      const el = document.getElementById('s-'+k);
+      const sv = document.getElementById('sv-'+k);
+      if(el) el.value = val;
+      if(sv) sv.textContent = val;
     });
     // آیکون اسپلش
     if(s.splash_icon_url){
@@ -2237,7 +2271,11 @@ async function saveSettings(){
     splash_subtitle:document.getElementById('s-splash_subtitle').value,
     splash_bg_color:document.getElementById('s-splash_bg_color').value,
     splash_spinner_color:document.getElementById('s-splash_spinner_color').value,
-    home_section_gap:document.getElementById('s-home_section_gap').value||'16',
+    gap_slider:   document.getElementById('s-gap_slider')?.value   || '16',
+    gap_shortcuts:document.getElementById('s-gap_shortcuts')?.value || '16',
+    gap_books:    document.getElementById('s-gap_books')?.value    || '16',
+    gap_images:   document.getElementById('s-gap_images')?.value   || '16',
+    gap_sections: document.getElementById('s-gap_sections')?.value || '16',
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});

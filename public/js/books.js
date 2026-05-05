@@ -459,6 +459,11 @@ function applySettingsObject(s) {
     }
     if (s.primary_color) document.documentElement.style.setProperty('--brand-color', s.primary_color);
     if (s.home_section_gap !== undefined) document.documentElement.style.setProperty('--home-gap', s.home_section_gap + 'px');
+    const _sectionGapMap = {gap_slider:'home-slider',gap_shortcuts:'home-col-shortcuts',gap_books:'home-books-section',gap_images:'home-media-images-section',gap_sections:'home-three-col-wrap'};
+    Object.entries(_sectionGapMap).forEach(([key, id]) => {
+        const val = s[key];
+        if (val !== undefined) { const el = document.getElementById(id); if (el) el.style.marginBottom = val + 'px'; }
+    });
     const themeBtn = document.getElementById('global-theme-btn');
     if (themeBtn) {
         if (s.dark_mode_enabled === '0') themeBtn.style.display = 'none';
