@@ -451,14 +451,14 @@ async function fetchLatestLectures() {
         const posts = await res.json();
         if (!Array.isArray(posts) || posts.length === 0) { container.innerHTML = '<div class="text-center py-4 text-gray-400 text-xs">محتوایی یافت نشد</div>'; return; }
         container.innerHTML = posts.map(post => {
-            let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+            const imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
             const date = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
-            return `<div onclick="openLatestPost(${post.id})" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98]">
-                ${imgUrl ? `<img src="${imgUrl}" class="w-14 h-14 rounded-xl object-cover shrink-0">` : `<div class="w-14 h-14 bg-amber-50 rounded-xl flex items-center justify-center shrink-0"><i class="fas fa-microphone-alt text-amber-400"></i></div>`}
-                <div class="flex flex-col justify-center min-w-0">
-                    <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug mb-1">${post.title.rendered}</h4>
-                    <span class="text-[10px] text-gray-400"><i class="far fa-calendar ml-1"></i>${date}</span>
+            return `<div onclick="openLatestPost(${post.id})" class="snap-start shrink-0 w-32 cursor-pointer active:scale-95 transition">
+                <div class="w-full aspect-square rounded-xl overflow-hidden mb-1.5 bg-amber-50 shadow-sm">
+                    ${imgUrl ? `<img src="${imgUrl}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-microphone-alt text-amber-300 text-2xl"></i></div>`}
                 </div>
+                <h4 class="font-bold text-[10px] text-gray-800 line-clamp-2 leading-snug px-0.5">${post.title.rendered}</h4>
+                <span class="text-[9px] text-gray-400 px-0.5">${date}</span>
             </div>`;
         }).join('');
         window._latestPosts = posts;
