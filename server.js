@@ -813,7 +813,7 @@ app.get('/api/wp', (req, res) => {
 // === API BANNERS (PUBLIC) ===
 app.get('/api/banners',(req,res)=>{
     res.set('Cache-Control','public, max-age=300');
-    const page = (req.query.page || 'home').replace(/[^a-z]/g, '').substring(0, 20);
+    const page = (req.query.page || 'home').replace(/[^a-z_]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM banners WHERE ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY position ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
 });
@@ -821,7 +821,7 @@ app.get('/api/banners',(req,res)=>{
 // === API SLIDERS (PUBLIC) ===
 app.get('/api/sliders',(req,res)=>{
     res.set('Cache-Control','public, max-age=300');
-    const page = (req.query.page || 'home').replace(/[^a-z]/g, '').substring(0, 20);
+    const page = (req.query.page || 'home').replace(/[^a-z_]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM sliders WHERE active=1 AND ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY sort_order ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
 });

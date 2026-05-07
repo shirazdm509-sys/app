@@ -17,6 +17,7 @@
 
 :root { --safe-bottom: 20px; --title-color: inherit; --text-color: inherit; --line-height: 2.2; --home-gap: 16px; --banner-gap: 0px; }
 #home-scroll-content > div { margin-bottom: var(--home-gap) !important; }
+[id^="home-banner-"]:empty { display: none !important; margin: 0 !important; padding: 0 !important; }
 [id^="home-banner-"]:not(:empty) { padding-top: var(--banner-gap) !important; padding-bottom: var(--banner-gap) !important; }
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
      :root { --safe-bottom: env(safe-area-inset-bottom); }
