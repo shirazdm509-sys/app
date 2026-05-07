@@ -1024,7 +1024,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">عنوان کتاب *</label><input type="text" id="edit-book-title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">نویسنده</label><input type="text" id="edit-book-author" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm"></div>
     <div><label class="block text-xs font-bold text-gray-500 mb-1.5">توضیحات</label><textarea id="edit-book-desc" rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 text-sm resize-none"></textarea></div>
-    <div id="edit-book-pdf-field" class="hidden"><label class="block text-xs font-bold text-gray-500 mb-1.5">فایل PDF جدید (اختیاری - برای جایگزینی)</label><input type="file" id="edit-book-pdf" accept=".pdf" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 text-xs cursor-pointer"></div>
+    <div id="edit-book-pdf-field" class="hidden"><label class="block text-xs font-bold text-gray-500 mb-1.5">فایل PDF جدید (اختیاری — جایگزینی)</label><input type="file" id="edit-book-pdf" accept=".pdf" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-rose-50 file:text-rose-700 text-xs cursor-pointer"></div>
+    <div id="edit-book-db-field" class="hidden"><label class="block text-xs font-bold text-gray-500 mb-1.5">فایل دیتابیس جدید .sqlite / .db (اختیاری — جایگزینی)</label><input type="file" id="edit-book-db" accept=".db,.sqlite,.sqlite3" class="w-full bg-gray-50 border border-gray-200 p-2 rounded-xl file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 text-xs cursor-pointer"></div>
     <div>
       <label class="block text-xs font-bold text-gray-500 mb-1.5">تصویر جلد (اختیاری - برای تغییر)</label>
       <div class="flex items-center gap-3">
@@ -1295,8 +1296,13 @@ async function openEditBook(id){
   document.getElementById('edit-book-author').value=b.author||'';
   document.getElementById('edit-book-desc').value=b.description||'';
   document.getElementById('edit-book-cover').value='';
-  if(b.book_type==='pdf'){document.getElementById('edit-book-pdf-field').classList.remove('hidden');}
-  else{document.getElementById('edit-book-pdf-field').classList.add('hidden');}
+  if(b.book_type==='pdf'){
+    document.getElementById('edit-book-pdf-field').classList.remove('hidden');
+    document.getElementById('edit-book-db-field').classList.add('hidden');
+  } else {
+    document.getElementById('edit-book-pdf-field').classList.add('hidden');
+    document.getElementById('edit-book-db-field').classList.remove('hidden');
+  }
   const prev=document.getElementById('edit-book-cover-preview');
   const ph=document.getElementById('edit-book-cover-placeholder');
   if(b.cover){prev.src=b.cover;prev.classList.remove('hidden');ph.classList.add('hidden');}
@@ -1325,6 +1331,8 @@ async function saveBookEdit(){
   if(cf) fd.append('cover',cf);
   const pf=document.getElementById('edit-book-pdf').files[0];
   if(pf) fd.append('pdf_file',pf);
+  const df=document.getElementById('edit-book-db').files[0];
+  if(df) fd.append('database',df);
   const btn=document.getElementById('btn-save-book-edit');
   btn.innerHTML='<i class="fas fa-spinner fa-spin ml-2"></i>در حال ذخیره...';btn.disabled=true;
   try{

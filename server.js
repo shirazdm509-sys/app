@@ -1065,17 +1065,25 @@ app.put('/api/admin/books/sort',adminAuth,(req,res)=>{
     ids.forEach((id,i)=>stmt.run([i,id]));
     stmt.finalize(()=>res.json({success:true}));
 });
-app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1},{name:'pdf_file',maxCount:1}]),(req,res)=>{
+app.put('/api/admin/books/:id',adminAuth,upload.fields([{name:'cover',maxCount:1},{name:'pdf_file',maxCount:1},{name:'database',maxCount:1}]),(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.get('SELECT * FROM books WHERE id=?',[id],(err,b)=>{
+    mainDb.get('SELECT * FROM books WHERE id=?',[id],async(err,b)=>{
         if(err||!b) return res.status(404).json({error:'کتاب یافت نشد'});
         const cf=req.files&&req.files['cover']?req.files['cover'][0]:null;
         const pf=req.files&&req.files['pdf_file']?req.files['pdf_file'][0]:null;
+        const df=req.files&&req.files['database']?req.files['database'][0]:null;
         let cp=b.cover;
         if(cf){unlinkPublicFile(b.cover);cp=`/covers/${cf.filename}`;}
         let pdfFn=b.pdf_filename||'';
         if(pf){if(b.pdf_filename){const op=path.resolve(__dirname,'books',path.basename(b.pdf_filename));if(fs.existsSync(op)) fs.unlinkSync(op);}pdfFn=pf.filename;}
-        mainDb.run('UPDATE books SET title=?,author=?,description=?,cover=?,pdf_filename=? WHERE id=?',[san(req.body.title)||b.title,san(req.body.author)||b.author,san(req.body.description)||b.description,cp,pdfFn,id],()=>res.json({success:true}));
+        let dbFn=b.db_filename||'';
+        let pc=b.page_count||0;
+        if(df){
+            if(b.db_filename){const od=path.resolve(__dirname,'books',path.basename(b.db_filename));if(fs.existsSync(od)) fs.unlinkSync(od);}
+            dbFn=df.filename;
+            try{pc=await countPages(path.resolve(__dirname,'books',df.filename));}catch(e){}
+        }
+        mainDb.run('UPDATE books SET title=?,author=?,description=?,cover=?,pdf_filename=?,db_filename=?,page_count=? WHERE id=?',[san(req.body.title)||b.title,san(req.body.author)||b.author,san(req.body.description)||b.description,cp,pdfFn,dbFn,pc,id],()=>res.json({success:true}));
     });
 });
 // سرویس‌دهی فایل‌های PDF کتاب‌ها
