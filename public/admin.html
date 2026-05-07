@@ -1649,8 +1649,8 @@ async function loadBanners(){
     const r=await adminFetch('/api/admin/banners');
     const bns=await r.json();
     if(!Array.isArray(bns)){renderBannerCards([]);return;}
-    bannerData=[{},{},{}];
-    bns.forEach(b=>{if(b.position>=1&&b.position<=3)bannerData[b.position-1]=b;});
+    bannerData=Array.from({length:10},()=>({}));
+    bns.forEach(b=>{if(b.position>=1&&b.position<=10)bannerData[b.position-1]=b;});
     renderBannerCards(bns);
   }catch(e){renderBannerCards([]);}
 }
@@ -1665,7 +1665,7 @@ function parseBannerLink(link){
 }
 function renderBannerCards(bns){
   const c=document.getElementById('banners-list');
-  c.innerHTML=[1,2,3].map(pos=>{
+  c.innerHTML=Array.from({length:10},(_,i)=>i+1).map(pos=>{
     const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
     const curSec=b.page_section||'after_books';
     const lp=parseBannerLink(b.link||'');
@@ -1735,7 +1735,7 @@ function renderBannerCards(bns){
     </div>`;
   }).join('');
   // load internal options for banners that already have app:// links
-  [1,2,3].forEach(pos=>{
+  Array.from({length:10},(_,i)=>i+1).forEach(pos=>{
     const b=(Array.isArray(bns)?bns:[]).find(x=>x.position===pos)||{};
     const lp=parseBannerLink(b.link||'');
     if(lp.type!=='external') loadBannerContentOptions(pos,lp.type,lp.intId);
@@ -1813,7 +1813,7 @@ function previewBannerUrl(pos,url){
 }
 async function saveBanners(){
   let saved=0;
-  for(let pos=1;pos<=3;pos++){
+  for(let pos=1;pos<=10;pos++){
     const img=document.getElementById('banner-img-'+pos).files[0];
     if(img && img.size > 10*1024*1024){ showToast(`تصویر بنر ${pos} بیش از ۱۰ مگابایت است`,false); continue; }
     const imageUrl=document.getElementById('banner-url-'+pos)?.value?.trim()||'';

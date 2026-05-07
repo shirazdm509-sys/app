@@ -327,7 +327,7 @@ function initDb() {
         // Migration: update branding texts
         mainDb.run(`UPDATE settings SET value='نرم افزار آیت الله دستغیب' WHERE key='site_name' AND value='مرکز نشر آثار آیت الله دستغیب'`);
         mainDb.run(`UPDATE settings SET value='DastgheibQoba.info' WHERE key='site_subtitle' AND value='آیت الله دستغیب'`);
-        for(let i=1;i<=3;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
+        for(let i=1;i<=10;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
         // Migration: add notifications tables if not exists (already created above)
@@ -1295,7 +1295,7 @@ app.get('/api/admin/banners',adminAuth,(req,res)=>{
     mainDb.all('SELECT * FROM banners ORDER BY position ASC',[],(err,rows)=>res.json(rows||[]));
 });
 app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(req,res)=>{
-    const pos=+req.params.pos;if(isNaN(pos)||pos<1||pos>3) return res.status(400).json({error:'موقعیت نامعتبر'});
+    const pos=+req.params.pos;if(isNaN(pos)||pos<1||pos>10) return res.status(400).json({error:'موقعیت نامعتبر'});
     mainDb.get('SELECT * FROM banners WHERE position=?',[pos],(err,bn)=>{
         let img=bn?bn.image:'';
         if(req.file){
