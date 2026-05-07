@@ -447,7 +447,7 @@ async function loadBanners() {
 const _secSlider = {}; // {page: {data, index, timer, w}}
 
 function _loadMediaTabBanner(tab) {
-    loadSectionContent('media_' + tab);
+    loadSectionContent('media_' + tab, 'media');
 }
 function _clearMediaBanner() {
     const bannerEl = document.getElementById('media-banner-top');
@@ -459,14 +459,15 @@ function _clearMediaBanner() {
     });
 }
 
-async function loadSectionContent(page) {
+async function loadSectionContent(page, domKey) {
+    domKey = domKey || page;
     const s = window._siteSettings || {};
     const padding = parseInt(s.banner_padding ?? '4');
     const radius = parseInt(s.banner_radius ?? '16');
     const height = parseInt(s.banner_height ?? '120');
 
     // --- banners ---
-    const bannerEl = document.getElementById(page + '-banner-top');
+    const bannerEl = document.getElementById(domKey + '-banner-top');
     if (bannerEl) {
         bannerEl.innerHTML = '';
         try {
@@ -488,9 +489,9 @@ async function loadSectionContent(page) {
     }
 
     // --- slider ---
-    const wrap = document.getElementById(page + '-slider-wrap');
-    const track = document.getElementById(page + '-slider-track');
-    const dots = document.getElementById(page + '-slider-dots');
+    const wrap = document.getElementById(domKey + '-slider-wrap');
+    const track = document.getElementById(domKey + '-slider-track');
+    const dots = document.getElementById(domKey + '-slider-dots');
     if (!wrap || !track || !dots) return;
     wrap.style.display = 'none';
     try {
@@ -525,17 +526,17 @@ async function loadSectionContent(page) {
             </div>`;
         }).join('');
         dots.innerHTML = data.map((_,i) =>
-            `<button onclick="_secSliderGo('${page}',${i})" style="pointer-events:auto;" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
+            `<button onclick="_secSliderGo('${domKey}',${i})" style="pointer-events:auto;" class="w-2 h-2 rounded-full transition-all ${i===0?'bg-white w-4':'bg-white/50'}"></button>`
         ).join('');
-        _secSlider[page] = { data, index: 0, timer: null, w: slW };
-        _secSliderStart(page);
+        _secSlider[domKey] = { data, index: 0, timer: null, w: slW };
+        _secSliderStart(domKey);
         // touch swipe
-        wrap.addEventListener('touchstart', e => { _secSlider[page]._tx = e.touches[0].clientX; if (_secSlider[page].timer) clearInterval(_secSlider[page].timer); }, { passive: true });
+        wrap.addEventListener('touchstart', e => { _secSlider[domKey]._tx = e.touches[0].clientX; if (_secSlider[domKey].timer) clearInterval(_secSlider[domKey].timer); }, { passive: true });
         wrap.addEventListener('touchend', e => {
-            if (!_secSlider[page]) return;
-            const dx = e.changedTouches[0].clientX - (_secSlider[page]._tx || 0);
-            if (Math.abs(dx) > 40) { dx < 0 ? _secSliderGo(page, _secSlider[page].index + 1) : _secSliderGo(page, _secSlider[page].index - 1); }
-            _secSliderStart(page);
+            if (!_secSlider[domKey]) return;
+            const dx = e.changedTouches[0].clientX - (_secSlider[domKey]._tx || 0);
+            if (Math.abs(dx) > 40) { dx < 0 ? _secSliderGo(domKey, _secSlider[domKey].index + 1) : _secSliderGo(domKey, _secSlider[domKey].index - 1); }
+            _secSliderStart(domKey);
         }, { passive: true });
     } catch(e) {}
 }
