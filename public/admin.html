@@ -931,10 +931,31 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <span class="text-xs text-gray-400">px</span>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از مطالب/صوت/ویدیو</span>
-          <input type="range" min="0" max="80" value="16" id="s-gap_sections" oninput="document.getElementById('sv-gap_sections').textContent=this.value" class="flex-1 accent-teal-600">
-          <span id="sv-gap_sections" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از آخرین مطالب</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_lectures" oninput="document.getElementById('sv-gap_lectures').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_lectures" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
           <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از آخرین صوت‌ها</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_audio" oninput="document.getElementById('sv-gap_audio').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_audio" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-gray-600 w-44 shrink-0">بعد از آخرین ویدیوها</span>
+          <input type="range" min="0" max="80" value="16" id="s-gap_videos" oninput="document.getElementById('sv-gap_videos').textContent=this.value" class="flex-1 accent-teal-600">
+          <span id="sv-gap_videos" class="text-sm font-black text-teal-600 w-7 text-center">16</span>
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+        <div class="border-t pt-4 mt-1">
+          <p class="text-xs text-gray-400 mb-3">فاصله بالا و پایین بنرها</p>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold text-gray-600 w-44 shrink-0">فاصله بالا/پایین بنر</span>
+            <input type="range" min="0" max="40" value="0" id="s-gap_banner" oninput="document.getElementById('sv-gap_banner').textContent=this.value" class="flex-1 accent-teal-600">
+            <span id="sv-gap_banner" class="text-sm font-black text-teal-600 w-7 text-center">0</span>
+            <span class="text-xs text-gray-400">px</span>
+          </div>
         </div>
       </div>
     </div>
@@ -2226,7 +2247,7 @@ async function loadSettings(){
       if(el) el.value=s[k]||'';
     });
     // فاصله بخش‌ها
-    ['gap_slider','gap_shortcuts','gap_books','gap_images','gap_sections'].forEach(k=>{
+    ['gap_slider','gap_shortcuts','gap_books','gap_images','gap_lectures','gap_audio','gap_videos','gap_banner'].forEach(k=>{
       const val = s[k] !== undefined ? s[k] : '16';
       const el = document.getElementById('s-'+k);
       const sv = document.getElementById('sv-'+k);
@@ -2279,11 +2300,14 @@ async function saveSettings(){
     splash_subtitle:document.getElementById('s-splash_subtitle').value,
     splash_bg_color:document.getElementById('s-splash_bg_color').value,
     splash_spinner_color:document.getElementById('s-splash_spinner_color').value,
-    gap_slider:   document.getElementById('s-gap_slider')?.value   || '16',
+    gap_slider:   document.getElementById('s-gap_slider')?.value    || '16',
     gap_shortcuts:document.getElementById('s-gap_shortcuts')?.value || '16',
-    gap_books:    document.getElementById('s-gap_books')?.value    || '16',
-    gap_images:   document.getElementById('s-gap_images')?.value   || '16',
-    gap_sections: document.getElementById('s-gap_sections')?.value || '16',
+    gap_books:    document.getElementById('s-gap_books')?.value     || '16',
+    gap_images:   document.getElementById('s-gap_images')?.value    || '16',
+    gap_lectures: document.getElementById('s-gap_lectures')?.value  || '16',
+    gap_audio:    document.getElementById('s-gap_audio')?.value     || '16',
+    gap_videos:   document.getElementById('s-gap_videos')?.value    || '16',
+    gap_banner:   document.getElementById('s-gap_banner')?.value    || '0',
   };
   try{
     const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
