@@ -375,8 +375,8 @@
                         <i class="fas fa-arrow-right text-sm"></i>
                     </button>
                     <h1 class="font-black text-lg text-gray-800 flex-1 text-center">رسانه</h1>
-                    <button id="global-cal-btn" onclick="openCalendarScreen()" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition shrink-0">
-                        <i class="fas fa-calendar-alt text-sm"></i>
+                    <button id="media-search-toggle" onclick="toggleMediaSearch()" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition shrink-0">
+                        <i class="fas fa-search text-sm"></i>
                     </button>
                     <div class="relative shrink-0">
                         <button onclick="toggleViewModeDropdown()" id="view-mode-trigger" class="w-9 h-9 flex items-center justify-center bg-gray-100 rounded-full transition text-gray-500 hover:bg-gray-200">
@@ -401,6 +401,18 @@
                     <button onclick="switchMediaTab('audio')" id="tab-media-audio" class="flex-1 py-2 text-xs font-bold rounded-xl text-gray-400 transition-all">صوت</button>
                     <button onclick="switchMediaTab('photo')" id="tab-media-photo" class="flex-1 py-2 text-xs font-bold rounded-xl text-gray-400 transition-all">عکس</button>
                     <button onclick="switchMediaTab('favorites')" id="tab-media-favorites" class="flex-1 py-2 text-xs font-bold rounded-xl text-gray-400 transition-all flex items-center justify-center gap-1"><i class="far fa-heart text-[11px]"></i>علاقه‌مندی</button>
+                </div>
+                <!-- نوار جستجو (پنهان) -->
+                <div id="media-search-bar" class="hidden items-center gap-2 px-4 pb-3">
+                    <div class="flex-1 relative">
+                        <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                        <input type="text" id="media-search-input" placeholder="جستجو در صوت و ویدیو..." autocomplete="off"
+                            class="w-full bg-gray-100 rounded-2xl px-4 py-2.5 pr-9 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-brand-200 transition text-right"
+                            oninput="onMediaSearchDebounced(this.value)">
+                    </div>
+                    <button onclick="openCalendarScreen()" class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-brand-50 hover:text-brand-500 transition shrink-0" title="جستجو با تقویم">
+                        <i class="fas fa-calendar-alt text-sm"></i>
+                    </button>
                 </div>
             </header>
 
@@ -429,6 +441,8 @@
                     <div id="media-slider-dots" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none"></div>
                 </div>
                 <div id="media-banner-top" class="mb-2"></div>
+                <!-- نتایج جستجو -->
+                <div id="media-search-results" class="hidden flex-col gap-3 w-full mb-4"></div>
                 <!-- وضعیت بارگذاری -->
                 <div id="media-loading" class="hidden flex-col items-center justify-center py-20 opacity-70">
                     <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-500 rounded-full animate-spin mb-4"></div>

@@ -329,6 +329,121 @@ function setMediaLoading(show) {
 async function initMedia() { _initViewModeButtons(); switchMediaTab('video'); }
 
 // ====================================================
+// جستجو در رسانه
+// ====================================================
+let _mediaSearchTimer = null;
+
+function toggleMediaSearch() {
+    const bar = document.getElementById('media-search-bar');
+    if (!bar) return;
+    const isOpen = bar.classList.contains('flex');
+    if (!isOpen) {
+        bar.classList.remove('hidden');
+        bar.classList.add('flex');
+        const btn = document.getElementById('media-search-toggle');
+        if (btn) { btn.classList.add('bg-brand-50', 'text-brand-600'); btn.classList.remove('bg-gray-100', 'text-gray-500'); }
+        setTimeout(() => document.getElementById('media-search-input')?.focus(), 80);
+    } else {
+        clearMediaSearch();
+    }
+}
+
+function clearMediaSearch() {
+    const bar = document.getElementById('media-search-bar');
+    const results = document.getElementById('media-search-results');
+    const inp = document.getElementById('media-search-input');
+    const btn = document.getElementById('media-search-toggle');
+    if (bar) { bar.classList.add('hidden'); bar.classList.remove('flex'); }
+    if (inp) inp.value = '';
+    if (results) { results.classList.add('hidden'); results.classList.remove('flex'); results.innerHTML = ''; }
+    if (btn) { btn.classList.remove('bg-brand-50', 'text-brand-600'); btn.classList.add('bg-gray-100', 'text-gray-500'); }
+}
+
+function onMediaSearchDebounced(q) {
+    if (_mediaSearchTimer) clearTimeout(_mediaSearchTimer);
+    const results = document.getElementById('media-search-results');
+    if (!q.trim()) {
+        if (results) { results.classList.add('hidden'); results.classList.remove('flex'); results.innerHTML = ''; }
+        return;
+    }
+    _mediaSearchTimer = setTimeout(() => performMediaSearch(q.trim()), 380);
+}
+
+async function performMediaSearch(q) {
+    const results = document.getElementById('media-search-results');
+    if (!results) return;
+    results.classList.remove('hidden');
+    results.classList.add('flex');
+    results.innerHTML = '<div class="flex justify-center py-10 w-full"><div class="w-8 h-8 border-2 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>';
+    try {
+        const [audioRes, videoRes] = await Promise.all([
+            fetch('/api/audio/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => []),
+            fetch('/api/videos/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => [])
+        ]);
+        const aItems = Array.isArray(audioRes) ? audioRes : [];
+        const vItems = Array.isArray(videoRes) ? videoRes : [];
+        if (!aItems.length && !vItems.length) {
+            results.innerHTML = `<div class="flex flex-col items-center py-14 text-gray-400 gap-3 w-full">
+                <i class="fas fa-search text-4xl opacity-20"></i>
+                <p class="text-sm font-bold opacity-50">نتیجه‌ای برای «${q}» یافت نشد</p>
+            </div>`;
+            return;
+        }
+        let html = '';
+        if (vItems.length) {
+            html += `<div class="flex items-center gap-2 mb-2">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#fee2e2"><i class="fas fa-video text-xs" style="color:#ef4444"></i></div>
+                <h3 class="font-black text-sm text-gray-700">فیلم <span class="font-medium text-gray-400 text-xs">(${vItems.length})</span></h3>
+            </div><div class="flex flex-col gap-2 mb-5">`;
+            html += vItems.map(v => {
+                const thumb = v.thumbnail || v._catCover || '';
+                const thumbHtml = thumb
+                    ? `<img src="${thumb}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full flex items-center justify-center" style="background:linear-gradient(135deg,#1e293b,#0f172a)"><i class="fas fa-video text-white/50 text-base"></i></div>`;
+                window._mfTmp['video_' + v.id] = {id:v.id,title:v.title,description:v.description||'',thumbnail:thumb,_catCover:v._catCover||'',embed_url:v.embed_url||''};
+                return `<div onclick="playVideoItem(${v.id})" class="bg-white rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-all flex items-center gap-3 p-3">
+                    <div class="w-24 h-[54px] bg-gray-900 rounded-xl overflow-hidden relative shrink-0">
+                        ${thumbHtml}
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-7 h-7 bg-white/20 rounded-full flex items-center justify-center border border-white/40"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>
+                        ${v.cat_name ? `<p class="text-[10px] text-gray-400 mt-0.5">${v.cat_name}</p>` : ''}
+                        ${v.publish_date ? `<p class="text-[10px] mt-0.5" style="color:#0d9488">${toFa(v.publish_date)}</p>` : ''}
+                    </div>
+                    <i class="fas fa-chevron-left text-gray-300 text-xs shrink-0"></i>
+                </div>`;
+            }).join('');
+            html += '</div>';
+        }
+        if (aItems.length) {
+            html += `<div class="flex items-center gap-2 mb-2">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#ccfbf1"><i class="fas fa-headphones text-xs" style="color:#0d9488"></i></div>
+                <h3 class="font-black text-sm text-gray-700">صوت <span class="font-medium text-gray-400 text-xs">(${aItems.length})</span></h3>
+            </div><div class="flex flex-col gap-2">`;
+            html += aItems.map(tr => {
+                const coverSrc = tr.cover || tr._catCover || '';
+                const coverInner = coverSrc ? `<img src="${coverSrc}" class="w-full h-full object-cover">` : `<img src="/img/default-audio.svg" class="w-full h-full object-cover">`;
+                window._mfTmp['audio_' + tr.id] = {id:tr.id,title:tr.title,artist:tr.artist||'',cover:coverSrc,url:tr.url||''};
+                return `<div onclick="openAudioTrackById(${tr.id})" class="bg-white rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-all flex items-center gap-3 p-3">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-gray-100">${coverInner}</div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-xs text-gray-800 line-clamp-2 leading-snug">${tr.title}</h4>
+                        ${tr.cat_name ? `<p class="text-[10px] text-gray-400 mt-0.5">${tr.cat_name}</p>` : ''}
+                        ${tr.publish_date ? `<p class="text-[10px] mt-0.5" style="color:#0d9488">${toFa(tr.publish_date)}</p>` : ''}
+                    </div>
+                    <i class="fas fa-play text-gray-300 text-xs shrink-0"></i>
+                </div>`;
+            }).join('');
+            html += '</div>';
+        }
+        results.innerHTML = html;
+    } catch(e) {
+        results.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs font-bold w-full">خطا در جستجو</div>';
+    }
+}
+
+// ====================================================
 // پخش زنده
 // ====================================================
 async function initLiveScreen() {
