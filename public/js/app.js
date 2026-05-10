@@ -107,6 +107,7 @@ async function init() {
 
     try {
         try { await applySiteSettings(); } catch(e) { console.warn('Settings err:', e); }
+        try { await loadNavItems(); } catch(e) {}
         try { loadSettings(); } catch(e) {}
         try {
             const r = await fetch('/api/books');
@@ -396,6 +397,43 @@ async function loadHomeLatestMedia() {
             }).join('');
             if (audSec) audSec.classList.remove('hidden');
         }
+    } catch(e) {}
+}
+
+// ====================================================
+// نوار پایین داینامیک
+// ====================================================
+async function loadNavItems() {
+    try {
+        const r = await fetch('/api/nav-items');
+        if (!r.ok) return;
+        const items = await r.json();
+        if (!Array.isArray(items) || items.length === 0) return;
+        const flex = document.querySelector('#bottom-nav .flex');
+        if (!flex) return;
+        flex.innerHTML = items.map(item => {
+            const action = item.action || 'screen:home';
+            let screen = 'home', onclick = '';
+            if (action.startsWith('screen:')) {
+                screen = action.slice(7);
+                onclick = `navToScreen('${screen}')`;
+            } else if (action.startsWith('media-tab:')) {
+                const tab = action.slice(10);
+                screen = 'media';
+                onclick = `navToScreen('media');setTimeout(function(){switchMediaTab('${tab}');},80)`;
+            }
+            const color = '#9ca3af';
+            return `<button class="nav-item flex flex-col items-center justify-center gap-0.5 flex-1" data-nav="${screen}" onclick="${onclick}">
+                <i class="${item.icon||'fas fa-circle'} text-lg" style="color:${color}"></i>
+                <span class="text-[9px] font-bold" style="color:${color}">${item.label||''}</span>
+            </button>`;
+        }).join('');
+        // re-apply active state for current screen
+        const activeScreen = document.querySelector('.screen.active')?.id?.replace('screen-', '') || 'home';
+        document.querySelectorAll(`[data-nav="${activeScreen}"]`).forEach(btn => {
+            btn.classList.add('active');
+            btn.querySelectorAll('i, span').forEach(el => { el.style.color = '#0d9488'; });
+        });
     } catch(e) {}
 }
 

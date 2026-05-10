@@ -266,6 +266,7 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS page_contents (id TEXT PRIMARY KEY, title TEXT DEFAULT '', content TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS nav_items (sort_order INTEGER PRIMARY KEY, icon TEXT DEFAULT 'fas fa-circle', label TEXT DEFAULT '', action TEXT DEFAULT 'screen:home')`);
         [['social','شبکه‌های اجتماعی'],['biography','زندگی‌نامه'],['mosque','مسجد قبا'],['contact','ارتباط با ما']].forEach(([id,title])=>{
             mainDb.run(`INSERT OR IGNORE INTO page_contents (id,title,content) VALUES (?,?,'')`,[id,title]);
         });
@@ -328,6 +329,14 @@ function initDb() {
         mainDb.run(`UPDATE settings SET value='نرم افزار آیت الله دستغیب' WHERE key='site_name' AND value='مرکز نشر آثار آیت الله دستغیب'`);
         mainDb.run(`UPDATE settings SET value='DastgheibQoba.info' WHERE key='site_subtitle' AND value='آیت الله دستغیب'`);
         for(let i=1;i<=10;i++) mainDb.run(`INSERT OR IGNORE INTO banners (position,title,image,link,active) VALUES (?,'',' ','',0)`,[i]);
+        const _defNav=[
+            [1,'fas fa-home','خانه','screen:home'],
+            [2,'fas fa-book','کتابخانه','screen:library'],
+            [3,'fas fa-photo-film','رسانه','screen:media'],
+            [4,'fas fa-microphone-alt','سخنرانی','screen:lectures'],
+            [5,'fas fa-question-circle','سوال','screen:qa'],
+        ];
+        _defNav.forEach(([s,ic,lb,ac])=>mainDb.run(`INSERT OR IGNORE INTO nav_items (sort_order,icon,label,action) VALUES (?,?,?,?)`,[s,ic,lb,ac]));
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
         // Migration: add notifications tables if not exists (already created above)
@@ -816,6 +825,12 @@ app.get('/api/banners',(req,res)=>{
     const page = (req.query.page || 'home').replace(/[^a-z_]/g, '').substring(0, 20);
     mainDb.all("SELECT * FROM banners WHERE ','||COALESCE(pages,'home')||',' LIKE ? ORDER BY position ASC",
         ['%,' + page + ',%'], (err,rows)=>res.json(rows||[]));
+});
+
+// === API NAV ITEMS (PUBLIC) ===
+app.get('/api/nav-items',(req,res)=>{
+    res.set('Cache-Control','public, max-age=300');
+    mainDb.all('SELECT * FROM nav_items ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
 });
 
 // === API SLIDERS (PUBLIC) ===
@@ -1314,6 +1329,24 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
         mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,page_section,pages,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
             [pos,title,img,link,act,pageSec,pages],()=>res.json({success:true,image:img}));
     });
+});
+
+// Admin Nav Items
+app.get('/api/admin/nav-items',adminAuth,(req,res)=>{
+    mainDb.all('SELECT * FROM nav_items ORDER BY sort_order ASC',[],(err,rows)=>res.json(rows||[]));
+});
+app.put('/api/admin/nav-items',adminAuth,(req,res)=>{
+    const items = req.body.items;
+    if(!Array.isArray(items)||items.length!==5) return res.status(400).json({error:'باید دقیقاً ۵ آیتم ارسال شود'});
+    const validActions=['screen:home','screen:library','screen:media','screen:lectures','screen:qa','screen:news','screen:favorites','screen:auth','media-tab:audio','media-tab:video','media-tab:photo'];
+    const stmt = mainDb.prepare(`INSERT OR REPLACE INTO nav_items (sort_order,icon,label,action) VALUES (?,?,?,?)`);
+    items.forEach((item,i)=>{
+        const icon = san(item.icon||'fas fa-circle').substring(0,80);
+        const label = san(item.label||'').substring(0,30);
+        const action = validActions.includes(item.action) ? item.action : 'screen:home';
+        stmt.run([i+1, icon, label, action]);
+    });
+    stmt.finalize(()=>res.json({success:true}));
 });
 
 // Admin Sliders

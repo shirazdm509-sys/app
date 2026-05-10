@@ -79,6 +79,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-palette w-5"></i>تنظیمات</button>
     <button onclick="switchTab('pagecontent')" id="tab-btn-pagecontent" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-file-alt w-5"></i>صفحات محتوا</button>
     <button onclick="switchTab('shortcuts')" id="tab-btn-shortcuts" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-th w-5"></i>آیکن‌های خانه</button>
+    <button onclick="switchTab('navitems')" id="tab-btn-navitems" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-bars w-5"></i>نوار پایین</button>
   </nav>
   <button onclick="logoutAdmin()" class="m-3 p-3 text-rose-400 hover:bg-slate-800 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i>خروج</button>
 </aside>
@@ -1172,6 +1173,7 @@ function switchTab(tab) {
   if(tab==='settings') loadSettings();
   if(tab==='pagecontent') initPageContentTab();
   if(tab==='shortcuts') loadShortcuts();
+  if(tab==='navitems') loadNavItemsAdmin();
 }
 
 function switchSupportTab(mode) {
@@ -3600,7 +3602,91 @@ async function saveShortcuts() {
     alert(d.success ? '✅ آیکن‌ها ذخیره شدند' : 'خطا: ' + d.error);
   } catch(e) { alert('خطا: ' + e.message); }
 }
+
+// NAV ITEMS ADMIN
+const _NAV_ACTIONS = [
+  {v:'screen:home',l:'خانه'},{v:'screen:library',l:'کتابخانه'},{v:'screen:media',l:'رسانه'},
+  {v:'screen:lectures',l:'سخنرانی‌ها'},{v:'screen:qa',l:'پرسش و پاسخ'},{v:'screen:news',l:'اخبار'},
+  {v:'screen:favorites',l:'علاقه‌مندی‌ها'},{v:'screen:auth',l:'حساب کاربری'},
+  {v:'media-tab:audio',l:'صوت (تب رسانه)'},{v:'media-tab:video',l:'ویدیو (تب رسانه)'},{v:'media-tab:photo',l:'تصاویر (تب رسانه)'}
+];
+
+async function loadNavItemsAdmin() {
+  const container = document.getElementById('nav-items-editor');
+  if (!container) return;
+  container.innerHTML = '<div class="text-center text-gray-400 text-sm py-10"><i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...</div>';
+  try {
+    const r = await adminFetch('/api/admin/nav-items');
+    const items = await r.json();
+    if (!Array.isArray(items) || !items.length) { container.innerHTML = '<p class="text-red-500 text-sm">خطا در دریافت داده</p>'; return; }
+    container.innerHTML = items.map((item, i) => {
+      const icon = item.icon || 'fas fa-circle';
+      const label = item.label || '';
+      const action = item.action || 'screen:home';
+      const opts = _NAV_ACTIONS.map(a => `<option value="${a.v}"${action===a.v?' selected':''}>${a.l}</option>`).join('');
+      return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50 flex flex-col gap-3">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center text-white text-xl shrink-0" id="ni-prev-${i}">
+            <i class="${icon}"></i>
+          </div>
+          <div class="font-bold text-sm text-gray-700">دکمه ${i+1}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-gray-500 mb-1 block">آیکن FontAwesome</label>
+            <input type="text" id="ni-icon-${i}" value="${icon}" placeholder="fas fa-home"
+              class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500 text-left"
+              oninput="updateNavPreview(${i})">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500 mb-1 block">نام</label>
+            <input type="text" id="ni-label-${i}" value="${label}" placeholder="خانه"
+              class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
+          </div>
+          <div class="col-span-2">
+            <label class="text-xs font-bold text-gray-500 mb-1 block">مقصد</label>
+            <select id="ni-action-${i}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">${opts}</select>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { container.innerHTML = '<p class="text-red-500 text-sm">خطا در بارگذاری</p>'; }
+}
+
+function updateNavPreview(i) {
+  const icon = document.getElementById('ni-icon-' + i)?.value.trim() || 'fas fa-circle';
+  const prev = document.getElementById('ni-prev-' + i);
+  if (prev) prev.innerHTML = `<i class="${icon}"></i>`;
+}
+
+async function saveNavItemsAdmin() {
+  const items = Array.from({length: 5}, (_, i) => ({
+    icon:   (document.getElementById('ni-icon-' + i)?.value.trim() || 'fas fa-circle'),
+    label:  (document.getElementById('ni-label-' + i)?.value.trim() || ''),
+    action: (document.getElementById('ni-action-' + i)?.value || 'screen:home'),
+  }));
+  try {
+    const r = await adminFetch('/api/admin/nav-items', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})});
+    const d = await r.json();
+    if (r.ok) showToast('نوار پایین ذخیره شد');
+    else showToast(d.error || 'خطا', false);
+  } catch(e) { showToast('خطا: ' + e.message, false); }
+}
 </script>
+
+<!-- NAV ITEMS TAB -->
+<div id="tab-navitems" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-lg font-black mb-1"><i class="fas fa-bars text-teal-600 ml-2"></i>نوار پایین</h2>
+    <p class="text-xs text-gray-500 mb-6">۵ آیتم نوار پایین را ویرایش کنید — آیکن FontAwesome، نام و مقصد هر دکمه قابل تغییر است.</p>
+    <div id="nav-items-editor" class="flex flex-col gap-4">
+      <div class="text-center text-gray-400 text-sm py-10"><i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...</div>
+    </div>
+    <div class="mt-6 border-t pt-5">
+      <button onclick="saveNavItemsAdmin()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره نوار پایین</button>
+    </div>
+  </div>
+</div>
 
 <!-- SHORTCUTS TAB -->
 <div id="tab-shortcuts" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
