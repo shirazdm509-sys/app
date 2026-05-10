@@ -3623,12 +3623,12 @@ async function loadNavItemsAdmin() {
       const icon = item.icon || 'fas fa-circle';
       const label = item.label || '';
       const action = item.action || 'screen:home';
+      const img = item.image || '';
       const opts = _NAV_ACTIONS.map(a => `<option value="${a.v}"${action===a.v?' selected':''}>${a.l}</option>`).join('');
+      const prevInner = img ? `<img src="${img}" class="w-full h-full object-contain p-1">` : `<i class="${icon}"></i>`;
       return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50 flex flex-col gap-3">
         <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center text-white text-xl shrink-0" id="ni-prev-${i}">
-            <i class="${icon}"></i>
-          </div>
+          <div class="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center text-white text-xl shrink-0 overflow-hidden" id="ni-prev-${i}">${prevInner}</div>
           <div class="font-bold text-sm text-gray-700">دکمه ${i+1}</div>
         </div>
         <div class="grid grid-cols-2 gap-3">
@@ -3644,6 +3644,15 @@ async function loadNavItemsAdmin() {
               class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
           </div>
           <div class="col-span-2">
+            <label class="text-xs font-bold text-gray-500 mb-1 block">یا آپلود تصویر (جایگزین آیکن می‌شود)</label>
+            <div class="flex items-center gap-2">
+              <input type="file" id="ni-imgfile-${i}" accept="image/*" class="hidden" onchange="uploadNavIcon(${i})">
+              <button onclick="document.getElementById('ni-imgfile-${i}').click()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap"><i class="fas fa-upload ml-1"></i>آپلود تصویر</button>
+              <button id="ni-imgclear-${i}" onclick="clearNavIcon(${i})" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap${img?'':' hidden'}"><i class="fas fa-times ml-1"></i>حذف تصویر</button>
+              <input type="hidden" id="ni-img-${i}" value="${img}">
+            </div>
+          </div>
+          <div class="col-span-2">
             <label class="text-xs font-bold text-gray-500 mb-1 block">مقصد</label>
             <select id="ni-action-${i}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">${opts}</select>
           </div>
@@ -3654,9 +3663,36 @@ async function loadNavItemsAdmin() {
 }
 
 function updateNavPreview(i) {
-  const icon = document.getElementById('ni-icon-' + i)?.value.trim() || 'fas fa-circle';
+  const img = document.getElementById('ni-img-' + i)?.value || '';
   const prev = document.getElementById('ni-prev-' + i);
-  if (prev) prev.innerHTML = `<i class="${icon}"></i>`;
+  if (!prev) return;
+  if (img) { prev.innerHTML = `<img src="${img}" class="w-full h-full object-contain p-1">`; return; }
+  const icon = document.getElementById('ni-icon-' + i)?.value.trim() || 'fas fa-circle';
+  prev.innerHTML = `<i class="${icon}"></i>`;
+}
+
+async function uploadNavIcon(i) {
+  const file = document.getElementById('ni-imgfile-' + i)?.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('nav_icon', file);
+  try {
+    const res = await adminFetch('/api/admin/nav-items/upload-icon', {method:'POST', body:fd});
+    const d = await res.json();
+    if (d.url) {
+      document.getElementById('ni-img-' + i).value = d.url;
+      document.getElementById('ni-imgclear-' + i)?.classList.remove('hidden');
+      updateNavPreview(i);
+    } else { showToast(d.error || 'خطا در آپلود', false); }
+  } catch(e) { showToast('خطا: ' + e.message, false); }
+}
+
+function clearNavIcon(i) {
+  document.getElementById('ni-img-' + i).value = '';
+  const fi = document.getElementById('ni-imgfile-' + i);
+  if (fi) fi.value = '';
+  document.getElementById('ni-imgclear-' + i)?.classList.add('hidden');
+  updateNavPreview(i);
 }
 
 async function saveNavItemsAdmin() {
@@ -3664,6 +3700,7 @@ async function saveNavItemsAdmin() {
     icon:   (document.getElementById('ni-icon-' + i)?.value.trim() || 'fas fa-circle'),
     label:  (document.getElementById('ni-label-' + i)?.value.trim() || ''),
     action: (document.getElementById('ni-action-' + i)?.value || 'screen:home'),
+    image:  (document.getElementById('ni-img-' + i)?.value.trim() || ''),
   }));
   try {
     const r = await adminFetch('/api/admin/nav-items', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({items})});

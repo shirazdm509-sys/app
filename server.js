@@ -267,6 +267,7 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, subscription TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id))`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS page_contents (id TEXT PRIMARY KEY, title TEXT DEFAULT '', content TEXT DEFAULT '', updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS nav_items (sort_order INTEGER PRIMARY KEY, icon TEXT DEFAULT 'fas fa-circle', label TEXT DEFAULT '', action TEXT DEFAULT 'screen:home')`);
+        mainDb.run(`ALTER TABLE nav_items ADD COLUMN image TEXT DEFAULT ''`, () => {});
         [['social','شبکه‌های اجتماعی'],['biography','زندگی‌نامه'],['mosque','مسجد قبا'],['contact','ارتباط با ما']].forEach(([id,title])=>{
             mainDb.run(`INSERT OR IGNORE INTO page_contents (id,title,content) VALUES (?,?,'')`,[id,title]);
         });
@@ -371,7 +372,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts', nav_icon:'public/img/nav-icons' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => {
@@ -1235,6 +1236,10 @@ app.post('/api/admin/shortcuts/upload-icon',adminAuth,uploadImage.single('shortc
     if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
     res.json({success:true,url:`/img/shortcuts/${req.file.filename}`});
 });
+app.post('/api/admin/nav-items/upload-icon',adminAuth,uploadImage.single('nav_icon'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
+    res.json({success:true,url:`/img/nav-icons/${req.file.filename}`});
+});
 
 app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل لوگو ارائه نشده'});
@@ -1339,12 +1344,13 @@ app.put('/api/admin/nav-items',adminAuth,(req,res)=>{
     const items = req.body.items;
     if(!Array.isArray(items)||items.length!==5) return res.status(400).json({error:'باید دقیقاً ۵ آیتم ارسال شود'});
     const validActions=['screen:home','screen:library','screen:media','screen:lectures','screen:qa','screen:news','screen:favorites','screen:auth','media-tab:audio','media-tab:video','media-tab:photo'];
-    const stmt = mainDb.prepare(`INSERT OR REPLACE INTO nav_items (sort_order,icon,label,action) VALUES (?,?,?,?)`);
+    const stmt = mainDb.prepare(`INSERT OR REPLACE INTO nav_items (sort_order,icon,label,action,image) VALUES (?,?,?,?,?)`);
     items.forEach((item,i)=>{
         const icon = san(item.icon||'fas fa-circle').substring(0,80);
         const label = san(item.label||'').substring(0,30);
         const action = validActions.includes(item.action) ? item.action : 'screen:home';
-        stmt.run([i+1, icon, label, action]);
+        const image = san(item.image||'').substring(0,300);
+        stmt.run([i+1, icon, label, action, image]);
     });
     stmt.finalize(()=>res.json({success:true}));
 });
