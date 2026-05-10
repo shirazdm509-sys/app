@@ -369,7 +369,7 @@ async function loadHomeLatestMedia() {
                 const thumb = v.thumbnail || v._catCover || '';
                 const thumbHtml = thumb
                     ? `<img src="${thumb}" onerror="_videoImgErr(this,'${catCover}')" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-lg"></i></div>`;
+                    : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-xl"></i></div>`;
                 return `<div onclick="openHomeVideo(${i})" class="snap-start shrink-0 w-36 cursor-pointer active:scale-95 transition">
                     <div class="w-full rounded-xl overflow-hidden bg-gray-900 relative mb-1.5" style="aspect-ratio:16/9">
                         ${thumbHtml}

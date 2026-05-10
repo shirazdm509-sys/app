@@ -73,7 +73,7 @@ function renderFavoritesTab() {
                 const thumb = v.thumbnail || v._catCover || '';
                 const thumbHtml = thumb
                     ? `<img src="${thumb}" class="w-full h-full object-cover">`
-                    : `<div class="w-full h-full bg-gray-800 flex items-center justify-center"><i class="fas fa-film text-gray-500"></i></div>`;
+                    : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-xl"></i></div>`;
                 return `
                 <div class="flex items-center gap-3 p-3 bg-white rounded-2xl shadow-sm border border-gray-100">
                     <div class="w-20 h-[45px] bg-gray-900 rounded-lg overflow-hidden relative shrink-0 cursor-pointer" onclick="playFavVideo(${v.id})">
@@ -145,11 +145,11 @@ function _videoImgErr(img, catCover) {
         img.onerror = function() {
             img.onerror = null;
             const p = img.parentElement;
-            if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>';
+            if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-2xl"></i></div>';
         };
     } else {
         const p = img.parentElement;
-        if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>';
+        if (p) p.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-2xl"></i></div>';
     }
 }
 
@@ -514,7 +514,7 @@ function _renderVideoItems(pairs) {
         const catCover = (v._catCover || '').replace(/'/g, "\\'");
         const thumb = v.thumbnail || v._catCover || '';
         const errHandler = `_videoImgErr(this,'${catCover}')`;
-        const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+        const thumbHtml = thumb ? `<img src="${thumb}" onerror="${errHandler}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-2xl"></i></div>`;
         window._mfTmp['video_' + v.id] = {id: v.id, title: v.title, description: v.description||'', thumbnail: thumb, _catCover: v._catCover||'', embed_url: v.embed_url||''};
         const isFav = _isFav('video', v.id);
         const favBtn = `<button class="mf-btn shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors" data-ftype="video" data-fid="${v.id}" onclick="event.stopPropagation();toggleMediaFav('video','${v.id}')">${isFav ? '<i class="fas fa-heart text-red-500 text-sm"></i>' : '<i class="far fa-heart text-gray-300 text-sm"></i>'}</button>`;
@@ -1245,7 +1245,7 @@ function _renderCalResults() {
     } else if (_csTab === 'video') {
         res.innerHTML = filtered.map(v => {
             const thumb = v.thumbnail || '';
-            const th = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-film text-gray-500 text-xl"></i></div>`;
+            const th = thumb ? `<img src="${thumb}" class="w-full h-full object-cover opacity-90">` : `<div class="w-full h-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center"><i class="fas fa-video text-white/50 text-2xl"></i></div>`;
             return `<div onclick="_csPlayVideo('${v.id}')" class="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer hover:bg-gray-50 transition active:scale-[0.98] items-center">
                 <div class="w-28 h-16 bg-gray-900 rounded-xl overflow-hidden relative shadow-sm shrink-0">${th}<div class="absolute inset-0 bg-black/30 flex items-center justify-center"><div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30"><i class="fas fa-play text-white text-xs mr-[-1px]"></i></div></div></div>
                 <div class="flex-1 min-w-0"><h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug">${v.title}</h4>${v.publish_date?`<p class="text-xs text-teal-500 mt-1">${toFa(v.publish_date)}</p>`:''}</div>
