@@ -409,7 +409,7 @@ async function loadVideoCategories(parentId, parentName) {
             const colors = ['from-rose-500 to-rose-700','from-blue-500 to-blue-700','from-violet-500 to-violet-700','from-amber-500 to-amber-700','from-teal-500 to-teal-700','from-emerald-500 to-emerald-700','from-pink-500 to-pink-700','from-indigo-500 to-indigo-700'];
             view.innerHTML = cats.map((cat, i) => {
                 const grad = colors[i % colors.length];
-                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-film text-white text-3xl opacity-80"></i></div>`;
+                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-video text-white text-3xl opacity-80"></i></div>`;
                 const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.video_count} ویدیو`;
                 const clickFn = cat.sub_count > 0 ? `videoNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})`;
                 if (_mediaViewMode === 'list') return `
