@@ -336,10 +336,10 @@ let _mediaSearchTimer = null;
 function toggleMediaSearch() {
     const bar = document.getElementById('media-search-bar');
     if (!bar) return;
-    const isOpen = bar.classList.contains('flex');
+    const isOpen = bar.style.display === 'flex';
     if (!isOpen) {
         bar.classList.remove('hidden');
-        bar.classList.add('flex');
+        bar.style.display = 'flex';
         const btn = document.getElementById('media-search-toggle');
         if (btn) { btn.classList.add('bg-brand-50', 'text-brand-600'); btn.classList.remove('bg-gray-100', 'text-gray-500'); }
         setTimeout(() => document.getElementById('media-search-input')?.focus(), 80);
@@ -353,9 +353,9 @@ function clearMediaSearch() {
     const results = document.getElementById('media-search-results');
     const inp = document.getElementById('media-search-input');
     const btn = document.getElementById('media-search-toggle');
-    if (bar) { bar.classList.add('hidden'); bar.classList.remove('flex'); }
+    if (bar) { bar.style.display = 'none'; bar.classList.add('hidden'); }
     if (inp) inp.value = '';
-    if (results) { results.classList.add('hidden'); results.classList.remove('flex'); results.innerHTML = ''; }
+    if (results) { results.style.display = 'none'; results.classList.add('hidden'); results.innerHTML = ''; }
     if (btn) { btn.classList.remove('bg-brand-50', 'text-brand-600'); btn.classList.add('bg-gray-100', 'text-gray-500'); }
 }
 
@@ -363,7 +363,7 @@ function onMediaSearchDebounced(q) {
     if (_mediaSearchTimer) clearTimeout(_mediaSearchTimer);
     const results = document.getElementById('media-search-results');
     if (!q.trim()) {
-        if (results) { results.classList.add('hidden'); results.classList.remove('flex'); results.innerHTML = ''; }
+        if (results) { results.style.display = 'none'; results.classList.add('hidden'); results.innerHTML = ''; }
         return;
     }
     _mediaSearchTimer = setTimeout(() => performMediaSearch(q.trim()), 380);
@@ -373,7 +373,7 @@ async function performMediaSearch(q) {
     const results = document.getElementById('media-search-results');
     if (!results) return;
     results.classList.remove('hidden');
-    results.classList.add('flex');
+    results.style.display = 'flex';
     results.innerHTML = '<div class="flex justify-center py-10 w-full"><div class="w-8 h-8 border-2 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>';
     try {
         const [audioRes, videoRes] = await Promise.all([
