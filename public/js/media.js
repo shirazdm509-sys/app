@@ -376,10 +376,21 @@ async function performMediaSearch(q) {
     results.style.display = 'flex';
     results.innerHTML = '<div class="flex justify-center py-10 w-full"><div class="w-8 h-8 border-2 border-brand-100 border-t-brand-500 rounded-full animate-spin"></div></div>';
     try {
+        const safeJson = async (r) => {
+            if (!r.ok) { throw new Error('HTTP ' + r.status); }
+            return r.json();
+        };
         const [audioRes, videoRes] = await Promise.all([
-            fetch('/api/audio/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => []),
-            fetch('/api/videos/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => [])
+            fetch('/api/audio/search?q=' + encodeURIComponent(q)).then(safeJson).catch(e => { console.warn('audio search failed', e); return null; }),
+            fetch('/api/videos/search?q=' + encodeURIComponent(q)).then(safeJson).catch(e => { console.warn('video search failed', e); return null; })
         ]);
+        if (audioRes === null && videoRes === null) {
+            results.innerHTML = `<div class="flex flex-col items-center py-14 text-amber-500 gap-3 w-full">
+                <i class="fas fa-exclamation-triangle text-4xl opacity-50"></i>
+                <p class="text-sm font-bold">سرور در دسترس نیست — لطفاً بعد از ری‌استارت سرور دوباره تلاش کنید</p>
+            </div>`;
+            return;
+        }
         const aItems = Array.isArray(audioRes) ? audioRes : [];
         const vItems = Array.isArray(videoRes) ? videoRes : [];
         if (!aItems.length && !vItems.length) {
