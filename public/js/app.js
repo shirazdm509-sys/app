@@ -267,7 +267,8 @@ async function loadSliders() {
         } else if (sl.link) {
             onclick = `onclick="handleBannerLink('${sl.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');sliderTimer&&clearInterval(sliderTimer);"`;
         }
-        const titleOverlay = (sl.isNews && sl.title && sl.show_title !== false) ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.75));color:#fff;font-size:16px;font-weight:800;line-height:1.4;direction:rtl;text-align:right;text-shadow:0 1px 3px rgba(0,0,0,0.5);">${sl.title}</div>` : '';
+        const showTitle = sl.title && (sl.isNews ? sl.show_title !== false : true);
+        const titleOverlay = showTitle ? `<div style="position:absolute;bottom:0;left:0;right:0;padding:60px 16px 14px;background:linear-gradient(to bottom,transparent,rgba(0,0,0,0.5) 45%,rgba(0,0,0,0.88));color:#fff;font-size:15px;font-weight:800;line-height:1.5;direction:rtl;text-align:right;text-shadow:0 2px 8px rgba(0,0,0,0.9),0 1px 2px rgba(0,0,0,0.8);">${sl.title}</div>` : '';
         return `<div style="flex-shrink:0;width:${slideW}px;height:100%;cursor:pointer;overflow:hidden;border-radius:${radius}px;position:relative;" ${onclick}><img src="${sl.image}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="${sl.title||''}">${titleOverlay}</div>`;
     }).join('');
     dots.innerHTML = sliderData.map((_,i) =>

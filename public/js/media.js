@@ -406,10 +406,21 @@ async function loadVideoCategories(parentId, parentName) {
 
         view.className = _viewClasses('cats') + ' w-full';
         if(cats && cats.length > 0) {
-            const colors = ['from-rose-500 to-rose-700','from-blue-500 to-blue-700','from-violet-500 to-violet-700','from-amber-500 to-amber-700','from-teal-500 to-teal-700','from-emerald-500 to-emerald-700','from-pink-500 to-pink-700','from-indigo-500 to-indigo-700'];
+            const _catGrads = [
+                'linear-gradient(135deg,#e11d48,#9f1239)',
+                'linear-gradient(135deg,#2563eb,#1e3a8a)',
+                'linear-gradient(135deg,#7c3aed,#4c1d95)',
+                'linear-gradient(135deg,#d97706,#92400e)',
+                'linear-gradient(135deg,#0d9488,#134e4a)',
+                'linear-gradient(135deg,#059669,#064e3b)',
+                'linear-gradient(135deg,#db2777,#831843)',
+                'linear-gradient(135deg,#4f46e5,#312e81)',
+            ];
             view.innerHTML = cats.map((cat, i) => {
-                const grad = colors[i % colors.length];
-                const coverHtml = cat.cover ? `<img src="${cat.cover}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-br ${grad} flex items-center justify-center"><i class="fas fa-video text-white text-3xl opacity-80"></i></div>`;
+                const grad = _catGrads[i % _catGrads.length];
+                const coverHtml = cat.cover
+                    ? `<img src="${cat.cover}" class="w-full h-full object-cover">`
+                    : `<div class="w-full h-full flex items-center justify-center" style="background:${grad}"><i class="fas fa-video text-white text-2xl" style="opacity:0.85"></i></div>`;
                 const badge = cat.sub_count > 0 ? `${cat.sub_count} زیردسته` : `${cat.video_count} ویدیو`;
                 const clickFn = cat.sub_count > 0 ? `videoNavToSub(${cat.id},'${cat.name.replace(/'/g,"\\'")}')` : `loadVideoList(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.video_count})`;
                 if (_mediaViewMode === 'list') return `
