@@ -1363,8 +1363,6 @@ function handleBackButton() {
     if (_isVisible('note-modal'))           { _resetBackCounter(); closeNoteModal();     return; }
     if (_isVisible('search-modal'))         { _resetBackCounter(); closeSearch();        return; }
     if (_isVisible('settings-overlay'))     { _resetBackCounter(); closeSettings();      return; }
-    if (_hasClass('reader-overlay', 'open')){ _resetBackCounter(); closeReader();        return; }
-    if (_hasClass('toc-overlay', 'open'))   { _resetBackCounter(); closeToc();           return; }
     if (_isVisible('qa-conversation'))      { _resetBackCounter(); closeQAConversation();return; }
 
     // رسانه: ناوبری داخلی پوشه‌ها — قبل از _navHistory
@@ -1426,15 +1424,30 @@ function confirmExit() {
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        // همیشه یک buffer جدید push می‌کنیم — با state منحصربه‌فرد تا dedupe نشه
-        // این تضمین می‌کنه که back بعدی هم popstate صدا می‌زنه و از اپ خارج نمیشه
+        // همیشه یک buffer جدید push می‌کنیم تا back بعدی هم popstate صدا بزنه
         try {
             history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home');
         } catch(e2) {
-            // اگر pushState شکست خورد، یه بار دیگه تلاش می‌کنیم با یه ذره تأخیر
             setTimeout(() => {
                 try { history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home'); } catch(e3) {}
             }, 0);
+        }
+
+        // اگر reader باز باشه: ببند و toc رو باز کن — history ما این انتقال رو داره
+        const readerEl = document.getElementById('reader-overlay');
+        if (readerEl && readerEl.classList.contains('open')) {
+            try { if (typeof _flushSavePage === 'function') _flushSavePage(); } catch(ex) {}
+            readerEl.classList.remove('open');
+            const tocEl = document.getElementById('toc-overlay');
+            if (tocEl) tocEl.classList.add('open');
+            return;
+        }
+
+        // اگر toc باز باشه: فقط ببند — library پشتش دیده میشه
+        const tocEl = document.getElementById('toc-overlay');
+        if (tocEl && tocEl.classList.contains('open')) {
+            tocEl.classList.remove('open');
+            return;
         }
 
         try { handleBackButton(); } catch(err) { console.warn('back err:', err); }

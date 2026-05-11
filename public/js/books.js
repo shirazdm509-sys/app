@@ -188,10 +188,25 @@ function openToc() {
     buildBookmarksTab();
     buildNotesTab();
     document.getElementById('toc-overlay').classList.add('open');
+    // هر بار که فهرست باز میشه یک history entry منحصربه‌فرد می‌زنیم
+    if (currentBookId != null) {
+        try { history.pushState({ app: true, view: 'toc', t: Date.now() }, '', '#book-' + currentBookId); } catch(e) {}
+    }
 }
 function closeToc() { document.getElementById('toc-overlay').classList.remove('open'); }
-function openReader() { document.getElementById('reader-overlay').classList.add('open'); }
-function closeReader() { _flushSavePage(); document.getElementById('reader-overlay').classList.remove('open'); openToc(); }
+function openReader() {
+    document.getElementById('reader-overlay').classList.add('open');
+    // history entry برای reader — جداگانه از فهرست
+    if (currentBookId != null) {
+        try { history.pushState({ app: true, view: 'reader', t: Date.now() }, '', '#book-' + currentBookId + '-read'); } catch(e) {}
+    }
+}
+function closeReader() {
+    _flushSavePage();
+    document.getElementById('reader-overlay').classList.remove('open');
+    // openToc اینجا صدا زده نمیشه — popstate مستقیم toc رو باز میکنه
+    // (هنگام بک گوشی) یا دکمه هدر history.back() صدا میزنه
+}
 function _flushSavePage() {
     if (_savePageTimer) {
         clearTimeout(_savePageTimer);
