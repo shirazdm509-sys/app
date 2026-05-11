@@ -1500,8 +1500,7 @@ function confirmExit() {
             const activeScreen = document.querySelector('.screen.active');
             if (activeScreen && activeScreen.id === 'screen-media' &&
                 typeof handleMediaBack === 'function' && handleMediaBack()) {
-                // media handled it. state رو دوباره push کن
-                try { history.pushState({ app: true, screen: 'media' }, '', '#media'); } catch(ex) {}
+                // media handled it — URL is already correct from popstate, no re-push needed
                 return;
             }
 

@@ -288,6 +288,7 @@ function switchMediaTab(tab) {
         if (_hb) _hb.classList.add('hidden');
     }
     if (!_skipHistoryPush) {
+        try { history.replaceState({ app: true, screen: 'media', mediaTab: tab }, '', '#media-' + tab); } catch(e) {}
         if (tab === 'video') initVideoGallery();
         if (tab === 'photo') initGallery();
         if (tab === 'audio') initAudioGallery();
@@ -575,12 +576,14 @@ async function loadVideoCategories(parentId, parentName) {
 
 function videoNavToSub(catId, catName) {
     _videoNavStack.push({id: catId, name: catName});
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'video-cat', id: catId }, '', '#media-v-cat-' + catId); } catch(e) {}
     _videoCatsLoaded = false;
     loadVideoCategories(catId, catName);
 }
 
 async function loadVideoList(categoryId, title, count) {
     if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'video-list', id: categoryId }, '', '#media-v-list-' + categoryId); } catch(e) {}
     _currentVideoCatId = categoryId;
     setMediaLoading(true);
     const catsView = document.getElementById('video-categories-view');
@@ -619,6 +622,8 @@ async function loadVideoList(categoryId, title, count) {
 function playVideoItem(itemId) {
     const item = videoCachedItems.find(v => v.id === itemId);
     if(!item) return;
+
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'video-play', id: itemId }, '', '#media-v-play-' + itemId); } catch(e) {}
 
     const listView = document.getElementById('video-list-view');
     const playerView = document.getElementById('video-player-view');
@@ -850,11 +855,13 @@ async function loadGalleryCategories(parentId, parentName) {
 
 function galleryNavToSub(catId, catName) {
     _galleryNavStack.push({id: catId, name: catName});
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'photo-cat', id: catId }, '', '#media-p-cat-' + catId); } catch(e) {}
     _galleryCatsLoaded = false;
     loadGalleryCategories(catId, catName);
 }
 
 async function loadGalleryPhotos(categoryId, title, count) {
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'photo-list', id: categoryId }, '', '#media-p-list-' + categoryId); } catch(e) {}
     setMediaLoading(true);
     const catsView = document.getElementById('gallery-categories-view');
     const photosView = document.getElementById('gallery-photos-view');
@@ -1143,6 +1150,7 @@ async function loadAudioCategories(parentId, parentName) {
 
 function audioNavToSub(catId, catName) {
     _audioNavStack.push({id: catId, name: catName});
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'audio-cat', id: catId }, '', '#media-a-cat-' + catId); } catch(e) {}
     _audioCatsLoaded = false;
     loadAudioCategories(catId, catName);
 }
@@ -1502,6 +1510,7 @@ async function setVideoSort(sort) {
 
 async function loadAudioPlaylist(categoryId, title, count) {
     if (typeof _clearMediaBanner === 'function') _clearMediaBanner();
+    try { if (!_skipHistoryPush) history.pushState({ app: true, screen: 'media', mediaLevel: 'audio-list', id: categoryId }, '', '#media-a-list-' + categoryId); } catch(e) {}
     _currentAudioCatId = categoryId;
     if (_mediaViewMode !== 'list') {
         _mediaViewMode = 'list';
