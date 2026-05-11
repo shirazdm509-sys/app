@@ -1417,24 +1417,26 @@ function confirmExit() {
 // وقتی به پایه (#home) رسیدیم، یک re-anchor می‌زنیم تا از اپ خارج نشویم.
 // ====================================================
 (function initBackHandler() {
-    // URL پایه = #home (depth=0). هیچ‌وقت به URL بدون hash نمی‌رسیم.
-    try { history.replaceState({ app: true, depth: 0 }, '', '#home'); } catch(e) {}
-    // یک entry اضافی تا اولین بار که کاربر دکمه back گوشی رو می‌زنه از اپ خارج نشه
-    // (بدون این، history.length=1 می‌مونه و back فیزیکی مستقیم اپ رو می‌بنده)
-    try { history.pushState({ app: true, depth: 0 }, '', '#home'); } catch(e) {}
+    // چند buffer entry تا حتی اگر یکی fail شد یا کاربر چند بار سریع بک زد، اپ بسته نشه
+    try { history.replaceState({ app: true, depth: 0, t: Date.now() }, '', '#home'); } catch(e) {}
+    for (let i = 0; i < 3; i++) {
+        try { history.pushState({ app: true, depth: 0, t: Date.now() + i + 1 }, '', '#home'); } catch(e) {}
+    }
 
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        const depth = (e.state && e.state.app) ? (e.state.depth || 0) : 0;
-
-        if (depth <= 0) {
-            // به پایه رسیدیم. یک entry می‌زنیم تا back بعدی هم گرفته شود
-            // (فقط یک بار، نه در هر popstate — بنابراین محدودیت pushState زده نمی‌شود)
-            try { history.pushState({ app: true, depth: 0 }, '', '#home'); } catch(e2) {}
+        // همیشه یک buffer جدید push می‌کنیم — با state منحصربه‌فرد تا dedupe نشه
+        // این تضمین می‌کنه که back بعدی هم popstate صدا می‌زنه و از اپ خارج نمیشه
+        try {
+            history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home');
+        } catch(e2) {
+            // اگر pushState شکست خورد، یه بار دیگه تلاش می‌کنیم با یه ذره تأخیر
+            setTimeout(() => {
+                try { history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home'); } catch(e3) {}
+            }, 0);
         }
 
-        // بدون busy-lock: هر popstate یک handleBackButton
         try { handleBackButton(); } catch(err) { console.warn('back err:', err); }
     });
 })();
