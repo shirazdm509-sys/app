@@ -36,6 +36,9 @@ function pushNavHistory(restoreFn, section) {
     } catch(e) {}
 }
 
+// صفحات اصلی — وقتی بین اینها ناوبری می‌کنیم، back همیشه به خانه می‌رود
+const _MAIN_SCREENS = new Set(['home','library','media','lectures','qa','news','statements','auth','live','payment','favorites']);
+
 function navToScreen(name) {
     const prevActive = document.querySelector('.screen.active');
     const prevName = prevActive ? prevActive.id.replace('screen-', '') : 'home';
@@ -65,10 +68,11 @@ function navToScreen(name) {
 
     // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
     if (!_skipHistoryPush && prevName !== name) {
-        const capturedPrev = prevName;
+        // بین صفحات اصلی (تب‌های نوار پایین)، back همیشه به خانه می‌رود نه به تب قبلی
+        const backTarget = (_MAIN_SCREENS.has(prevName) && prevName !== 'home') ? 'home' : prevName;
         pushNavHistory(function() {
-            withoutHistory(function() { navToScreen(capturedPrev); });
-        }, name);  // section = صفحه‌ای که رفتیم → prefix URL آن
+            withoutHistory(function() { navToScreen(backTarget); });
+        }, name);
     }
 
     // مقداردهی اولیه صفحه (فقط هنگام ناوبری رو به جلو، نه هنگام restore)
