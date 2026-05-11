@@ -1,17 +1,17 @@
 // ====================================================
-// ناوبری — هر صفحه URL منحصربه‌فرد دارد
-// نام‌های URL: #ketab-N، #resane-N، #sokhan-N، ...
+// ناوبری — هر صفحه URL منحصربه‌فرد semantic دارد
+// #home, #library, #media, #book-<id>, #book-<id>-read, ...
 // ====================================================
 let _navHistory = [];
 let _skipHistoryPush = false;
 let _wantToExit = false;
 let _navDepth = 0;
 
-// نگاشت نام صفحه → prefix URL
+// نگاشت نام صفحه → prefix URL (legacy — برای pushNavHistory)
 const _URL_PREFIX = {
-    home:'home', library:'ketab', media:'resane',
-    news:'khabar', lectures:'sokhan', statements:'bayaniye',
-    live:'zende', auth:'hesab', qa:'soal'
+    home:'home', library:'library', media:'media',
+    news:'news', lectures:'lectures', statements:'statements',
+    live:'live', auth:'auth', qa:'qa'
 };
 
 function withoutHistory(fn) {
@@ -20,7 +20,7 @@ function withoutHistory(fn) {
     try { fn(); } finally { _skipHistoryPush = prev; }
 }
 
-// section: بخشی که کاربر در آن است (اختیاری)
+// legacy — برای overlay های قدیمی (content-page و غیره)
 function pushNavHistory(restoreFn, section) {
     if (_skipHistoryPush) return;
     _navHistory.push(restoreFn);
@@ -29,14 +29,14 @@ function pushNavHistory(restoreFn, section) {
     const prefix = (section && _URL_PREFIX[section]) || (section) || 'n';
     try {
         history.pushState(
-            { app: true, depth: _navDepth },
+            { app: true, legacy: true, depth: _navDepth },
             '',
-            location.pathname + location.search + '#' + prefix + '-' + _navDepth
+            '#' + prefix + '-' + _navDepth
         );
     } catch(e) {}
 }
 
-// صفحات اصلی — وقتی بین اینها ناوبری می‌کنیم، back همیشه به خانه می‌رود
+// صفحات اصلی (تب‌های نوار پایین)
 const _MAIN_SCREENS = new Set(['home','library','media','lectures','qa','news','statements','auth','live','payment','favorites']);
 
 function navToScreen(name) {
@@ -66,16 +66,26 @@ function navToScreen(name) {
         navBtn.querySelectorAll('img').forEach(el => { el.style.opacity = '1'; el.style.filter = 'drop-shadow(0 0 4px rgba(13,148,136,0.4))'; });
     });
 
-    // ثبت تاریخچه (فقط هنگام ناوبری رو به جلو)
+    // ثبت تاریخچه با URL منحصربه‌فرد semantic
     if (!_skipHistoryPush && prevName !== name) {
-        // بین صفحات اصلی (تب‌های نوار پایین)، back همیشه به خانه می‌رود نه به تب قبلی
-        const backTarget = (_MAIN_SCREENS.has(prevName) && prevName !== 'home') ? 'home' : prevName;
-        pushNavHistory(function() {
-            withoutHistory(function() { navToScreen(backTarget); });
-        }, name);
+        try {
+            const state = { app: true, screen: name };
+            const url = '#' + name;
+
+            // بین دو تب (هیچ‌کدام home نیست) → replace
+            // تا back از media مستقیم به home بره نه library
+            const prevIsTab = _MAIN_SCREENS.has(prevName) && prevName !== 'home';
+            const nameIsTab = _MAIN_SCREENS.has(name) && name !== 'home';
+
+            if (prevIsTab && nameIsTab) {
+                history.replaceState(state, '', url);
+            } else {
+                history.pushState(state, '', url);
+            }
+        } catch(e) {}
     }
 
-    // مقداردهی اولیه صفحه (فقط هنگام ناوبری رو به جلو، نه هنگام restore)
+    // مقداردهی اولیه صفحه
     if (!_skipHistoryPush) {
         if (name === 'live') initLiveScreen();
         else {
@@ -88,7 +98,7 @@ function navToScreen(name) {
         if (name === 'statements') initStatements();
         if (name === 'auth') updateAuthScreenUI();
         if (name === 'qa') { updateQAUserUI(); if (qaUser) renderQATickets(); else showQAAuth(); }
-        if (name === 'media') initMedia(); // banner/slider loaded by switchMediaTab → loadVideoCategories etc.
+        if (name === 'media') initMedia();
         if (name === 'library') loadSectionContent('library');
         else {
             const wpPlayer = document.getElementById('wp-media-player-container');
@@ -1351,42 +1361,28 @@ function _resetBackCounter() {
     if (_backPressTimer) { clearTimeout(_backPressTimer); _backPressTimer = null; }
 }
 
+// لیست modal/overlay هایی که back آنها رو می‌بنده
+function _closeAnyTransientModal() {
+    if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return true; }
+    if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return true; }
+    if (_isVisible('image-modal'))          { closeImageModal();    return true; }
+    if (_isVisible('webview-modal'))        { closeWebView();       return true; }
+    if (_isVisible('content-page-overlay')) { closeContentPage();   return true; }
+    if (_isVisible('notif-panel'))          { closeNotifications(); return true; }
+    if (_isVisible('global-search-modal'))  { closeGlobalSearch();  return true; }
+    if (_isVisible('note-modal'))           { closeNoteModal();     return true; }
+    if (_isVisible('search-modal'))         { closeSearch();        return true; }
+    if (_isVisible('settings-overlay'))     { closeSettings();      return true; }
+    if (_isVisible('qa-conversation'))      { closeQAConversation();return true; }
+    return false;
+}
+
+// از دکمه‌های back هدر صدا زده میشه — به browser history سپرده میشه
 function handleBackButton() {
-    // Modal/overlay ها — بالاترین اولویت
-    if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return; }
-    if (_isVisible('pwa-install-modal'))    { _resetBackCounter(); closePwaModal(false); return; }
-    if (_isVisible('image-modal'))          { _resetBackCounter(); closeImageModal();    return; }
-    if (_isVisible('webview-modal'))        { _resetBackCounter(); closeWebView();       return; }
-    if (_isVisible('content-page-overlay')) { _resetBackCounter(); closeContentPage();   return; }
-    if (_isVisible('notif-panel'))          { _resetBackCounter(); closeNotifications(); return; }
-    if (_isVisible('global-search-modal'))  { _resetBackCounter(); closeGlobalSearch();  return; }
-    if (_isVisible('note-modal'))           { _resetBackCounter(); closeNoteModal();     return; }
-    if (_isVisible('search-modal'))         { _resetBackCounter(); closeSearch();        return; }
-    if (_isVisible('settings-overlay'))     { _resetBackCounter(); closeSettings();      return; }
-    if (_isVisible('qa-conversation'))      { _resetBackCounter(); closeQAConversation();return; }
-
-    // رسانه: ناوبری داخلی پوشه‌ها — قبل از _navHistory
-    if (typeof handleMediaBack === 'function' && handleMediaBack()) { _resetBackCounter(); return; }
-
-    // بازیابی مرحله قبل از تاریخچه یکپارچه
-    if (_navHistory.length > 0) {
-        _resetBackCounter();
-        const restore = _navHistory.pop();
-        try { restore(); } catch(e) { console.warn('back restore failed:', e); }
-        return;
-    }
-
-    // تاریخچه خالی = روی صفحه اصلی هستیم → الگوی دو-باره
-    // بار اول: toast راهنما، بار دوم (در ۳ ثانیه): دیالوگ خروج
-    if (_backPressedOnce) {
-        _resetBackCounter();
-        showExitDialog();
-        return;
-    }
-    _backPressedOnce = true;
-    if (typeof showToast === 'function') showToast('برای خروج، یک‌بار دیگر دکمه بازگشت را بزنید');
-    if (_backPressTimer) clearTimeout(_backPressTimer);
-    _backPressTimer = setTimeout(() => { _backPressedOnce = false; _backPressTimer = null; }, 3000);
+    // اول transient modal ها رو ببند
+    if (_closeAnyTransientModal()) { _resetBackCounter(); return; }
+    // باقی به browser back سپرده میشه (popstate handler می‌گیره)
+    try { history.back(); } catch(e) {}
 }
 
 function showExitDialog() {
@@ -1415,42 +1411,118 @@ function confirmExit() {
 // وقتی به پایه (#home) رسیدیم، یک re-anchor می‌زنیم تا از اپ خارج نشویم.
 // ====================================================
 (function initBackHandler() {
-    // چند buffer entry تا حتی اگر یکی fail شد یا کاربر چند بار سریع بک زد، اپ بسته نشه
-    try { history.replaceState({ app: true, depth: 0, t: Date.now() }, '', '#home'); } catch(e) {}
-    for (let i = 0; i < 3; i++) {
-        try { history.pushState({ app: true, depth: 0, t: Date.now() + i + 1 }, '', '#home'); } catch(e) {}
-    }
+    // base entry — URL یکتا (pathname خالی، state=null)
+    try { history.replaceState(null, '', location.pathname + location.search); } catch(e) {}
+    // home entry — اولین entry با state
+    try { history.pushState({ app: true, screen: 'home' }, '', '#home'); } catch(e) {}
 
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
 
-        // همیشه یک buffer جدید push می‌کنیم تا back بعدی هم popstate صدا بزنه
-        try {
-            history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home');
-        } catch(e2) {
-            setTimeout(() => {
-                try { history.pushState({ app: true, depth: 0, t: Date.now() }, '', '#home'); } catch(e3) {}
-            }, 0);
-        }
+        const state = e.state;
 
-        // اگر reader باز باشه: ببند و toc رو باز کن — history ما این انتقال رو داره
-        const readerEl = document.getElementById('reader-overlay');
-        if (readerEl && readerEl.classList.contains('open')) {
-            try { if (typeof _flushSavePage === 'function') _flushSavePage(); } catch(ex) {}
-            readerEl.classList.remove('open');
-            const tocEl = document.getElementById('toc-overlay');
-            if (tocEl) tocEl.classList.add('open');
+        // اگر modal/overlay بازه: ببندش
+        if (_closeAnyTransientModal()) {
+            _resetBackCounter();
+            // اگر state popped-to با وضعیت فعلی (reader/toc/screen) match نکنه، state رو دوباره push کن
+            // تا کاربر جا‌به‌جا نشه. اگه match کنه (مثلاً content-page که خودش state داشت)، نیازی نیست.
+            const activeScreen = document.querySelector('.screen.active');
+            const screenName = activeScreen ? activeScreen.id.replace('screen-', '') : 'home';
+            const reader = document.getElementById('reader-overlay');
+            const toc = document.getElementById('toc-overlay');
+
+            // وضعیت واقعی الان چیه؟
+            const inReader = reader && reader.classList.contains('open');
+            const inToc = !inReader && toc && toc.classList.contains('open');
+
+            // وضعیت popped-to state چیه؟
+            const stateMatchesActual =
+                (inReader && state && state.app && state.view === 'reader') ||
+                (inToc && state && state.app && state.view === 'toc') ||
+                (!inReader && !inToc && state && state.app && state.screen === screenName);
+
+            if (!stateMatchesActual) {
+                try {
+                    if (inReader && typeof currentBookId !== 'undefined' && currentBookId != null) {
+                        history.pushState({ app: true, view: 'reader', book: currentBookId }, '', '#book-' + currentBookId + '-read');
+                    } else if (inToc && typeof currentBookId !== 'undefined' && currentBookId != null) {
+                        history.pushState({ app: true, view: 'toc', book: currentBookId }, '', '#book-' + currentBookId);
+                    } else {
+                        history.pushState({ app: true, screen: screenName }, '', '#' + screenName);
+                    }
+                } catch(ex) {}
+            }
             return;
         }
 
-        // اگر toc باز باشه: فقط ببند — library پشتش دیده میشه
-        const tocEl = document.getElementById('toc-overlay');
-        if (tocEl && tocEl.classList.contains('open')) {
-            tocEl.classList.remove('open');
+        // popped past home to base → exit dialog (double-back)
+        if (!state || !state.app) {
+            try { history.pushState({ app: true, screen: 'home' }, '', '#home'); } catch(ex) {}
+            withoutHistory(function() { navToScreen('home'); });
+
+            if (_backPressedOnce) {
+                _resetBackCounter();
+                showExitDialog();
+            } else {
+                _backPressedOnce = true;
+                if (typeof showToast === 'function') showToast('برای خروج، یک‌بار دیگر دکمه بازگشت را بزنید');
+                if (_backPressTimer) clearTimeout(_backPressTimer);
+                _backPressTimer = setTimeout(function() { _backPressedOnce = false; _backPressTimer = null; }, 3000);
+            }
             return;
         }
 
-        try { handleBackButton(); } catch(err) { console.warn('back err:', err); }
+        _resetBackCounter();
+
+        const reader = document.getElementById('reader-overlay');
+        const toc = document.getElementById('toc-overlay');
+
+        // popped to TOC state (از reader)
+        if (state.view === 'toc') {
+            if (reader && reader.classList.contains('open')) {
+                try { if (typeof _flushSavePage === 'function') _flushSavePage(); } catch(ex) {}
+                reader.classList.remove('open');
+            }
+            if (toc) toc.classList.add('open');
+            return;
+        }
+
+        // popped to reader state (forward — استثنا)
+        if (state.view === 'reader') {
+            if (toc) toc.classList.remove('open');
+            if (reader) reader.classList.add('open');
+            return;
+        }
+
+        // popped to a screen state
+        if (state.screen) {
+            // اول: media internal back رو امتحان کن
+            const activeScreen = document.querySelector('.screen.active');
+            if (activeScreen && activeScreen.id === 'screen-media' &&
+                typeof handleMediaBack === 'function' && handleMediaBack()) {
+                // media handled it. state رو دوباره push کن
+                try { history.pushState({ app: true, screen: 'media' }, '', '#media'); } catch(ex) {}
+                return;
+            }
+
+            // بستن overlay ها و سوییچ screen
+            if (reader) reader.classList.remove('open');
+            if (toc) toc.classList.remove('open');
+            withoutHistory(function() { navToScreen(state.screen); });
+            return;
+        }
+
+        // legacy state (از pushNavHistory)
+        if (state.legacy) {
+            if (_navHistory.length > 0) {
+                const restore = _navHistory.pop();
+                try { restore(); } catch(ex) { console.warn('back restore failed:', ex); }
+            }
+            return;
+        }
+
+        // ناشناخته — fallback
+        console.warn('Unknown back state:', state);
     });
 })();
 
