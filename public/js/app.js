@@ -1339,34 +1339,52 @@ function closeContentPage() {
     overlay.classList.remove('flex');
 }
 
+// شمارنده دو-باره برای دکمه back روی صفحه اصلی
+let _backPressedOnce = false;
+let _backPressTimer = null;
+function _resetBackCounter() {
+    _backPressedOnce = false;
+    if (_backPressTimer) { clearTimeout(_backPressTimer); _backPressTimer = null; }
+}
+
 function handleBackButton() {
     // Modal/overlay ها — بالاترین اولویت
     if (_isVisible('exit-confirm-modal'))   { closeExitDialog();    return; }
-    if (_isVisible('pwa-install-modal'))    { closePwaModal(false); return; }
-    if (_isVisible('image-modal'))          { closeImageModal();    return; }
-    if (_isVisible('webview-modal'))        { closeWebView();       return; }
-    if (_isVisible('content-page-overlay')) { closeContentPage();   return; }
-    if (_isVisible('notif-panel'))          { closeNotifications(); return; }
-    if (_isVisible('global-search-modal'))  { closeGlobalSearch();  return; }
-    if (_isVisible('note-modal'))           { closeNoteModal();     return; }
-    if (_isVisible('search-modal'))         { closeSearch();        return; }
-    if (_isVisible('settings-overlay'))     { closeSettings();      return; }
-    if (_hasClass('reader-overlay', 'open')){ closeReader();        return; }
-    if (_hasClass('toc-overlay', 'open'))   { closeToc();           return; }
-    if (_isVisible('qa-conversation'))      { closeQAConversation();return; }
+    if (_isVisible('pwa-install-modal'))    { _resetBackCounter(); closePwaModal(false); return; }
+    if (_isVisible('image-modal'))          { _resetBackCounter(); closeImageModal();    return; }
+    if (_isVisible('webview-modal'))        { _resetBackCounter(); closeWebView();       return; }
+    if (_isVisible('content-page-overlay')) { _resetBackCounter(); closeContentPage();   return; }
+    if (_isVisible('notif-panel'))          { _resetBackCounter(); closeNotifications(); return; }
+    if (_isVisible('global-search-modal'))  { _resetBackCounter(); closeGlobalSearch();  return; }
+    if (_isVisible('note-modal'))           { _resetBackCounter(); closeNoteModal();     return; }
+    if (_isVisible('search-modal'))         { _resetBackCounter(); closeSearch();        return; }
+    if (_isVisible('settings-overlay'))     { _resetBackCounter(); closeSettings();      return; }
+    if (_hasClass('reader-overlay', 'open')){ _resetBackCounter(); closeReader();        return; }
+    if (_hasClass('toc-overlay', 'open'))   { _resetBackCounter(); closeToc();           return; }
+    if (_isVisible('qa-conversation'))      { _resetBackCounter(); closeQAConversation();return; }
 
     // رسانه: ناوبری داخلی پوشه‌ها — قبل از _navHistory
-    if (typeof handleMediaBack === 'function' && handleMediaBack()) return;
+    if (typeof handleMediaBack === 'function' && handleMediaBack()) { _resetBackCounter(); return; }
 
     // بازیابی مرحله قبل از تاریخچه یکپارچه
     if (_navHistory.length > 0) {
+        _resetBackCounter();
         const restore = _navHistory.pop();
         try { restore(); } catch(e) { console.warn('back restore failed:', e); }
         return;
     }
 
-    // تاریخچه خالی = روی صفحه اصلی هستیم → دیالوگ خروج
-    showExitDialog();
+    // تاریخچه خالی = روی صفحه اصلی هستیم → الگوی دو-باره
+    // بار اول: toast راهنما، بار دوم (در ۳ ثانیه): دیالوگ خروج
+    if (_backPressedOnce) {
+        _resetBackCounter();
+        showExitDialog();
+        return;
+    }
+    _backPressedOnce = true;
+    if (typeof showToast === 'function') showToast('برای خروج، یک‌بار دیگر دکمه بازگشت را بزنید');
+    if (_backPressTimer) clearTimeout(_backPressTimer);
+    _backPressTimer = setTimeout(() => { _backPressedOnce = false; _backPressTimer = null; }, 3000);
 }
 
 function showExitDialog() {
