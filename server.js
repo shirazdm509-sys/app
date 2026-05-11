@@ -364,7 +364,7 @@ function initDb() {
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','public/content','public/img/shortcuts','public/img/nav-icons','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','public/content','public/img/shortcuts','public/img/nav-icons','public/img/link-shortcuts','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -372,7 +372,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts', nav_icon:'public/img/nav-icons' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts', nav_icon:'public/img/nav-icons', link_shortcut_icon:'public/img/link-shortcuts' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => {
@@ -1239,6 +1239,43 @@ app.post('/api/admin/shortcuts/upload-icon',adminAuth,uploadImage.single('shortc
 app.post('/api/admin/nav-items/upload-icon',adminAuth,uploadImage.single('nav_icon'),(req,res)=>{
     if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
     res.json({success:true,url:`/img/nav-icons/${req.file.filename}`});
+});
+
+// === آیکن‌های لینک پایین صفحه اصلی ===
+const _defaultLinkShortcuts = () => [
+    {icon:'fas fa-link',label:'لینک ۱',color1:'#3b82f6',color2:'#1d4ed8',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۲',color1:'#f59e0b',color2:'#b45309',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۳',color1:'#14b8a6',color2:'#0f766e',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۴',color1:'#f43f5e',color2:'#be123c',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۵',color1:'#0ea5e9',color2:'#0284c7',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۶',color1:'#8b5cf6',color2:'#6d28d9',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۷',color1:'#10b981',color2:'#059669',image:'',url:''},
+    {icon:'fas fa-link',label:'لینک ۸',color1:'#ef4444',color2:'#dc2626',image:'',url:''}
+];
+app.get('/api/link-shortcuts',(req,res)=>{
+    res.set('Cache-Control','public, max-age=300');
+    mainDb.get("SELECT value FROM settings WHERE key='home_link_shortcuts'",[],( err,row)=>{
+        if(err||!row||!row.value) return res.json(_defaultLinkShortcuts());
+        try{res.json(JSON.parse(row.value));}catch(e){res.json(_defaultLinkShortcuts());}
+    });
+});
+app.post('/api/admin/link-shortcuts',adminAuth,(req,res)=>{
+    const {shortcuts}=req.body;
+    if(!Array.isArray(shortcuts)) return res.status(400).json({error:'داده نامعتبر'});
+    const safe=shortcuts.slice(0,8).map(s=>({
+        icon:String(s.icon||'fas fa-link').slice(0,60),
+        label:String(s.label||'').slice(0,40),
+        color1:String(s.color1||'#3b82f6').slice(0,10),
+        color2:String(s.color2||'#1d4ed8').slice(0,10),
+        image:String(s.image||'').slice(0,500),
+        url:String(s.url||'').slice(0,500)
+    }));
+    mainDb.run("INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('home_link_shortcuts',?,CURRENT_TIMESTAMP)",[JSON.stringify(safe)],
+        err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
+});
+app.post('/api/admin/link-shortcuts/upload-icon',adminAuth,uploadImage.single('link_shortcut_icon'),(req,res)=>{
+    if(!req.file) return res.status(400).json({error:'فایل ارائه نشده'});
+    res.json({success:true,url:`/img/link-shortcuts/${req.file.filename}`});
 });
 
 app.post('/api/admin/logo',adminAuth,uploadImage.single('logo'),(req,res)=>{

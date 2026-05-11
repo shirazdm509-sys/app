@@ -135,6 +135,7 @@ async function init() {
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { await loadHomeShortcuts(); } catch(e) { console.warn('Shortcuts err:', e); }
+        try { await loadHomeLinkShortcuts(); } catch(e) { console.warn('LinkShortcuts err:', e); }
         try { fetchLatestLectures(); } catch(e) { console.warn('Lectures err:', e); }
         try { loadHomeLatestMedia(); } catch(e) {}
         if (qaUser) { try { startNotifPolling(); } catch(e) {} }
@@ -193,6 +194,44 @@ function _shortcutOnclick(sc) {
         return `navToScreen('${screen}')`;
     }
     return '';
+}
+
+// ====================================================
+// آیکن‌های لینک پایین صفحه اصلی (لینک‌های خارجی)
+// ====================================================
+async function loadHomeLinkShortcuts() {
+    const container = document.getElementById('home-link-shortcuts-section');
+    if (!container) return;
+    let shortcuts = [];
+    try {
+        const r = await fetch('/api/link-shortcuts');
+        shortcuts = await r.json();
+        if (!Array.isArray(shortcuts)) shortcuts = [];
+    } catch(e) { return; }
+    // فقط آیکن‌هایی که عنوان یا تصویر دارند نمایش داده می‌شوند
+    const visible = shortcuts.filter(sc => sc.label || sc.image);
+    if (visible.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = visible.map(sc => {
+        const url = sc.url || '';
+        const onclick = url ? `openLinkShortcut('${url.replace(/'/g,"\\'")}')` : '';
+        const inner = sc.image
+            ? `<img src="${sc.image}" class="w-full h-full object-cover">`
+            : `<i class="${sc.icon||'fas fa-link'}"></i>`;
+        const style = sc.image
+            ? ''
+            : `background:linear-gradient(135deg,${sc.color1||'#3b82f6'},${sc.color2||'#1d4ed8'});`;
+        const textClass = sc.image ? '' : 'text-white';
+        return `<div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="${onclick}">
+            <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 overflow-hidden ${textClass}" style="${style}">${inner}</div>
+            <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">${sc.label||''}</span>
+        </div>`;
+    }).join('');
+}
+
+function openLinkShortcut(url) {
+    if (!url) return;
+    if (typeof openWebView === 'function') { openWebView(url); return; }
+    window.open(url, '_blank');
 }
 
 // ====================================================

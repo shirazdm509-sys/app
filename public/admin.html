@@ -79,6 +79,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-palette w-5"></i>تنظیمات</button>
     <button onclick="switchTab('pagecontent')" id="tab-btn-pagecontent" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-file-alt w-5"></i>صفحات محتوا</button>
     <button onclick="switchTab('shortcuts')" id="tab-btn-shortcuts" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-th w-5"></i>آیکن‌های خانه</button>
+    <button onclick="switchTab('linkshortcuts')" id="tab-btn-linkshortcuts" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-external-link-alt w-5"></i>لینک‌های خانه</button>
     <button onclick="switchTab('navitems')" id="tab-btn-navitems" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-bars w-5"></i>نوار پایین</button>
   </nav>
   <button onclick="logoutAdmin()" class="m-3 p-3 text-rose-400 hover:bg-slate-800 rounded-xl font-bold flex items-center justify-center gap-2 text-sm"><i class="fas fa-sign-out-alt"></i>خروج</button>
@@ -1144,8 +1145,8 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا',shortcuts:'آیکن‌های خانه'};
-  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings','pagecontent','shortcuts'];
+  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا',shortcuts:'آیکن‌های خانه',linkshortcuts:'لینک‌های خانه'};
+  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','users','settings','pagecontent','shortcuts','linkshortcuts'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -1173,6 +1174,7 @@ function switchTab(tab) {
   if(tab==='settings') loadSettings();
   if(tab==='pagecontent') initPageContentTab();
   if(tab==='shortcuts') loadShortcuts();
+  if(tab==='linkshortcuts') loadLinkShortcuts();
   if(tab==='navitems') loadNavItemsAdmin();
 }
 
@@ -3444,6 +3446,161 @@ function clearJalaliDate(){
   document.getElementById('jalali-picker-overlay').remove();
 }
 
+// ====== لینک‌های پایین صفحه اصلی ======
+async function loadLinkShortcuts() {
+  try {
+    const res = await fetch('/api/link-shortcuts');
+    const shortcuts = await res.json();
+    const container = document.getElementById('link-shortcuts-editor');
+    if (!container) return;
+    container.innerHTML = shortcuts.map((s, i) => {
+      const img = s.image || '';
+      const prevInner = img
+        ? `<img src="${img}" class="w-full h-full object-cover rounded-2xl">`
+        : `<i id="lsc-iprv-${i}" class="${s.icon||'fas fa-link'}"></i>`;
+      const prevStyle = img ? '' : `background:linear-gradient(135deg,${s.color1||'#3b82f6'},${s.color2||'#1d4ed8'})`;
+      const thumbInner = img ? `<img src="${img}" class="w-full h-full object-cover">` : `<i class="fas fa-image text-gray-300 text-lg"></i>`;
+      return `<div class="border border-gray-100 rounded-2xl p-4 bg-gray-50 relative" data-lsc-idx="${i}">
+        <div class="lsc-drag-handle absolute left-3 top-3 cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-400 touch-none" title="جابجایی"><i class="fas fa-grip-vertical text-base"></i></div>
+        <div class="flex items-center gap-3 mb-4 pr-1">
+          <div class="w-14 h-14 rounded-2xl shadow flex items-center justify-center text-xl text-white shrink-0 overflow-hidden" id="lsc-prev-${i}" style="${prevStyle}">${prevInner}</div>
+          <div class="font-bold text-sm" id="lsc-lprv-${i}">${s.label||''}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">نام (اگر خالی باشد نمایش داده نمی‌شود)</label>
+            <input type="text" id="lsc-lbl-${i}" value="${s.label||''}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-blue-500" oninput="updateLscPrev(${i})">
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">لینک (URL کامل با https://)</label>
+            <input type="url" id="lsc-url-${i}" value="${s.url||''}" placeholder="https://example.com" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-blue-500 font-mono" dir="ltr">
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">تصویر سفارشی (اختیاری — جایگزین آیکن می‌شود)</label>
+            <div class="flex items-center gap-2">
+              <div id="lsc-imgprev-${i}" class="w-10 h-10 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center bg-gray-100 shrink-0">${thumbInner}</div>
+              <input type="file" id="lsc-imgfile-${i}" accept="image/*" class="hidden" onchange="uploadLscIcon(${i})">
+              <button onclick="document.getElementById('lsc-imgfile-${i}').click()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap">آپلود تصویر</button>
+              <button id="lsc-imgclear-${i}" onclick="clearLscIcon(${i})" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap${img ? '' : ' hidden'}">حذف تصویر</button>
+              <input type="hidden" id="lsc-img-${i}" value="${img}">
+            </div>
+          </div>
+          <div class="col-span-2"><label class="text-xs font-bold text-gray-500 mb-1 block">آیکن FontAwesome (وقتی تصویر ندارید)</label>
+            <div class="flex gap-2">
+              <input type="text" id="lsc-ico-${i}" value="${s.icon||'fas fa-link'}" class="flex-1 bg-white border border-gray-200 p-2.5 rounded-xl text-xs outline-none focus:border-blue-500 font-mono" oninput="updateLscPrev(${i})">
+              <button onclick="openLscIconPicker(${i})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 rounded-xl text-xs font-bold transition whitespace-nowrap shrink-0">انتخاب</button>
+            </div>
+          </div>
+          <div><label class="text-xs font-bold text-gray-500 mb-1 block">رنگ ۱</label>
+            <input type="color" id="lsc-c1-${i}" value="${s.color1||'#3b82f6'}" class="w-full h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" oninput="updateLscPrev(${i})">
+          </div>
+          <div><label class="text-xs font-bold text-gray-500 mb-1 block">رنگ ۲</label>
+            <input type="color" id="lsc-c2-${i}" value="${s.color2||'#1d4ed8'}" class="w-full h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" oninput="updateLscPrev(${i})">
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    if (typeof Sortable !== 'undefined') {
+      if (window._lscSortable) { try { window._lscSortable.destroy(); } catch(e) {} }
+      window._lscSortable = Sortable.create(container, {
+        animation: 150,
+        handle: '.lsc-drag-handle',
+        ghostClass: 'opacity-40',
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+function updateLscPrev(i) {
+  const ico = document.getElementById('lsc-ico-' + i)?.value || '';
+  const lbl = document.getElementById('lsc-lbl-' + i)?.value || '';
+  const c1  = document.getElementById('lsc-c1-' + i)?.value  || '#3b82f6';
+  const c2  = document.getElementById('lsc-c2-' + i)?.value  || '#1d4ed8';
+  const img = document.getElementById('lsc-img-' + i)?.value || '';
+  const p  = document.getElementById('lsc-prev-' + i);
+  const pl = document.getElementById('lsc-lprv-' + i);
+  if (p) {
+    if (img) {
+      p.style.background = '';
+      p.innerHTML = `<img src="${img}" class="w-full h-full object-cover rounded-2xl">`;
+    } else {
+      p.style.background = `linear-gradient(135deg,${c1},${c2})`;
+      p.innerHTML = `<i id="lsc-iprv-${i}" class="${ico}"></i>`;
+    }
+  }
+  if (pl) pl.textContent = lbl;
+}
+
+async function uploadLscIcon(i) {
+  const file = document.getElementById('lsc-imgfile-' + i)?.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('link_shortcut_icon', file);
+  try {
+    const res = await fetch('/api/admin/link-shortcuts/upload-icon', {method:'POST', body:fd, credentials:'include'});
+    const d = await res.json();
+    if (d.url) {
+      document.getElementById('lsc-img-' + i).value = d.url;
+      document.getElementById('lsc-imgclear-' + i)?.classList.remove('hidden');
+      const tp = document.getElementById('lsc-imgprev-' + i);
+      if (tp) tp.innerHTML = `<img src="${d.url}" class="w-full h-full object-cover">`;
+      updateLscPrev(i);
+    } else { alert('خطا در آپلود: ' + (d.error||'')); }
+  } catch(e) { alert('خطا: ' + e.message); }
+}
+
+function clearLscIcon(i) {
+  document.getElementById('lsc-img-' + i).value = '';
+  const fi = document.getElementById('lsc-imgfile-' + i);
+  if (fi) fi.value = '';
+  document.getElementById('lsc-imgclear-' + i)?.classList.add('hidden');
+  const tp = document.getElementById('lsc-imgprev-' + i);
+  if (tp) tp.innerHTML = '<i class="fas fa-image text-gray-300 text-lg"></i>';
+  updateLscPrev(i);
+}
+
+let _lscIconPickerIdx = -1;
+function openLscIconPicker(idx) {
+  _lscIconPickerIdx = idx;
+  const grid = document.getElementById('lsc-icon-picker-grid');
+  if (grid) grid.innerHTML = _SHORTCUT_ICONS.map(ic =>
+    `<button onclick="selectLscIcon('${ic}')" class="w-10 h-10 flex items-center justify-center bg-gray-50 hover:bg-blue-50 rounded-xl transition text-gray-600 hover:text-blue-600 border border-transparent hover:border-blue-200 text-base" title="${ic}"><i class="${ic}"></i></button>`
+  ).join('');
+  document.getElementById('lsc-icon-picker-modal')?.classList.remove('hidden');
+}
+function closeLscIconPicker() {
+  document.getElementById('lsc-icon-picker-modal')?.classList.add('hidden');
+  _lscIconPickerIdx = -1;
+}
+function selectLscIcon(ic) {
+  if (_lscIconPickerIdx < 0) return;
+  const inp = document.getElementById('lsc-ico-' + _lscIconPickerIdx);
+  if (inp) { inp.value = ic; updateLscPrev(_lscIconPickerIdx); }
+  closeLscIconPicker();
+}
+
+async function saveLinkShortcuts() {
+  const shortcuts = [];
+  document.querySelectorAll('#link-shortcuts-editor [data-lsc-idx]').forEach(card => {
+    const i = card.dataset.lscIdx;
+    shortcuts.push({
+      icon:   document.getElementById('lsc-ico-' + i)?.value.trim() || 'fas fa-link',
+      label:  document.getElementById('lsc-lbl-' + i)?.value.trim() || '',
+      color1: document.getElementById('lsc-c1-'  + i)?.value || '#3b82f6',
+      color2: document.getElementById('lsc-c2-'  + i)?.value || '#1d4ed8',
+      image:  document.getElementById('lsc-img-' + i)?.value.trim() || '',
+      url:    document.getElementById('lsc-url-' + i)?.value.trim() || ''
+    });
+  });
+  try {
+    const res = await fetch('/api/admin/link-shortcuts', {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({shortcuts})
+    });
+    const d = await res.json();
+    if (d.success) { showToast('لینک‌ها ذخیره شدند','success'); }
+    else { alert('خطا: ' + (d.error||'')); }
+  } catch(e) { alert('خطا: ' + e.message); }
+}
+
 // ====== آیکن‌های خانه ======
 const _SHORTCUT_ICONS = ['fas fa-home','fas fa-mosque','fas fa-book','fas fa-book-open','fas fa-user-graduate','fas fa-headset','fas fa-newspaper','fas fa-scroll','fas fa-credit-card','fas fa-broadcast-tower','fas fa-film','fas fa-music','fas fa-headphones','fas fa-camera','fas fa-images','fas fa-microphone','fas fa-phone','fas fa-envelope','fas fa-star','fas fa-heart','fas fa-bell','fas fa-calendar-alt','fas fa-map-marker-alt','fas fa-globe','fas fa-search','fas fa-info-circle','fas fa-cog','fas fa-download','fas fa-share-alt','fas fa-comment','fas fa-bullhorn','fas fa-donate','fab fa-instagram','fab fa-telegram','fab fa-whatsapp','fab fa-youtube','fas fa-place-of-worship','fas fa-pray','fas fa-hands-praying','fas fa-link','fas fa-users','fas fa-shield-alt'];
 const _SHORTCUT_ACTIONS = [
@@ -3726,6 +3883,19 @@ async function saveNavItemsAdmin() {
 </div>
 
 <!-- SHORTCUTS TAB -->
+<div id="tab-linkshortcuts" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-lg font-black mb-2"><i class="fas fa-external-link-alt text-blue-600 ml-2"></i>لینک‌های پایین صفحه اصلی</h2>
+    <p class="text-xs text-gray-500 mb-6">۸ آیکن لینک در پایین صفحه اصلی (زیر آخرین ویدیوها) — هر آیکن می‌تواند به یک لینک خارجی وصل شود. آیکن‌های بدون عنوان نمایش داده نمی‌شوند.</p>
+    <div id="link-shortcuts-editor" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="col-span-full text-center text-gray-400 text-sm py-10"><i class="fas fa-spinner fa-spin ml-2"></i>در حال بارگذاری...</div>
+    </div>
+    <div class="mt-6 border-t pt-5">
+      <button onclick="saveLinkShortcuts()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره لینک‌ها</button>
+    </div>
+  </div>
+</div>
+
 <div id="tab-shortcuts" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
   <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
     <h2 class="text-lg font-black mb-2"><i class="fas fa-th text-teal-600 ml-2"></i>آیکن‌های صفحه اصلی</h2>
@@ -3736,6 +3906,17 @@ async function saveNavItemsAdmin() {
     <div class="mt-6 border-t pt-5">
       <button onclick="saveShortcuts()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-3 rounded-xl shadow-sm transition"><i class="fas fa-save ml-2"></i>ذخیره آیکن‌ها</button>
     </div>
+  </div>
+</div>
+
+<!-- Link Shortcuts Icon Picker Modal -->
+<div id="lsc-icon-picker-modal" class="hidden fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onclick="if(event.target===this)closeLscIconPicker()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <h3 class="font-black text-sm">انتخاب آیکن</h3>
+      <button onclick="closeLscIconPicker()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="lsc-icon-picker-grid" class="p-4 grid grid-cols-7 gap-2 max-h-72 overflow-y-auto"></div>
   </div>
 </div>
 
