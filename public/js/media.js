@@ -693,19 +693,29 @@ function _renderVideoItems(pairs) {
 }
 
 function backToVideoCategories() {
-    _videoCatsLoaded = false;
-    const catsView = document.getElementById('video-categories-view');
     const listView = document.getElementById('video-list-view');
     const playerView = document.getElementById('video-player-view');
+    const listVisible = listView && !listView.classList.contains('hidden');
+    const playerVisible = playerView && !playerView.classList.contains('hidden');
+
+    _videoCatsLoaded = false;
+    const catsView = document.getElementById('video-categories-view');
     if(listView) { listView.classList.add('hidden'); listView.classList.remove('flex'); }
-    if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); document.getElementById('video-aparat-iframe').src = ''; }
+    if(playerView) { playerView.classList.add('hidden'); playerView.classList.remove('flex'); const ifr=document.getElementById('video-aparat-iframe'); if(ifr) ifr.src=''; }
     if(catsView) catsView.classList.remove('hidden');
+
+    // اگر از list/player برمی‌گردیم، در همان سطح فعلی بمانیم (پاپ نکنیم)
+    if (listVisible || playerVisible) {
+        const top = _videoNavStack[_videoNavStack.length - 1];
+        loadVideoCategories(top ? top.id : null, top ? top.name : '');
+        return;
+    }
+    // از خود cats view: یک سطح بالا برو
     if(_videoNavStack.length > 0) {
         _videoNavStack.pop();
         const prev = _videoNavStack[_videoNavStack.length - 1];
         loadVideoCategories(prev ? prev.id : null, prev ? prev.name : '');
     } else {
-        _videoNavStack = [];
         loadVideoCategories(null, '');
     }
 }
@@ -873,17 +883,25 @@ async function loadGalleryPhotos(categoryId, title, count) {
 }
 
 function backToGalleryCategories() {
+    const photosView = document.getElementById('gallery-photos-view');
+    const photosVisible = photosView && !photosView.classList.contains('hidden');
+
     _galleryCatsLoaded = false;
     const catsView = document.getElementById('gallery-categories-view');
-    const photosView = document.getElementById('gallery-photos-view');
     if(photosView) { photosView.classList.add('hidden'); photosView.classList.remove('flex'); }
     if(catsView) catsView.classList.remove('hidden');
+
+    // اگر از photos برمی‌گردیم، در همان سطح فعلی بمانیم (پاپ نکنیم)
+    if (photosVisible) {
+        const top = _galleryNavStack[_galleryNavStack.length - 1];
+        loadGalleryCategories(top ? top.id : null, top ? top.name : '');
+        return;
+    }
     if(_galleryNavStack.length > 0) {
         _galleryNavStack.pop();
         const prev = _galleryNavStack[_galleryNavStack.length - 1];
         loadGalleryCategories(prev ? prev.id : null, prev ? prev.name : '');
     } else {
-        _galleryNavStack = [];
         loadGalleryCategories(null, '');
     }
 }
@@ -1682,20 +1700,28 @@ function setAudioSpeed(speed) {
 }
 
 function backToAudioCategories() {
+    const plView = document.getElementById('audio-playlist-view');
+    const plVisible = plView && !plView.classList.contains('hidden');
+
     _audioCatsLoaded = false;
     if(audioEl) { audioEl.pause(); }
     const catsView = document.getElementById('audio-categories-view');
-    const plView = document.getElementById('audio-playlist-view');
     if(plView) { plView.classList.add('hidden'); plView.classList.remove('flex'); }
     const _hdrBar2 = document.getElementById('audio-playlist-header-bar');
     if(_hdrBar2) _hdrBar2.classList.add('hidden');
     if(catsView) catsView.classList.remove('hidden');
+
+    // اگر از playlist برمی‌گردیم، در همان سطح فعلی بمانیم (پاپ نکنیم)
+    if (plVisible) {
+        const top = _audioNavStack[_audioNavStack.length - 1];
+        loadAudioCategories(top ? top.id : null, top ? top.name : '');
+        return;
+    }
     if(_audioNavStack.length > 0) {
         _audioNavStack.pop();
         const prev = _audioNavStack[_audioNavStack.length - 1];
         loadAudioCategories(prev ? prev.id : null, prev ? prev.name : '');
     } else {
-        _audioNavStack = [];
         loadAudioCategories(null, '');
     }
 }
@@ -1736,8 +1762,8 @@ function handleMediaBack() {
 
     // ویدیو: player → list (اگه پر باشه) → categories
     if (isVis('video-player-view')) {
-        const vList = document.getElementById('video-list-view');
-        if (vList && vList.children.length > 0) backToVideoList();
+        const vItems = document.getElementById('video-items-list');
+        if (vItems && vItems.children.length > 0) backToVideoList();
         else backToVideoCategories();
         return true;
     }

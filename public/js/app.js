@@ -1397,6 +1397,9 @@ function confirmExit() {
 (function initBackHandler() {
     // URL پایه = #home (depth=0). هیچ‌وقت به URL بدون hash نمی‌رسیم.
     try { history.replaceState({ app: true, depth: 0 }, '', '#home'); } catch(e) {}
+    // یک entry اضافی تا اولین بار که کاربر دکمه back گوشی رو می‌زنه از اپ خارج نشه
+    // (بدون این، history.length=1 می‌مونه و back فیزیکی مستقیم اپ رو می‌بنده)
+    try { history.pushState({ app: true, depth: 0 }, '', '#home'); } catch(e) {}
 
     window.addEventListener('popstate', function(e) {
         if (_wantToExit) return;
