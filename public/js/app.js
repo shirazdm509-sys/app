@@ -57,13 +57,9 @@ function navToScreen(name) {
 
     document.querySelectorAll('.nav-item').forEach(n => {
         n.classList.remove('active');
-        n.querySelectorAll('i, span').forEach(el => { el.style.color = '#9ca3af'; });
-        n.querySelectorAll('img').forEach(el => { el.style.opacity = '0.4'; el.style.filter = ''; });
     });
     document.querySelectorAll(`[data-nav="${name}"]`).forEach(navBtn => {
         navBtn.classList.add('active');
-        navBtn.querySelectorAll('i, span').forEach(el => { el.style.color = '#0d9488'; });
-        navBtn.querySelectorAll('img').forEach(el => { el.style.opacity = '1'; el.style.filter = 'drop-shadow(0 0 4px rgba(13,148,136,0.4))'; });
     });
 
     // ثبت تاریخچه با URL منحصربه‌فرد semantic
@@ -478,21 +474,18 @@ async function loadNavItems() {
                 screen = 'media';
                 onclick = `navToScreen('media');setTimeout(function(){switchMediaTab('${tab}');},80)`;
             }
-            const color = '#9ca3af';
             const iconHtml = item.image
-                ? `<img src="${item.image}" class="w-6 h-6 object-contain opacity-50">`
-                : `<i class="${item.icon||'fas fa-circle'} text-lg" style="color:${color}"></i>`;
+                ? `<img src="${item.image}" class="w-6 h-6 object-contain nav-icon-img">`
+                : `<i class="${item.icon||'fas fa-circle'} text-lg"></i>`;
             return `<button class="nav-item flex flex-col items-center justify-center gap-0.5 flex-1" data-nav="${screen}" onclick="${onclick}">
                 ${iconHtml}
-                <span class="text-[9px] font-bold" style="color:${color}">${item.label||''}</span>
+                <span class="text-[9px] font-bold">${item.label||''}</span>
             </button>`;
         }).join('');
         // re-apply active state for current screen
         const activeScreen = document.querySelector('.screen.active')?.id?.replace('screen-', '') || 'home';
         document.querySelectorAll(`[data-nav="${activeScreen}"]`).forEach(btn => {
             btn.classList.add('active');
-            btn.querySelectorAll('i, span').forEach(el => { el.style.color = '#0d9488'; });
-            btn.querySelectorAll('img').forEach(el => { el.style.opacity = '1'; el.style.filter = 'drop-shadow(0 0 4px rgba(13,148,136,0.4))'; });
         });
     } catch(e) {}
 }
