@@ -235,8 +235,8 @@ async function loadHomeLinkShortcuts() {
             ? ''
             : `background:linear-gradient(135deg,${sc.color1||'#3b82f6'},${sc.color2||'#1d4ed8'});`;
         const textClass = sc.image ? '' : 'text-white';
-        return `<div class="shortcut-item flex flex-col items-center gap-1.5 cursor-pointer" onclick="${onclick}">
-            <div class="w-14 h-14 rounded-2xl shadow-md flex items-center justify-center text-xl active:scale-90 overflow-hidden ${textClass}" style="${style}">${inner}</div>
+        return `<div class="shortcut-item flex flex-col items-center gap-1 cursor-pointer shrink-0" onclick="${onclick}">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center text-lg active:scale-90 overflow-hidden ${textClass}" style="${style}">${inner}</div>
             <span class="shortcut-label text-[10px] font-bold text-gray-600 text-center transition-colors duration-200">${sc.label||''}</span>
         </div>`;
     }).join('');
