@@ -1713,7 +1713,7 @@ function renderBannerCards(bns){
         </select>
       </div>
       <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1.5">موقعیت در صفحه</label>
+        <label class="block text-xs font-bold text-gray-500 mb-1.5">موقعیت در موبایل</label>
         <select id="banner-section-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
           <option value="after_slider" ${curSec==='after_slider'?'selected':''}>بعد از اسلایدر</option>
           <option value="after_shortcuts" ${curSec==='after_shortcuts'?'selected':''}>بعد از میانبرها</option>
@@ -1722,6 +1722,19 @@ function renderBannerCards(bns){
           <option value="after_images" ${curSec==='after_images'?'selected':''}>بعد از آخرین تصاویر</option>
           <option value="after_videos" ${curSec==='after_videos'?'selected':''}>بعد از آخرین ویدیوها</option>
           <option value="after_audio" ${curSec==='after_audio'?'selected':''}>بعد از آخرین صوت‌ها</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1.5">موقعیت در دسکتاپ/تبلت <span class="font-normal text-gray-400">(اگه خالی بمونه = مثل موبایل)</span></label>
+        <select id="banner-desktop-section-${pos}" class="w-full bg-white border border-gray-200 p-2.5 rounded-xl text-sm outline-none focus:border-teal-500">
+          <option value="" ${!b.desktop_section?'selected':''}>مثل موبایل</option>
+          <option value="after_slider" ${b.desktop_section==='after_slider'?'selected':''}>بعد از اسلایدر</option>
+          <option value="after_shortcuts" ${b.desktop_section==='after_shortcuts'?'selected':''}>بعد از میانبرها</option>
+          <option value="after_books" ${b.desktop_section==='after_books'?'selected':''}>بعد از کتاب‌های اخیر</option>
+          <option value="after_lectures" ${b.desktop_section==='after_lectures'?'selected':''}>بعد از سخنرانی‌ها</option>
+          <option value="after_images" ${b.desktop_section==='after_images'?'selected':''}>بعد از آخرین تصاویر</option>
+          <option value="after_videos" ${b.desktop_section==='after_videos'?'selected':''}>بعد از آخرین ویدیوها</option>
+          <option value="after_audio" ${b.desktop_section==='after_audio'?'selected':''}>بعد از آخرین صوت‌ها</option>
         </select>
       </div>
       <div>
@@ -1825,12 +1838,14 @@ async function saveBanners(){
     const title=document.getElementById('banner-title-'+pos).value;
     const active=document.getElementById('banner-active-'+pos).checked;
     const section=document.getElementById('banner-section-'+pos)?.value||'after_books';
+    const desktopSection=document.getElementById('banner-desktop-section-'+pos)?.value||'';
     const pages=['home','media_video','media_audio','media_photo','lectures','library'].filter(p=>document.getElementById('banner-pages-'+p+'-'+pos)?.checked).join(',')||'home';
     const fd=new FormData();
     fd.append('link',link);
     fd.append('title',title);
     fd.append('active',active?'1':'0');
     fd.append('page_section',section);
+    fd.append('desktop_section',desktopSection);
     fd.append('pages',pages);
     if(img) fd.append('banner_image',img);
     else if(imageUrl) fd.append('image_url',imageUrl);

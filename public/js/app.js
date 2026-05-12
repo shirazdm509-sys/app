@@ -510,7 +510,7 @@ async function loadBanners() {
         const height = parseInt(s.banner_height ?? '120');
         const groups = {};
         active.forEach(b => {
-            const sec = b.page_section || 'after_books';
+            const sec = isDesktop && b.desktop_section ? b.desktop_section : (b.page_section || 'after_books');
             if (!groups[sec]) groups[sec] = [];
             groups[sec].push(b);
         });

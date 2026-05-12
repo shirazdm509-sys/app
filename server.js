@@ -261,6 +261,7 @@ function initDb() {
         mainDb.run(`CREATE TABLE IF NOT EXISTS sliders (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', image TEXT DEFAULT '', link TEXT DEFAULT '', sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, display_section TEXT DEFAULT 'main', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`ALTER TABLE sliders ADD COLUMN display_section TEXT DEFAULT 'main'`, () => {});
         mainDb.run(`ALTER TABLE banners ADD COLUMN pages TEXT DEFAULT 'home'`, () => {});
+        mainDb.run(`ALTER TABLE banners ADD COLUMN desktop_section TEXT DEFAULT ''`, () => {});
         mainDb.run(`ALTER TABLE sliders ADD COLUMN pages TEXT DEFAULT 'home'`, () => {});
         mainDb.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, message TEXT NOT NULL, type TEXT DEFAULT 'broadcast', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS user_notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, notification_id INTEGER NOT NULL, is_read INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
@@ -1366,10 +1367,11 @@ app.put('/api/admin/banners/:pos',adminAuth,uploadImage.single('banner_image'),(
         const link=san(req.body.link||'');
         const validSections=['after_slider','after_shortcuts','after_books','after_lectures','after_images','after_videos','after_audio'];
         const pageSec=validSections.includes(req.body.page_section)?req.body.page_section:(bn&&bn.page_section||'after_books');
+        const deskSec=validSections.includes(req.body.desktop_section)?req.body.desktop_section:'';
         const validPages=['home','media_video','media_audio','media_photo','lectures','library'];
         const pages=(req.body.pages||'home').split(',').filter(p=>validPages.includes(p)).join(',') || 'home';
-        mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,page_section,pages,updated_at) VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
-            [pos,title,img,link,act,pageSec,pages],()=>res.json({success:true,image:img}));
+        mainDb.run(`INSERT OR REPLACE INTO banners (position,title,image,link,active,page_section,desktop_section,pages,updated_at) VALUES (?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)`,
+            [pos,title,img,link,act,pageSec,deskSec,pages],()=>res.json({success:true,image:img}));
     });
 });
 

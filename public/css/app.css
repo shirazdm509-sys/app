@@ -381,4 +381,17 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
     /* تصاویر زیر کتابخانه — نسبت طبیعی */
     #home-media-images-section { display: block !important; }
     #home-media-images-section > div:first-child { padding: 0 20px 10px !important; }
+
+    /* ── شبکه‌های اجتماعی: تمام عرض در دسکتاپ ── */
+    #home-link-shortcuts-wrapper { padding: 0 20px !important; }
+    #home-link-shortcuts-section {
+        flex-wrap: wrap !important;
+        overflow-x: visible !important;
+        padding: 0 !important;
+    }
+
+    /* ── محدود به ۵ آیتم در دسکتاپ ── */
+    #home-latest-videos > *:nth-child(n+6),
+    #home-latest-audio > *:nth-child(n+6),
+    #home-lectures-container > *:nth-child(n+6) { display: none !important; }
 }
