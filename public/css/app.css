@@ -39,6 +39,9 @@ body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margi
 .nav-icon-img { opacity: 0.4; filter: grayscale(1); transition: opacity .3s, filter .3s; }
 .nav-item.active .nav-icon-img { opacity: 1 !important; filter: brightness(0) saturate(100%) invert(44%) sepia(83%) saturate(475%) hue-rotate(141deg) brightness(97%) !important; }
 
+/* desktop-only banner containers hidden on mobile */
+#home-banner-desktop-audio, #home-banner-desktop-video { display: none !important; }
+
 .screen { display:none; }
 .screen.active { display:flex;flex-direction:column; animation: fadeIn 0.4s ease forwards; }
 
@@ -339,6 +342,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
         align-items: start !important;
     }
     #home-col-lectures, #home-col-audio, #home-col-video { padding: 0 !important; }
+    #home-banner-desktop-audio, #home-banner-desktop-video { display: flex !important; flex-direction: column; gap: 12px; }
     #home-lectures-section { margin-bottom: 0 !important; }
     #home-lectures-section > div:first-child,
     #home-media-audio-section > div:first-child,
