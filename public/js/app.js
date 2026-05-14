@@ -494,11 +494,8 @@ async function loadNavItems() {
 // بنرهای صفحه اصلی
 // ====================================================
 async function loadBanners() {
-    const allMobileIds = ['after_slider','after_shortcuts','after_books','after_lectures','after_images','after_videos','after_audio'];
-    const desktopMap = { 'after_lectures': 'home-banner-desktop-lectures', 'after_audio': 'home-banner-desktop-audio', 'after_videos': 'home-banner-desktop-video' };
-    [...allMobileIds.map(s => 'home-banner-' + s), ...Object.values(desktopMap)].forEach(id => {
-        const el = document.getElementById(id); if (el) el.innerHTML = '';
-    });
+    const allIds = ['after_slider','after_shortcuts','after_books','after_lectures','after_images','after_videos','after_audio'];
+    allIds.forEach(s => { const el = document.getElementById('home-banner-' + s); if (el) el.innerHTML = ''; });
     try {
         const res = await fetch('/api/banners', { cache: 'no-store' });
         if (!res.ok) return;
@@ -511,7 +508,7 @@ async function loadBanners() {
         const height = parseInt(s.banner_height ?? '120');
         const groups = {};
         active.forEach(b => {
-            const sec = b.desktop_section || b.page_section || 'after_books';
+            const sec = b.page_section || 'after_books';
             if (!groups[sec]) groups[sec] = [];
             groups[sec].push(b);
         });
@@ -523,15 +520,8 @@ async function loadBanners() {
                     <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
                 </div>`;
             }).join('');
-            // موبایل container
-            const mobile = document.getElementById('home-banner-' + sec);
-            if (mobile) { mobile.style.padding = '0 ' + padding + 'px'; mobile.innerHTML = html; }
-            // دسکتاپ container (اگه نگاشت داره)
-            const dtId = desktopMap[sec];
-            if (dtId) {
-                const dt = document.getElementById(dtId);
-                if (dt) { dt.innerHTML = html; }
-            }
+            const el = document.getElementById('home-banner-' + sec);
+            if (el) { el.style.padding = '0 ' + padding + 'px'; el.innerHTML = html; }
         }
     } catch(e) {
         console.warn('Banners load error:', e);

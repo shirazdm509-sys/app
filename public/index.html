@@ -315,6 +315,8 @@
                         <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('audio'),80)" class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-audio" class="flex overflow-x-auto hide-scrollbar gap-3 px-4 pb-2 snap-x"></div>
+                    <!-- BANNERS position: after_audio -->
+                    <div id="home-banner-after_audio" class="px-4 mt-2 flex flex-col gap-3"></div>
                 </div>
 
                 <!-- آخرین ویدیوها -->
@@ -324,17 +326,11 @@
                         <button onclick="navToScreen('media');setTimeout(()=>switchMediaTab('video'),80)" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full">مشاهده همه</button>
                     </div>
                     <div id="home-latest-videos" class="flex overflow-x-auto hide-scrollbar gap-3 px-4 pb-2 snap-x"></div>
+                    <!-- BANNERS position: after_videos -->
+                    <div id="home-banner-after_videos" class="px-4 mt-2 flex flex-col gap-3"></div>
                 </div>
                 </div><!-- /home-three-col-wrap -->
 
-                <!-- ردیف بنر ۳ستونه دسکتاپ (زیر مطالب|صوت|ویدیو) — موبایل مخفی -->
-                <div id="home-desktop-banner-row">
-                    <div id="home-banner-desktop-lectures" class="flex flex-col gap-3"></div>
-                    <div id="home-banner-desktop-audio" class="flex flex-col gap-3"></div>
-                    <div id="home-banner-desktop-video" class="flex flex-col gap-3"></div>
-                </div>
-                <!-- BANNERS position: after_videos -->
-                <div id="home-banner-after_videos" class="mb-4 flex flex-col gap-3"></div>
                 <!-- آیکن‌های لینک پایین صفحه -->
                 <div id="home-link-shortcuts-wrapper" class="mb-6">
                     <div class="flex items-center px-6 mb-3">
@@ -342,8 +338,6 @@
                     </div>
                     <div id="home-link-shortcuts-section" class="flex flex-row gap-4 overflow-x-auto px-4 pb-1 hide-scrollbar"></div>
                 </div>
-                <!-- BANNERS position: after_audio -->
-                <div id="home-banner-after_audio" class="mb-4 flex flex-col gap-3"></div>
             </div>
         </div>
 
