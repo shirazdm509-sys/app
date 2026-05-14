@@ -498,6 +498,10 @@ async function loadBanners() {
         const el = document.getElementById('home-banner-' + sec);
         if (el) el.innerHTML = '';
     });
+    ['home-banner-desktop-lectures','home-banner-desktop-audio','home-banner-desktop-video'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
     try {
         const res = await fetch('/api/banners', { cache: 'no-store' });
         if (!res.ok) return;
