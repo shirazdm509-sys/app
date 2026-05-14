@@ -509,12 +509,12 @@ async function loadBanners() {
         const radius = parseInt(s.banner_radius ?? '16');
         const height = parseInt(s.banner_height ?? '120');
         const groups = {};
+        const isDesktop = window.innerWidth >= 1024;
         active.forEach(b => {
             const sec = isDesktop && b.desktop_section ? b.desktop_section : (b.page_section || 'after_books');
             if (!groups[sec]) groups[sec] = [];
             groups[sec].push(b);
         });
-        const isDesktop = window.innerWidth >= 1024;
         for (const [sec, items] of Object.entries(groups)) {
             const container = document.getElementById('home-banner-' + sec);
             if (!container) continue;
