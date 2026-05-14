@@ -515,15 +515,20 @@ async function loadBanners() {
             if (!groups[sec]) groups[sec] = [];
             groups[sec].push(b);
         });
+        // روی دسکتاپ بنرهای ستون‌های صوت/ویدیو داخل column خودشون می‌رن (۱/۳ عرض)
+        const desktopColMap = { 'after_audio': 'home-banner-desktop-audio', 'after_videos': 'home-banner-desktop-video' };
         for (const [sec, items] of Object.entries(groups)) {
-            const container = document.getElementById('home-banner-' + sec);
+            const containerId = isDesktop && desktopColMap[sec] ? desktopColMap[sec] : 'home-banner-' + sec;
+            const container = document.getElementById(containerId);
             if (!container) continue;
-            container.style.padding = isDesktop ? '0 20px' : '0 ' + padding + 'px';
+            const inDesktopCol = isDesktop && !!desktopColMap[sec];
+            container.style.padding = (isDesktop && !inDesktopCol) ? '0 20px' : inDesktopCol ? '0 4px' : '0 ' + padding + 'px';
             const bRadius = radius + 'px';
+            const maxH = inDesktopCol ? '' : `max-height:${height}px;`;
             container.innerHTML = items.map(b => {
                 const onclick = b.link ? `onclick="handleBannerLink('${b.link.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}');"` : '';
                 return `<div class="overflow-hidden cursor-pointer active:scale-[0.98] transition-transform" style="border-radius:${bRadius};" ${onclick}>
-                    <img src="${b.image}" class="w-full object-cover" style="max-height:${height}px;" alt="${b.title||''}">
+                    <img src="${b.image}" class="w-full object-cover" style="${maxH}" alt="${b.title||''}">
                 </div>`;
             }).join('');
         }

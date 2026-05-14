@@ -338,7 +338,7 @@ body.global-dark .nav-item.sdi.active i { color: #2dd4bf; }
         padding: 0 20px !important;
         align-items: start !important;
     }
-    #home-col-lectures { padding: 0 !important; }
+    #home-col-lectures, #home-col-audio, #home-col-video { padding: 0 !important; }
     #home-lectures-section { margin-bottom: 0 !important; }
     #home-lectures-section > div:first-child,
     #home-media-audio-section > div:first-child,
