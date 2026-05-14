@@ -39,8 +39,12 @@ body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margi
 .nav-icon-img { opacity: 0.4; filter: grayscale(1); transition: opacity .3s, filter .3s; }
 .nav-item.active .nav-icon-img { opacity: 1 !important; filter: brightness(0) saturate(100%) invert(44%) sepia(83%) saturate(475%) hue-rotate(141deg) brightness(97%) !important; }
 
-/* ردیف بنر دسکتاپ — فقط دسکتاپ نشون داده میشه */
+/* بنر desktop row — موبایل مخفی */
 #home-desktop-banner-row { display: none; }
+/* موبایل containerهای ستونی — دسکتاپ مخفی (desktop row جایشون رو میگیره) */
+@media (min-width: 640px) {
+    #home-banner-after_lectures, #home-banner-after_videos, #home-banner-after_audio { display: none !important; }
+}
 
 .screen { display:none; }
 .screen.active { display:flex;flex-direction:column; animation: fadeIn 0.4s ease forwards; }
