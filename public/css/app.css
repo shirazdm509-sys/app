@@ -32,11 +32,11 @@ body { overflow: hidden; overscroll-behavior-y: none; background: #f1f5f9; margi
 
 #bottom-nav { padding-bottom: var(--safe-bottom); border-radius: 24px 24px 0 0; }
 .nav-item { transition: all .3s ease; flex: 1; }
-.nav-item i { color: #fffffa; }
-.nav-item span { color: #fffffa; }
+.nav-item i { color: #858992; }
+.nav-item span { color: #858992; }
 .nav-item.active i { color: #109487 !important; transform: translateY(-2px); }
 .nav-item.active span { color: #109487 !important; font-weight: 800; }
-.nav-icon-img { opacity: 0.7; filter: grayscale(1) brightness(10); transition: opacity .3s, filter .3s; }
+.nav-icon-img { opacity: 1; filter: brightness(0) saturate(0%) invert(57%) sepia(6%) saturate(300%) hue-rotate(192deg) brightness(97%); transition: opacity .3s, filter .3s; }
 .nav-item.active .nav-icon-img { opacity: 1 !important; filter: brightness(0) saturate(100%) invert(38%) sepia(75%) saturate(500%) hue-rotate(142deg) brightness(95%) !important; }
 
 
