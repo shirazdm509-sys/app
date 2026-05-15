@@ -613,7 +613,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   <!-- SUPPORT TAB (QA + Tickets merged) -->
   <div id="tab-support" class="hidden flex-1 h-full flex">
     <!-- Tabs inside support -->
-    <div class="w-72 bg-white border-l border-gray-100 flex flex-col h-full shrink-0 shadow-sm">
+    <div id="support-list-panel" class="w-72 max-sm:w-full bg-white border-l border-gray-100 flex flex-col h-full shrink-0 shadow-sm">
       <div class="p-3 border-b border-gray-100 bg-gray-50">
         <div class="flex bg-gray-100 rounded-xl p-1">
           <button onclick="switchSupportTab('tickets')" id="sup-tab-tickets" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition">تیکت‌ها</button>
@@ -674,9 +674,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
 
     <!-- Chat area -->
-    <div class="flex-1 flex flex-col h-full bg-gray-50">
+    <div id="support-chat-panel" class="flex-1 flex flex-col h-full bg-gray-50 max-sm:hidden max-sm:absolute max-sm:inset-0 max-sm:z-10">
       <div class="p-4 bg-white shadow-sm border-b border-gray-100 flex items-center justify-between">
         <div class="flex items-center gap-3">
+          <button id="support-back-btn" onclick="closeSupportChat()" class="hidden max-sm:flex w-9 h-9 items-center justify-center bg-gray-50 rounded-full text-gray-500 shrink-0"><i class="fas fa-arrow-right"></i></button>
           <div id="support-avatar" class="w-9 h-9 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center"><i class="fas fa-headset text-sm"></i></div>
           <div>
             <h2 id="active-support-title" class="font-bold text-sm">موردی انتخاب نشده</h2>
@@ -2093,24 +2094,29 @@ async function loadTickets(){
     c.innerHTML=ts.map(t=>{
       const s=statusMap[t.status]||statusMap.open;
       const act=activeTicketId==t.id&&currentSupportMode==='tickets';
-      return `<button onclick="selectTicket(${t.id},'${(t.subject||'').replace(/'/g,"\\'")}',' ${t.status}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'} flex flex-col gap-1">
-        <div class="flex items-center justify-between gap-1">
-          <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
-          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0">${s.text}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
-          ${t.category_name?`<span class="text-[9px] bg-blue-50 text-blue-500 px-1 rounded">${t.category_name}</span>`:''}
-          ${t.tracking_code?`<span class="font-mono text-[9px] text-gray-400">${t.tracking_code}</span>`:''}
-        </div>
-        ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
-      </button>`;
+      const copyText=`موضوع: ${t.subject||''}\nکاربر: ${t.username||''}\n${t.last_msg?'پیام: '+t.last_msg:''}`.trim();
+      return `<div class="relative border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'}">
+        <button onclick="selectTicket(${t.id},'${(t.subject||'').replace(/'/g,"\\'")}',' ${t.status}')" class="w-full text-right p-3 flex flex-col gap-1">
+          <div class="flex items-center justify-between gap-1">
+            <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0 ml-6">${s.text}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
+            ${t.category_name?`<span class="text-[9px] bg-blue-50 text-blue-500 px-1 rounded">${t.category_name}</span>`:''}
+            ${t.tracking_code?`<span class="font-mono text-[9px] text-gray-400">${t.tracking_code}</span>`:''}
+          </div>
+          ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
+        </button>
+        <button onclick="copyTicketText(event,${JSON.stringify(copyText)})" title="کپی" class="absolute top-2 left-2 w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-teal-50 hover:text-teal-600 text-gray-400 rounded-lg transition text-[10px]"><i class="fas fa-copy"></i></button>
+      </div>`;
     }).join('');
   }catch(e){}
 }
 async function selectTicket(id,subject,status){
   activeTicketId=id; activeUserId=null;
   status=status.trim();
+  openSupportChat();
   document.getElementById('active-support-title').textContent=subject;
   document.getElementById('active-support-sub').textContent={open:'باز',answered:'پاسخ داده شد',closed:'بسته'}[status]||'';
   document.getElementById('support-avatar').innerHTML='<i class="fas fa-ticket-alt text-amber-600 text-sm"></i>';
@@ -2130,7 +2136,7 @@ async function selectTicket(id,subject,status){
       if(m.attachment){
         if(m.attachment_type==='image') attachHtml=`<a href="${m.attachment}" target="_blank"><img src="${m.attachment}" class="rounded-xl max-h-40 mt-2 cursor-pointer" loading="lazy"></a>`;
         else if(m.attachment_type==='pdf') attachHtml=`<a href="${m.attachment}" target="_blank" class="inline-flex items-center gap-1 mt-2 bg-red-50 border border-red-100 px-2 py-1 rounded-lg text-[10px] text-red-600 font-bold hover:bg-red-100"><i class="fas fa-file-pdf"></i>مشاهده PDF</a>`;
-        else if(m.attachment_type==='audio') attachHtml=`<audio controls class="mt-2 w-full h-8" src="${m.attachment}"></audio>`;
+        else if(m.attachment_type==='audio') attachHtml=`<audio controls class="mt-2 w-full" style="min-height:40px;" src="${m.attachment}"></audio>`;
       }
       const editBtn=isAdmin?`<button onclick="adminEditMsg(${m.id})" class="text-[9px] text-gray-400 hover:text-teal-600 mt-1 block"><i class="fas fa-pen ml-1"></i>ویرایش</button>`:'';
       return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
@@ -2175,6 +2181,32 @@ async function changeTicketStatus(status){
     const r=await adminFetch('/api/admin/tickets/'+activeTicketId+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
     if(r.ok){showToast('وضعیت تغییر کرد');loadTickets();selectTicket(activeTicketId,document.getElementById('active-support-title').textContent,status);}
   }catch(e){}
+}
+
+// Mobile support panel toggle
+function openSupportChat() {
+  const isMobile = window.innerWidth < 640;
+  if (!isMobile) return;
+  const listP = document.getElementById('support-list-panel');
+  const chatP = document.getElementById('support-chat-panel');
+  const backBtn = document.getElementById('support-back-btn');
+  if (listP) { listP.classList.add('hidden'); }
+  if (chatP) { chatP.classList.remove('max-sm:hidden'); chatP.classList.add('flex'); chatP.style.display='flex'; }
+  if (backBtn) backBtn.classList.remove('hidden');
+}
+function closeSupportChat() {
+  const listP = document.getElementById('support-list-panel');
+  const chatP = document.getElementById('support-chat-panel');
+  const backBtn = document.getElementById('support-back-btn');
+  if (listP) { listP.classList.remove('hidden'); }
+  if (chatP) { chatP.style.display=''; chatP.classList.add('max-sm:hidden'); }
+  if (backBtn) backBtn.classList.add('hidden');
+}
+function copyTicketText(e, text) {
+  e.stopPropagation();
+  navigator.clipboard.writeText(text).then(()=>showToast('کپی شد')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('کپی شد');
+  });
 }
 
 // Canned picker toggle
@@ -2321,6 +2353,7 @@ async function loadQAUsers(){
 }
 async function selectUser(id,name){
   activeUserId=id; activeTicketId=null;
+  openSupportChat();
   document.getElementById('active-support-title').textContent=name;
   document.getElementById('active-support-sub').textContent='پیام مستقیم';
   document.getElementById('support-avatar').innerHTML='<i class="fas fa-user text-sm"></i>';
