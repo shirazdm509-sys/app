@@ -618,6 +618,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
         <div class="flex bg-gray-100 rounded-xl p-1">
           <button onclick="switchSupportTab('tickets')" id="sup-tab-tickets" class="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition">تیکت‌ها</button>
           <button onclick="switchSupportTab('qa')" id="sup-tab-qa" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition">پیام‌ها</button>
+          <button onclick="switchSupportTab('categories')" id="sup-tab-categories" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition">دسته‌ها</button>
+          <button onclick="switchSupportTab('canned')" id="sup-tab-canned" class="flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition">آماده</button>
         </div>
       </div>
 
@@ -637,6 +639,37 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
           <button onclick="loadQAUsers()" class="text-teal-600 text-xs font-bold bg-teal-50 px-2 py-1 rounded-lg">بروزرسانی</button>
         </div>
         <div id="qa-users-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+      </div>
+      <!-- دسته‌بندی‌های تیکت -->
+      <div id="support-categories-panel" class="hidden flex-1 flex flex-col overflow-hidden">
+        <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+          <h2 class="font-black text-xs text-gray-600">دسته‌بندی سوالات</h2>
+          <button onclick="showAddCategoryForm()" class="text-teal-600 text-xs font-bold bg-teal-50 px-2 py-1 rounded-lg"><i class="fas fa-plus ml-1"></i>جدید</button>
+        </div>
+        <div id="add-category-form" class="hidden p-3 border-b border-gray-100 bg-gray-50 flex flex-col gap-2">
+          <input id="new-cat-name" type="text" placeholder="نام دسته‌بندی" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500">
+          <div class="flex gap-2">
+            <button onclick="saveNewCategory()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg">ذخیره</button>
+            <button onclick="document.getElementById('add-category-form').classList.add('hidden')" class="px-3 bg-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg">لغو</button>
+          </div>
+        </div>
+        <div id="ticket-categories-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+      </div>
+      <!-- پاسخ‌های آماده -->
+      <div id="support-canned-panel" class="hidden flex-1 flex flex-col overflow-hidden">
+        <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+          <h2 class="font-black text-xs text-gray-600">پاسخ‌های آماده</h2>
+          <button onclick="showAddCannedForm()" class="text-teal-600 text-xs font-bold bg-teal-50 px-2 py-1 rounded-lg"><i class="fas fa-plus ml-1"></i>جدید</button>
+        </div>
+        <div id="add-canned-form" class="hidden p-3 border-b border-gray-100 bg-gray-50 flex flex-col gap-2">
+          <input id="new-canned-title" type="text" placeholder="عنوان پاسخ" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500">
+          <textarea id="new-canned-text" rows="4" placeholder="متن پاسخ آماده..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 resize-none"></textarea>
+          <div class="flex gap-2">
+            <button onclick="saveNewCanned()" class="flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-lg">ذخیره</button>
+            <button onclick="document.getElementById('add-canned-form').classList.add('hidden')" class="px-3 bg-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg">لغو</button>
+          </div>
+        </div>
+        <div id="canned-responses-list" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
       </div>
     </div>
 
@@ -659,9 +692,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div id="support-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
         <div class="text-center text-gray-400 mt-16 text-sm">یک مکالمه انتخاب کنید</div>
       </div>
-      <div class="p-3 bg-white border-t border-gray-100 flex gap-2">
-        <input type="text" id="support-reply-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 text-sm" placeholder="پاسخ..." disabled onkeypress="if(event.key==='Enter')sendSupportReply()">
-        <button id="support-reply-send" onclick="sendSupportReply()" class="bg-teal-600 hover:bg-teal-700 text-white px-5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed transition" disabled>ارسال</button>
+      <div class="bg-white border-t border-gray-100">
+        <!-- پاسخ آماده -->
+        <div id="canned-picker" class="hidden max-h-48 overflow-y-auto border-b border-gray-100 p-2 flex flex-col gap-1 bg-gray-50"></div>
+        <div class="p-3 flex gap-2 items-center">
+          <button onclick="toggleCannedPicker()" title="پاسخ آماده" class="w-9 h-9 shrink-0 bg-amber-50 border border-amber-100 rounded-xl text-amber-600 hover:bg-amber-100 transition flex items-center justify-center text-sm"><i class="fas fa-bolt"></i></button>
+          <input type="text" id="support-reply-input" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-teal-500 text-sm" placeholder="پاسخ..." disabled onkeypress="if(event.key==='Enter')sendSupportReply()">
+          <button id="support-reply-send" onclick="sendSupportReply()" class="bg-teal-600 hover:bg-teal-700 text-white px-5 rounded-xl font-bold text-sm opacity-50 cursor-not-allowed transition" disabled>ارسال</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1180,23 +1218,25 @@ function switchTab(tab) {
 
 function switchSupportTab(mode) {
   currentSupportMode = mode;
-  const ticketsPanel = document.getElementById('support-tickets-panel');
-  const qaPanel = document.getElementById('support-qa-panel');
-  const tabT = document.getElementById('sup-tab-tickets');
-  const tabQ = document.getElementById('sup-tab-qa');
-  if(mode==='tickets'){
-    ticketsPanel.classList.remove('hidden'); ticketsPanel.classList.add('flex'); ticketsPanel.style.flexDirection='column';
-    qaPanel.classList.add('hidden');
-    tabT.className='flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition';
-    tabQ.className='flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition';
-    loadTickets();
-  } else {
-    qaPanel.classList.remove('hidden'); qaPanel.classList.add('flex'); qaPanel.style.flexDirection='column';
-    ticketsPanel.classList.add('hidden');
-    tabQ.className='flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition';
-    tabT.className='flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition';
-    loadQAUsers();
-  }
+  const panels = { tickets:'support-tickets-panel', qa:'support-qa-panel', categories:'support-categories-panel', canned:'support-canned-panel' };
+  const tabs = { tickets:'sup-tab-tickets', qa:'sup-tab-qa', categories:'sup-tab-categories', canned:'sup-tab-canned' };
+  Object.entries(panels).forEach(([k,id])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(k===mode){ el.classList.remove('hidden'); el.classList.add('flex'); el.style.flexDirection='column'; }
+    else { el.classList.add('hidden'); el.classList.remove('flex'); }
+  });
+  Object.entries(tabs).forEach(([k,id])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.className = k===mode
+      ? 'flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm text-teal-600 transition'
+      : 'flex-1 py-2 text-xs font-bold rounded-lg text-gray-500 transition';
+  });
+  if(mode==='tickets') loadTickets();
+  else if(mode==='qa') loadQAUsers();
+  else if(mode==='categories') loadTicketCategories();
+  else if(mode==='canned') loadCannedResponses();
   // Reset chat area
   document.getElementById('support-messages').innerHTML='<div class="text-center text-gray-400 mt-16 text-sm">یک مکالمه انتخاب کنید</div>';
   document.getElementById('active-support-title').textContent='موردی انتخاب نشده';
@@ -2054,11 +2094,15 @@ async function loadTickets(){
       const s=statusMap[t.status]||statusMap.open;
       const act=activeTicketId==t.id&&currentSupportMode==='tickets';
       return `<button onclick="selectTicket(${t.id},'${(t.subject||'').replace(/'/g,"\\'")}',' ${t.status}')" class="w-full text-right p-3 border rounded-xl transition ${act?'bg-amber-50 border-amber-200':'bg-white border-gray-100 hover:bg-gray-50'} flex flex-col gap-1">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-1">
           <h4 class="font-bold text-xs truncate flex-1">${t.subject}</h4>
           <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${s.cls} shrink-0">${s.text}</span>
         </div>
-        <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
+        <div class="flex items-center gap-2">
+          <p class="text-[10px] text-gray-400">${t.username||'ناشناس'}</p>
+          ${t.category_name?`<span class="text-[9px] bg-blue-50 text-blue-500 px-1 rounded">${t.category_name}</span>`:''}
+          ${t.tracking_code?`<span class="font-mono text-[9px] text-gray-400">${t.tracking_code}</span>`:''}
+        </div>
         ${t.last_msg?`<p class="text-[10px] text-gray-500 truncate">${t.last_msg}</p>`:''}
       </button>`;
     }).join('');
@@ -2082,15 +2126,33 @@ async function selectTicket(id,subject,status){
     if(!Array.isArray(msgs)||!msgs.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پیامی وجود ندارد</p>';return;}
     c.innerHTML=msgs.map(m=>{
       const isAdmin=m.sender_type==='admin';
+      let attachHtml='';
+      if(m.attachment){
+        if(m.attachment_type==='image') attachHtml=`<a href="${m.attachment}" target="_blank"><img src="${m.attachment}" class="rounded-xl max-h-40 mt-2 cursor-pointer" loading="lazy"></a>`;
+        else if(m.attachment_type==='pdf') attachHtml=`<a href="${m.attachment}" target="_blank" class="inline-flex items-center gap-1 mt-2 bg-red-50 border border-red-100 px-2 py-1 rounded-lg text-[10px] text-red-600 font-bold hover:bg-red-100"><i class="fas fa-file-pdf"></i>مشاهده PDF</a>`;
+        else if(m.attachment_type==='audio') attachHtml=`<audio controls class="mt-2 w-full h-8" src="${m.attachment}"></audio>`;
+      }
+      const editBtn=isAdmin?`<button onclick="adminEditMsg(${m.id})" class="text-[9px] text-gray-400 hover:text-teal-600 mt-1 block"><i class="fas fa-pen ml-1"></i>ویرایش</button>`:'';
       return `<div class="flex ${isAdmin?'justify-start':'justify-end'}">
         <div class="${isAdmin?'bg-teal-50 border border-teal-100':'bg-white border border-gray-100'} max-w-[75%] px-4 py-2.5 rounded-2xl text-xs font-medium shadow-sm">
-          <p>${m.text}</p>
-          <span class="text-[9px] text-gray-400 mt-1 block">${new Date(m.created_at).toLocaleString('fa-IR')}</span>
+          ${m.text?`<p>${m.text}</p>`:''}
+          ${attachHtml}
+          <span class="text-[9px] text-gray-400 mt-1 block">${new Date(m.created_at).toLocaleString('fa-IR')}${m.edited_at?' (ویرایش شده)':''}</span>
+          ${editBtn}
         </div>
       </div>`;
     }).join('');
     c.scrollTop=c.scrollHeight;
     loadTickets();
+  }catch(e){}
+}
+async function adminEditMsg(msgId){
+  const cur=prompt('متن جدید:');
+  if(!cur||!cur.trim()) return;
+  try{
+    const r=await adminFetch('/api/admin/ticket-messages/'+msgId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:cur.trim()})});
+    if(r.ok){showToast('ویرایش شد');if(activeTicketId) selectTicket(activeTicketId,document.getElementById('active-support-title').textContent,'answered');}
+    else showToast('خطا',false);
   }catch(e){}
 }
 async function sendSupportReply(){
@@ -2113,6 +2175,122 @@ async function changeTicketStatus(status){
     const r=await adminFetch('/api/admin/tickets/'+activeTicketId+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
     if(r.ok){showToast('وضعیت تغییر کرد');loadTickets();selectTicket(activeTicketId,document.getElementById('active-support-title').textContent,status);}
   }catch(e){}
+}
+
+// Canned picker toggle
+async function toggleCannedPicker(){
+  const picker=document.getElementById('canned-picker');
+  if(!picker) return;
+  if(!picker.classList.contains('hidden')){ picker.classList.add('hidden'); return; }
+  try{
+    const r=await adminFetch('/api/admin/canned-responses');
+    const list=await r.json();
+    if(!Array.isArray(list)||!list.length){ picker.innerHTML='<p class="text-center text-xs text-gray-400 p-2">پاسخ آماده‌ای ثبت نشده</p>'; }
+    else {
+      picker.innerHTML=list.map(c=>`<button onclick="insertCanned(${JSON.stringify(c.text.replace(/"/g,'&quot;'))})" class="w-full text-right px-3 py-2 text-xs bg-white border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 transition flex flex-col gap-0.5">
+        <span class="font-bold text-amber-700">${c.title}</span>
+        <span class="text-gray-500 line-clamp-1">${c.text}</span>
+      </button>`).join('');
+    }
+  }catch(e){ picker.innerHTML='<p class="text-center text-xs text-red-400 p-2">خطا در بارگذاری</p>'; }
+  picker.classList.remove('hidden');
+}
+function insertCanned(text){
+  const inp=document.getElementById('support-reply-input');
+  if(inp){ inp.value=text; inp.focus(); }
+  document.getElementById('canned-picker').classList.add('hidden');
+}
+
+// دسته‌بندی‌های تیکت
+async function loadTicketCategories(){
+  try{
+    const r=await adminFetch('/api/admin/ticket-categories');
+    const cats=await r.json();
+    const c=document.getElementById('ticket-categories-list');
+    if(!Array.isArray(cats)||!cats.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">دسته‌بندی‌ای ثبت نشده</p>';return;}
+    c.innerHTML=cats.map(cat=>`<div class="flex items-center gap-2 p-3 bg-white border border-gray-100 rounded-xl">
+      <span class="flex-1 text-xs font-bold text-gray-700">${cat.name}</span>
+      <span class="text-[9px] px-1.5 py-0.5 rounded ${cat.active?'bg-green-50 text-green-600':'bg-gray-100 text-gray-400'}">${cat.active?'فعال':'غیرفعال'}</span>
+      <button onclick="editCategory(${cat.id},'${cat.name.replace(/'/g,"\\'")}',${cat.active})" class="text-[10px] text-blue-400 hover:text-blue-600 px-1"><i class="fas fa-pen"></i></button>
+      <button onclick="deleteCategory(${cat.id})" class="text-[10px] text-red-400 hover:text-red-600 px-1"><i class="fas fa-trash"></i></button>
+    </div>`).join('');
+  }catch(e){}
+}
+function showAddCategoryForm(){
+  document.getElementById('add-category-form').classList.remove('hidden');
+  document.getElementById('new-cat-name').focus();
+}
+async function saveNewCategory(){
+  const name=document.getElementById('new-cat-name').value.trim();
+  if(!name) return;
+  try{
+    const r=await adminFetch('/api/admin/ticket-categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    if(r.ok){showToast('دسته‌بندی اضافه شد');document.getElementById('new-cat-name').value='';document.getElementById('add-category-form').classList.add('hidden');loadTicketCategories();}
+    else showToast('خطا',false);
+  }catch(e){}
+}
+async function editCategory(id,name,active){
+  const newName=prompt('نام جدید:',name);
+  if(!newName||!newName.trim()) return;
+  try{
+    const r=await adminFetch('/api/admin/ticket-categories/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName.trim(),active:active?'1':'0'})});
+    if(r.ok){showToast('ذخیره شد');loadTicketCategories();}
+    else showToast('خطا',false);
+  }catch(e){}
+}
+async function deleteCategory(id){
+  if(!confirm('حذف شود؟')) return;
+  try{
+    await adminFetch('/api/admin/ticket-categories/'+id,{method:'DELETE'});
+    loadTicketCategories();
+  }catch(e){}
+}
+
+// پاسخ‌های آماده
+async function loadCannedResponses(){
+  try{
+    const r=await adminFetch('/api/admin/canned-responses');
+    const list=await r.json();
+    const c=document.getElementById('canned-responses-list');
+    if(!Array.isArray(list)||!list.length){c.innerHTML='<p class="text-center text-xs text-gray-400 mt-8">پاسخ آماده‌ای ثبت نشده</p>';return;}
+    c.innerHTML=list.map(item=>`<div class="p-3 bg-white border border-gray-100 rounded-xl flex flex-col gap-1.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-amber-700">${item.title}</span>
+        <div class="flex gap-1">
+          <button onclick="editCanned(${item.id},'${item.title.replace(/'/g,"\\'")}',${JSON.stringify(item.text.replace(/'/g,"\\'"))})" class="text-[10px] text-blue-400 hover:text-blue-600 px-1"><i class="fas fa-pen"></i></button>
+          <button onclick="deleteCanned(${item.id})" class="text-[10px] text-red-400 hover:text-red-600 px-1"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <p class="text-[10px] text-gray-500 line-clamp-2">${item.text}</p>
+    </div>`).join('');
+  }catch(e){}
+}
+function showAddCannedForm(){
+  document.getElementById('add-canned-form').classList.remove('hidden');
+  document.getElementById('new-canned-title').focus();
+}
+async function saveNewCanned(){
+  const title=document.getElementById('new-canned-title').value.trim();
+  const text=document.getElementById('new-canned-text').value.trim();
+  if(!title||!text){showToast('عنوان و متن الزامی است',false);return;}
+  try{
+    const r=await adminFetch('/api/admin/canned-responses',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,text})});
+    if(r.ok){showToast('ذخیره شد');document.getElementById('new-canned-title').value='';document.getElementById('new-canned-text').value='';document.getElementById('add-canned-form').classList.add('hidden');loadCannedResponses();}
+    else showToast('خطا',false);
+  }catch(e){}
+}
+async function editCanned(id,title,text){
+  const nt=prompt('عنوان جدید:',title);if(!nt) return;
+  const nx=prompt('متن جدید:',text);if(!nx) return;
+  try{
+    const r=await adminFetch('/api/admin/canned-responses/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:nt.trim(),text:nx.trim()})});
+    if(r.ok){showToast('ویرایش شد');loadCannedResponses();}
+    else showToast('خطا',false);
+  }catch(e){}
+}
+async function deleteCanned(id){
+  if(!confirm('حذف شود؟')) return;
+  try{await adminFetch('/api/admin/canned-responses/'+id,{method:'DELETE'});loadCannedResponses();}catch(e){}
 }
 
 // QA (in support)

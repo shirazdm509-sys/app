@@ -339,8 +339,16 @@ function initDb() {
             [5,'fas fa-question-circle','سوال','screen:qa'],
         ];
         _defNav.forEach(([s,ic,lb,ac])=>mainDb.run(`INSERT OR IGNORE INTO nav_items (sort_order,icon,label,action) VALUES (?,?,?,?)`,[s,ic,lb,ac]));
+        mainDb.run(`CREATE TABLE IF NOT EXISTS ticket_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        mainDb.run(`CREATE TABLE IF NOT EXISTS canned_responses (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, text TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE tickets ADD COLUMN tracking_code TEXT`, () => {});
+        mainDb.run(`ALTER TABLE tickets ADD COLUMN category_id INTEGER DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE ticket_messages ADD COLUMN attachment TEXT DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE ticket_messages ADD COLUMN attachment_type TEXT DEFAULT NULL`, () => {});
+        mainDb.run(`ALTER TABLE ticket_messages ADD COLUMN edited_at DATETIME DEFAULT NULL`, () => {});
+        mainDb.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_tracking ON tickets(tracking_code)`, () => {});
         // Migration: add notifications tables if not exists (already created above)
 
         // Performance indexes for hot query paths
@@ -365,7 +373,7 @@ function initDb() {
 }
 
 // Dirs
-['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','public/content','public/img/shortcuts','public/img/nav-icons','public/img/link-shortcuts','books'].forEach(d => {
+['public/covers','public/banners','public/sliders','public/logos','public/icons','public/gallery','public/audio','public/content','public/img/shortcuts','public/img/nav-icons','public/img/link-shortcuts','public/ticket-files','books'].forEach(d => {
     const p = path.join(__dirname, d);
     if(!fs.existsSync(p)) fs.mkdirSync(p, {recursive:true});
 });
@@ -373,7 +381,7 @@ function initDb() {
 // Multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts', nav_icon:'public/img/nav-icons', link_shortcut_icon:'public/img/link-shortcuts' };
+        const dirs = { cover:'public/covers', database:'books', pdf_file:'books', banner_image:'public/banners', slider_image:'public/sliders', logo:'public/logos', header_logo:'public/logos', favicon:'public/icons', gallery_image:'public/gallery', audio_cover:'public/gallery', audio_file:'public/audio', content_image:'public/content', shortcut_icon:'public/img/shortcuts', nav_icon:'public/img/nav-icons', link_shortcut_icon:'public/img/link-shortcuts', ticket_file:'public/ticket-files' };
         cb(null, path.join(__dirname, dirs[file.fieldname] || 'public/covers'));
     },
     filename: (req, file, cb) => {
@@ -411,6 +419,13 @@ const uploadIconMemory = multer({ storage: multer.memoryStorage(), limits:{fileS
 const uploadAudio = multer({ storage, limits:{fileSize:60*1024*1024, files:5}, fileFilter: _makeFilter(['audio','image']) });
 // آپلود ترکیبی برای کتاب: جلد(عکس)، فایل دیتابیس sqlite یا pdf — کتاب‌های pdf حجیم هستند
 const upload = multer({ storage, limits:{fileSize:200*1024*1024, files:10}, fileFilter: _makeFilter(['image','pdf','db']) });
+// آپلود پیوست تیکت: عکس، pdf، یا صوت (ویس) حداکثر ۵ مگابایت
+const uploadTicketFile = multer({ storage, limits:{fileSize:5*1024*1024, files:1}, fileFilter: _makeFilter(['image','pdf','audio']) });
+function genTrackingCode() {
+    const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const r = Math.random().toString(36).substr(2,5).toUpperCase();
+    return `Q${d}-${r}`;
+}
 
 // Auth middleware — JWT-based
 function adminAuth(req,res,next) {
@@ -909,45 +924,99 @@ app.post('/api/qa/messages',userAuth,(req,res)=>{
 });
 
 // === API TICKETS ===
+app.get('/api/ticket-categories',(req,res)=>{
+    mainDb.all('SELECT id,name FROM ticket_categories WHERE active=1 ORDER BY sort_order,id',[],(_,rows)=>res.json(rows||[]));
+});
 app.get('/api/tickets',userAuth,(req,res)=>{
     mainDb.all(
-        `SELECT id,subject,status,updated_at,(SELECT text FROM ticket_messages WHERE ticket_id=tickets.id ORDER BY created_at ASC LIMIT 1) as first_message FROM tickets WHERE user_id=? ORDER BY updated_at DESC`,
+        `SELECT t.id,t.subject,t.status,t.updated_at,t.tracking_code,tc.name as category_name,
+         (SELECT text FROM ticket_messages WHERE ticket_id=t.id ORDER BY created_at ASC LIMIT 1) as first_message
+         FROM tickets t LEFT JOIN ticket_categories tc ON tc.id=t.category_id
+         WHERE t.user_id=? ORDER BY t.updated_at DESC`,
         [req.userId],(err,rows)=>{
             if(err) return res.status(500).json({error:err.message});
             res.json(rows||[]);
         }
     );
 });
-app.post('/api/tickets',userAuth,(req,res)=>{
+app.post('/api/tickets',userAuth,uploadTicketFile.single('ticket_file'),(req,res)=>{
     const s=san(req.body.subject),m=san(req.body.message);
     if(!s||!m) return res.status(400).json({error:'موضوع و پیام الزامی است'});
-    mainDb.get('SELECT username FROM users WHERE id=?',[req.userId],(err,user)=>{
-        const uname=user?user.username:'کاربر';
-        mainDb.run('INSERT INTO tickets (username,subject,user_id) VALUES (?,?,?)',[uname,s,req.userId],function(err){
-            if(err) return res.status(500).json({error:err.message});
-            const tid=this.lastID;
-            mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"user")',[tid,m],()=>res.json({success:true,ticket_id:tid}));
+    const catId=req.body.category_id?+req.body.category_id:null;
+    // Daily limit: max 5 tickets per day
+    mainDb.get(`SELECT COUNT(*) as cnt FROM tickets WHERE user_id=? AND date(created_at)=date('now')`,[req.userId],(err,row)=>{
+        if((row?.cnt||0)>=5) return res.status(429).json({error:'روزانه حداکثر ۵ سوال مجاز است. فردا دوباره تلاش کنید.'});
+        let tracking_code,tries=0;
+        const tryInsert=()=>{
+            tracking_code=genTrackingCode();
+            mainDb.get('SELECT username FROM users WHERE id=?',[req.userId],(_,user)=>{
+                const uname=user?user.username:'کاربر';
+                mainDb.run('INSERT INTO tickets (username,subject,user_id,category_id,tracking_code) VALUES (?,?,?,?,?)',[uname,s,req.userId,catId,tracking_code],function(err2){
+                    if(err2&&err2.message.includes('UNIQUE')&&tries++<3) return tryInsert();
+                    if(err2) return res.status(500).json({error:err2.message});
+                    const tid=this.lastID;
+                    const att=req.file?('/ticket-files/'+req.file.filename):null;
+                    const attType=req.file?_detectAttachmentType(req.file):null;
+                    mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type,attachment,attachment_type) VALUES (?,?,"user",?,?)',[tid,m,att,attType],
+                        ()=>res.json({success:true,ticket_id:tid,tracking_code}));
+                });
+            });
+        };
+        tryInsert();
+    });
+});
+function _detectAttachmentType(file){
+    if(!file) return null;
+    const mime=(file.mimetype||'').toLowerCase();
+    if(mime.startsWith('image/')) return 'image';
+    if(mime==='application/pdf') return 'pdf';
+    if(mime.startsWith('audio/')) return 'audio';
+    return 'file';
+}
+// ویرایش تیکت توسط کاربر (فقط اگه ادمین هنوز جواب نداده)
+app.put('/api/tickets/:id',userAuth,(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const s=san(req.body.subject),m=san(req.body.message);
+    if(!s||!m) return res.status(400).json({error:'موضوع و متن الزامی است'});
+    mainDb.get('SELECT id FROM tickets WHERE id=? AND user_id=?',[id,req.userId],(err,t)=>{
+        if(!t) return res.status(404).json({error:'تیکت یافت نشد'});
+        mainDb.get('SELECT id FROM ticket_messages WHERE ticket_id=? AND sender_type="admin" LIMIT 1',[id],(err2,adminReply)=>{
+            if(adminReply) return res.status(403).json({error:'پس از پاسخ ادمین ویرایش امکان‌پذیر نیست'});
+            mainDb.run('UPDATE tickets SET subject=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',[s,id],()=>{
+                mainDb.run('UPDATE ticket_messages SET text=? WHERE ticket_id=? AND sender_type="user" ORDER BY created_at ASC LIMIT 1',[m,id],
+                    ()=>res.json({success:true}));
+            });
         });
     });
 });
-
-// ارسال پیام اضافه در تیکت توسط کاربر (حداکثر 2 پیام متوالی تا ادمین جواب بده)
-app.post('/api/tickets/:id/messages',userAuth,(req,res)=>{
+// حذف تیکت توسط کاربر (فقط اگه ادمین هنوز جواب نداده)
+app.delete('/api/tickets/:id',userAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    const t=san(req.body.text);if(!t||!t.trim()) return res.status(400).json({error:'متن پیام خالی است'});
-    // Check ticket belongs to user
+    mainDb.get('SELECT id FROM tickets WHERE id=? AND user_id=?',[id,req.userId],(err,t)=>{
+        if(!t) return res.status(404).json({error:'تیکت یافت نشد'});
+        mainDb.get('SELECT id FROM ticket_messages WHERE ticket_id=? AND sender_type="admin" LIMIT 1',[id],(err2,adminReply)=>{
+            if(adminReply) return res.status(403).json({error:'پس از پاسخ ادمین حذف امکان‌پذیر نیست'});
+            mainDb.run('DELETE FROM ticket_messages WHERE ticket_id=?',[id],()=>{
+                mainDb.run('DELETE FROM tickets WHERE id=?',[id],()=>res.json({success:true}));
+            });
+        });
+    });
+});
+// ارسال پیام اضافه در تیکت توسط کاربر
+app.post('/api/tickets/:id/messages',userAuth,uploadTicketFile.single('ticket_file'),(req,res)=>{
+    const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const t=san(req.body.text)||'';
+    const att=req.file?('/ticket-files/'+req.file.filename):null;
+    const attType=req.file?_detectAttachmentType(req.file):null;
+    if(!t.trim()&&!att) return res.status(400).json({error:'پیام یا فایل الزامی است'});
     mainDb.get('SELECT id,status FROM tickets WHERE id=? AND user_id=?',[id,req.userId],(err,ticket)=>{
         if(err||!ticket) return res.status(404).json({error:'تیکت یافت نشد'});
         if(ticket.status==='closed') return res.status(400).json({error:'این تیکت بسته شده است'});
-        // Count consecutive user messages at end
         mainDb.all('SELECT sender_type FROM ticket_messages WHERE ticket_id=? ORDER BY created_at DESC LIMIT 5',[id],(err2,msgs)=>{
             let consecutiveUser=0;
-            for(const m of (msgs||[])){
-                if(m.sender_type==='user') consecutiveUser++;
-                else break;
-            }
+            for(const m of (msgs||[])){ if(m.sender_type==='user') consecutiveUser++; else break; }
             if(consecutiveUser>=2) return res.status(400).json({error:'لطفاً صبر کنید تا ادمین جواب دهد. حداکثر ۲ پیام متوالی مجاز است.'});
-            mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"user")',[id,t.trim()],function(err3){
+            mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type,attachment,attachment_type) VALUES (?,?,"user",?,?)',[id,t.trim(),att,attType],function(err3){
                 if(err3) return res.status(500).json({error:err3.message});
                 mainDb.run('UPDATE tickets SET updated_at=CURRENT_TIMESTAMP WHERE id=?',[id]);
                 res.json({success:true,id:this.lastID});
@@ -955,18 +1024,17 @@ app.post('/api/tickets/:id/messages',userAuth,(req,res)=>{
         });
     });
 });
-
 // دریافت پیام‌های یک تیکت (عمومی - برای کاربر)
 app.get('/api/tickets/:id/messages',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.all('SELECT text,sender_type,created_at FROM ticket_messages WHERE ticket_id=? ORDER BY created_at ASC',[id],(err,rows)=>{
+    mainDb.all('SELECT id,text,sender_type,created_at,attachment,attachment_type,edited_at FROM ticket_messages WHERE ticket_id=? ORDER BY created_at ASC',[id],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
         res.json(rows||[]);
     });
 });
 app.get('/api/tickets/:id',(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.get('SELECT id,subject,status,updated_at FROM tickets WHERE id=?',[id],(err,row)=>{
+    mainDb.get('SELECT t.id,t.subject,t.status,t.updated_at,t.tracking_code,tc.name as category_name FROM tickets t LEFT JOIN ticket_categories tc ON tc.id=t.category_id WHERE t.id=?',[id],(err,row)=>{
         if(err||!row) return res.status(404).json({error:'یافت نشد'});
         res.json(row);
     });
@@ -1530,9 +1598,48 @@ app.post('/api/admin/qa/messages/:uid',adminAuth,(req,res)=>{
     });
 });
 
+// Admin Ticket Categories
+app.get('/api/admin/ticket-categories',adminAuth,(req,res)=>{
+    mainDb.all('SELECT * FROM ticket_categories ORDER BY sort_order,id',[],(_,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/ticket-categories',adminAuth,(req,res)=>{
+    const name=san(req.body.name);if(!name) return res.status(400).json({error:'نام الزامی است'});
+    mainDb.run('INSERT INTO ticket_categories (name,sort_order,active) VALUES (?,?,?)',[name,+req.body.sort_order||0,1],function(e){
+        if(e) return res.status(500).json({error:e.message});
+        res.json({success:true,id:this.lastID});
+    });
+});
+app.put('/api/admin/ticket-categories/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id;
+    const name=san(req.body.name);if(!name) return res.status(400).json({error:'نام الزامی است'});
+    mainDb.run('UPDATE ticket_categories SET name=?,sort_order=?,active=? WHERE id=?',[name,+req.body.sort_order||0,req.body.active==='0'?0:1,id],()=>res.json({success:true}));
+});
+app.delete('/api/admin/ticket-categories/:id',adminAuth,(req,res)=>{
+    mainDb.run('DELETE FROM ticket_categories WHERE id=?',[+req.params.id],()=>res.json({success:true}));
+});
+// Admin Canned Responses
+app.get('/api/admin/canned-responses',adminAuth,(req,res)=>{
+    mainDb.all('SELECT * FROM canned_responses ORDER BY id DESC',[],(_,rows)=>res.json(rows||[]));
+});
+app.post('/api/admin/canned-responses',adminAuth,(req,res)=>{
+    const title=san(req.body.title),text=san(req.body.text);
+    if(!title||!text) return res.status(400).json({error:'عنوان و متن الزامی است'});
+    mainDb.run('INSERT INTO canned_responses (title,text) VALUES (?,?)',[title,text],function(e){
+        if(e) return res.status(500).json({error:e.message});
+        res.json({success:true,id:this.lastID});
+    });
+});
+app.put('/api/admin/canned-responses/:id',adminAuth,(req,res)=>{
+    const id=+req.params.id,title=san(req.body.title),text=san(req.body.text);
+    if(!title||!text) return res.status(400).json({error:'عنوان و متن الزامی است'});
+    mainDb.run('UPDATE canned_responses SET title=?,text=? WHERE id=?',[title,text,id],()=>res.json({success:true}));
+});
+app.delete('/api/admin/canned-responses/:id',adminAuth,(req,res)=>{
+    mainDb.run('DELETE FROM canned_responses WHERE id=?',[+req.params.id],()=>res.json({success:true}));
+});
 // Admin Tickets
 app.get('/api/admin/tickets',adminAuth,(req,res)=>{
-    mainDb.all(`SELECT t.*,(SELECT COUNT(*) FROM ticket_messages WHERE ticket_id=t.id) as msg_count,(SELECT text FROM ticket_messages WHERE ticket_id=t.id ORDER BY created_at DESC LIMIT 1) as last_msg FROM tickets t ORDER BY t.updated_at DESC`,[],(err,rows)=>res.json(rows||[]));
+    mainDb.all(`SELECT t.*,tc.name as category_name,(SELECT COUNT(*) FROM ticket_messages WHERE ticket_id=t.id) as msg_count,(SELECT text FROM ticket_messages WHERE ticket_id=t.id ORDER BY created_at DESC LIMIT 1) as last_msg FROM tickets t LEFT JOIN ticket_categories tc ON tc.id=t.category_id ORDER BY t.updated_at DESC`,[],(err,rows)=>res.json(rows||[]));
 });
 app.get('/api/admin/tickets/:id/messages',adminAuth,(req,res)=>{
     const id=+req.params.id;if(isNaN(id)) return res.status(400).json({error:'شناسه نامعتبر'});
@@ -1544,7 +1651,6 @@ app.post('/api/admin/tickets/:id/reply',adminAuth,(req,res)=>{
     mainDb.run('INSERT INTO ticket_messages (ticket_id,text,sender_type) VALUES (?,?,"admin")',[id,t],function(err){
         if(err) return res.status(500).json({error:err.message});
         mainDb.run('UPDATE tickets SET status="answered",updated_at=CURRENT_TIMESTAMP WHERE id=?',[id]);
-        // Create notification for the ticket owner
         mainDb.get('SELECT user_id,subject FROM tickets WHERE id=?',[id],(err2,ticket)=>{
             if(ticket&&ticket.user_id){
                 const replyTitle='پاسخ به تیکت';
@@ -1553,10 +1659,18 @@ app.post('/api/admin/tickets/:id/reply',adminAuth,(req,res)=>{
                     [replyTitle,replyMsg],function(err3){
                         if(this.lastID) mainDb.run('INSERT INTO user_notifications (user_id,notification_id) VALUES (?,?)',[ticket.user_id,this.lastID]);
                     });
-                // Push notification to ticket owner
                 sendPushToUser(ticket.user_id,{title:replyTitle,body:replyMsg,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png',tag:'ticket-'+id,data:{url:'/'}});
             }
         });
+        res.json({success:true});
+    });
+});
+// ویرایش پیام ادمین
+app.put('/api/admin/ticket-messages/:msgId',adminAuth,(req,res)=>{
+    const msgId=+req.params.msgId;if(isNaN(msgId)) return res.status(400).json({error:'شناسه نامعتبر'});
+    const t=san(req.body.text);if(!t||!t.trim()) return res.status(400).json({error:'متن خالی است'});
+    mainDb.run('UPDATE ticket_messages SET text=?,edited_at=CURRENT_TIMESTAMP WHERE id=? AND sender_type="admin"',[t,msgId],function(e){
+        if(this.changes===0) return res.status(404).json({error:'پیام یافت نشد'});
         res.json({success:true});
     });
 });

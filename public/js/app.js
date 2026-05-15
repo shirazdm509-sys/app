@@ -869,34 +869,190 @@ function updateQAUserUI() {
     if (newBtn) newBtn.classList.toggle('hidden', !loggedIn);
 }
 
+// --- Voice recorder state ---
+let _qaRecorder = null, _qaAudioChunks = [], _qaRecordedBlob = null;
+let _qaConvRecorder = null, _qaConvAudioChunks = [], _qaConvRecordedBlob = null;
+let _qaTimerInterval = null, _qaConvTimerInterval = null;
+
+function _startRecordTimer(elId, intervalRef) {
+    let secs = 0;
+    const el = document.getElementById(elId);
+    if (el) { el.classList.remove('hidden'); el.textContent = '0:00'; }
+    return setInterval(() => {
+        secs++;
+        const m = Math.floor(secs/60), s = secs%60;
+        if (el) el.textContent = m + ':' + String(s).padStart(2,'0');
+    }, 1000);
+}
+function _stopRecordTimer(elId, interval) {
+    if (interval) clearInterval(interval);
+    const el = document.getElementById(elId);
+    if (el) el.classList.add('hidden');
+}
+
+async function qaToggleVoice() {
+    if (_qaRecorder && _qaRecorder.state === 'recording') {
+        _qaRecorder.stream.getTracks().forEach(t => t.stop());
+        _qaRecorder.stop();
+        _stopRecordTimer('qa-record-timer', _qaTimerInterval);
+        const btn = document.getElementById('qa-voice-btn');
+        if (btn) btn.innerHTML = '<i class="fas fa-microphone"></i>ویس';
+        return;
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        _qaRecorder = new MediaRecorder(stream);
+        _qaAudioChunks = [];
+        _qaRecorder.ondataavailable = e => _qaAudioChunks.push(e.data);
+        _qaRecorder.onstop = () => {
+            _qaRecordedBlob = new Blob(_qaAudioChunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(_qaRecordedBlob);
+            const player = document.getElementById('qa-voice-player');
+            if (player) player.src = url;
+            document.getElementById('qa-voice-preview').classList.remove('hidden');
+            document.getElementById('qa-attachment').value = '';
+            document.getElementById('qa-attachment-name').textContent = '';
+        };
+        _qaRecorder.start();
+        _qaTimerInterval = _startRecordTimer('qa-record-timer');
+        const btn = document.getElementById('qa-voice-btn');
+        if (btn) btn.innerHTML = '<i class="fas fa-stop text-red-500 animate-pulse"></i><span class="text-red-500">توقف</span>';
+    } catch(e) { showToast('دسترسی به میکروفون ممکن نشد'); }
+}
+function qaCancelVoice() {
+    _qaRecordedBlob = null;
+    document.getElementById('qa-voice-preview').classList.add('hidden');
+    const p = document.getElementById('qa-voice-player');
+    if (p) p.src = '';
+}
+function qaPreviewAttachment() {
+    qaCancelVoice();
+    const f = document.getElementById('qa-attachment').files[0];
+    const nm = document.getElementById('qa-attachment-name');
+    if (nm) nm.textContent = f ? f.name : '';
+}
+
+async function qaConvToggleVoice() {
+    if (_qaConvRecorder && _qaConvRecorder.state === 'recording') {
+        _qaConvRecorder.stream.getTracks().forEach(t => t.stop());
+        _qaConvRecorder.stop();
+        _stopRecordTimer('qa-conv-record-timer', _qaConvTimerInterval);
+        const btn = document.getElementById('qa-conv-voice-btn');
+        if (btn) btn.innerHTML = '<i class="fas fa-microphone text-[11px]"></i>';
+        return;
+    }
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        _qaConvRecorder = new MediaRecorder(stream);
+        _qaConvAudioChunks = [];
+        _qaConvRecorder.ondataavailable = e => _qaConvAudioChunks.push(e.data);
+        _qaConvRecorder.onstop = () => {
+            _qaConvRecordedBlob = new Blob(_qaConvAudioChunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(_qaConvRecordedBlob);
+            const player = document.getElementById('qa-conv-voice-player');
+            if (player) player.src = url;
+            document.getElementById('qa-conv-voice-preview').classList.remove('hidden');
+            document.getElementById('qa-conv-file').value = '';
+            document.getElementById('qa-conv-file-name').textContent = '';
+        };
+        _qaConvRecorder.start();
+        _qaConvTimerInterval = _startRecordTimer('qa-conv-record-timer');
+        const btn = document.getElementById('qa-conv-voice-btn');
+        if (btn) btn.innerHTML = '<i class="fas fa-stop text-red-500 animate-pulse text-[11px]"></i>';
+    } catch(e) { showToast('دسترسی به میکروفون ممکن نشد'); }
+}
+function qaConvCancelVoice() {
+    _qaConvRecordedBlob = null;
+    document.getElementById('qa-conv-voice-preview').classList.add('hidden');
+    const p = document.getElementById('qa-conv-voice-player');
+    if (p) p.src = '';
+}
+function qaConvPreviewFile() {
+    qaConvCancelVoice();
+    const f = document.getElementById('qa-conv-file').files[0];
+    const nm = document.getElementById('qa-conv-file-name');
+    if (nm) nm.textContent = f ? f.name : '';
+}
+
+async function _loadQACategories() {
+    try {
+        const r = await fetch('/api/ticket-categories');
+        const cats = await r.json();
+        const sel = document.getElementById('qa-category');
+        if (!sel || !Array.isArray(cats)) return;
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">-- دسته‌بندی سوال (اختیاری) --</option>' +
+            cats.map(c => `<option value="${c.id}"${c.id==cur?' selected':''}>${c.name}</option>`).join('');
+    } catch(e) {}
+}
+
 function showQAForm() {
     if (!qaUser) { showQAAuth(); return; }
+    _loadQACategories();
     const f = document.getElementById('qa-form');
     f.classList.remove('hidden'); f.classList.add('flex');
 }
 function hideQAForm() {
     const f = document.getElementById('qa-form');
     f.classList.add('hidden'); f.classList.remove('flex');
+    qaCancelVoice();
+    document.getElementById('qa-attachment').value = '';
+    document.getElementById('qa-attachment-name').textContent = '';
 }
 async function submitQATicket() {
     if (!qaUser) { showQAAuth(); return; }
     const subject = document.getElementById('qa-subject').value.trim();
     const message = document.getElementById('qa-message').value.trim();
     if (!subject || !message) { showToast('موضوع و متن سوال الزامی است'); return; }
+    const catId = document.getElementById('qa-category').value;
+    const fileInput = document.getElementById('qa-attachment');
+    const file = fileInput ? fileInput.files[0] : null;
+    if (file && file.size > 5*1024*1024) { showToast('حجم فایل نباید بیش از ۵ مگابایت باشد'); return; }
+    const fd = new FormData();
+    fd.append('subject', subject);
+    fd.append('message', message);
+    if (catId) fd.append('category_id', catId);
+    if (file) fd.append('ticket_file', file);
+    else if (_qaRecordedBlob) fd.append('ticket_file', _qaRecordedBlob, 'voice.webm');
     try {
-        const res = await fetch('/api/tickets', {
-            method: 'POST',
-            headers: userAuthHeaders({'Content-Type':'application/json'}),
-            body: JSON.stringify({subject, message})
-        });
+        const res = await fetch('/api/tickets', { method:'POST', headers: userAuthHeaders(), body: fd });
         const d = await res.json();
         if (res.ok && d.success) {
             document.getElementById('qa-subject').value = '';
             document.getElementById('qa-message').value = '';
-            hideQAForm(); showToast('سوال شما ارسال شد');
+            hideQAForm();
+            showToast(`سوال ارسال شد — کد پیگیری: ${d.tracking_code}`);
             renderQATickets();
         } else { showToast(d.error || 'خطا در ارسال'); }
     } catch(e) { showToast('خطا در اتصال به سرور'); }
+}
+
+async function deleteQATicket(id, e) {
+    if (e) e.stopPropagation();
+    if (!confirm('آیا از حذف این سوال مطمئن هستید؟')) return;
+    try {
+        const r = await fetch('/api/tickets/'+id, { method:'DELETE', headers: userAuthHeaders() });
+        const d = await r.json();
+        if (r.ok && d.success) { showToast('سوال حذف شد'); renderQATickets(); }
+        else showToast(d.error || 'خطا در حذف');
+    } catch(e) { showToast('خطا در اتصال'); }
+}
+
+async function editQATicket(id, curSubject, curMsg, e) {
+    if (e) e.stopPropagation();
+    const newSubject = prompt('موضوع جدید:', curSubject);
+    if (!newSubject || !newSubject.trim()) return;
+    const newMsg = prompt('متن جدید:', curMsg);
+    if (!newMsg || !newMsg.trim()) return;
+    try {
+        const r = await fetch('/api/tickets/'+id, {
+            method:'PUT', headers: userAuthHeaders({'Content-Type':'application/json'}),
+            body: JSON.stringify({subject: newSubject.trim(), message: newMsg.trim()})
+        });
+        const d = await r.json();
+        if (r.ok && d.success) { showToast('ویرایش انجام شد'); renderQATickets(); }
+        else showToast(d.error || 'خطا در ویرایش');
+    } catch(e) { showToast('خطا در اتصال'); }
 }
 
 async function renderQATickets() {
@@ -917,15 +1073,23 @@ async function renderQATickets() {
         c.innerHTML = qaTickets.map(t => {
             const s = statusMap[t.status] || statusMap.open;
             const date = toFa(new Date(t.updated_at).toLocaleDateString('fa-IR'));
-            return `<div onclick="openQAConversation(${t.id},'${t.subject.replace(/'/g,"\\'")}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
+            const canEdit = t.status === 'open';
+            const subjectEsc = t.subject.replace(/'/g,"\\'").replace(/`/g,'\\`');
+            const firstMsgEsc = (t.first_message||'').replace(/'/g,"\\'").replace(/`/g,'\\`');
+            return `<div onclick="openQAConversation(${t.id},'${subjectEsc}')" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:bg-gray-50 active:scale-[0.98] transition">
                 <div class="flex items-start justify-between mb-2">
                     <h4 class="font-bold text-sm text-gray-800 flex-1 ml-2">${t.subject}</h4>
                     <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${s.cls}">${s.text}</span>
                 </div>
+                ${t.category_name ? `<span class="inline-block text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full mb-2">${t.category_name}</span>` : ''}
                 <p class="text-xs text-gray-500 mb-3 line-clamp-2">${t.first_message || ''}</p>
                 <div class="flex items-center justify-between text-[10px] text-gray-400">
                     <span><i class="far fa-calendar ml-1"></i>${date}</span>
-                    <span class="flex items-center gap-1"><i class="fas fa-chevron-left text-[8px]"></i>تیکت #${t.id}</span>
+                    <div class="flex items-center gap-2">
+                        ${t.tracking_code ? `<span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">${t.tracking_code}</span>` : ''}
+                        ${canEdit ? `<button onclick="editQATicket(${t.id},'${subjectEsc}','${firstMsgEsc}',event)" class="text-blue-400 hover:text-blue-600 px-1"><i class="fas fa-pen text-[10px]"></i></button>` : ''}
+                        ${canEdit ? `<button onclick="deleteQATicket(${t.id},event)" class="text-red-400 hover:text-red-600 px-1"><i class="fas fa-trash text-[10px]"></i></button>` : ''}
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -948,14 +1112,24 @@ async function openQAConversation(ticketId, subject) {
 
 async function sendQAConvMessage() {
     const inp = document.getElementById('qa-conv-input');
-    const t = inp.value.trim();
-    if (!t || !activeQATicketId || !qaUser) return;
-    inp.value = '';
+    const t = inp ? inp.value.trim() : '';
+    const fileInput = document.getElementById('qa-conv-file');
+    const file = fileInput ? fileInput.files[0] : null;
+    if (!activeQATicketId || !qaUser) return;
+    if (!t && !file && !_qaConvRecordedBlob) return;
+    if (file && file.size > 5*1024*1024) { showToast('حجم فایل نباید بیش از ۵ مگابایت باشد'); return; }
+    const fd = new FormData();
+    if (t) fd.append('text', t);
+    if (file) fd.append('ticket_file', file);
+    else if (_qaConvRecordedBlob) fd.append('ticket_file', _qaConvRecordedBlob, 'voice.webm');
+    if (inp) inp.value = '';
+    if (fileInput) fileInput.value = '';
+    qaConvCancelVoice();
+    const nm = document.getElementById('qa-conv-file-name');
+    if (nm) nm.textContent = '';
     try {
         const r = await fetch('/api/tickets/' + activeQATicketId + '/messages', {
-            method: 'POST',
-            headers: userAuthHeaders({'Content-Type':'application/json'}),
-            body: JSON.stringify({text: t})
+            method: 'POST', headers: userAuthHeaders(), body: fd
         });
         const d = await r.json();
         if (r.ok && d.success) {
@@ -982,15 +1156,44 @@ async function refreshQAConversation() {
     if (activeQATicketId) await loadQAConversationMessages(activeQATicketId);
 }
 
-function renderMsgBubble(text, senderType, timeStr) {
-    const isAdmin = senderType === 'admin';
+function renderMsgBubble(msg) {
+    const isAdmin = msg.sender_type === 'admin';
+    const timeStr = msg.created_at ? toFa(new Date(msg.created_at).toLocaleString('fa-IR')) : '';
+    const editedStr = msg.edited_at ? ' (ویرایش شده)' : '';
+    let attachHtml = '';
+    if (msg.attachment) {
+        if (msg.attachment_type === 'image') {
+            attachHtml = `<a href="${msg.attachment}" target="_blank"><img src="${msg.attachment}" class="rounded-xl max-h-48 w-auto mt-2 cursor-pointer" loading="lazy"></a>`;
+        } else if (msg.attachment_type === 'pdf') {
+            attachHtml = `<a href="${msg.attachment}" target="_blank" class="flex items-center gap-2 mt-2 bg-red-50 border border-red-100 px-3 py-2 rounded-xl text-xs text-red-600 font-bold hover:bg-red-100 transition"><i class="fas fa-file-pdf text-base"></i>مشاهده PDF</a>`;
+        } else if (msg.attachment_type === 'audio') {
+            attachHtml = `<audio controls class="mt-2 w-full h-8" src="${msg.attachment}"></audio>`;
+        }
+    }
+    const editBtn = isAdmin && msg.id ? `<button onclick="adminEditMsgInline(${msg.id}, this)" class="text-[9px] text-gray-400 hover:text-brand-600 ml-2"><i class="fas fa-pen"></i></button>` : '';
     return `<div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}" style="width:100%">
         <div style="max-width:82%;word-break:break-word;overflow-wrap:break-word;" class="${isAdmin ? 'bg-brand-50 border border-brand-100 text-brand-900' : 'bg-white border border-gray-200 text-gray-800'} px-4 py-3 rounded-2xl shadow-sm">
             ${isAdmin ? `<div class="text-[10px] font-black text-brand-600 mb-1.5"><i class="fas fa-user-shield ml-1"></i>پاسخ ادمین</div>` : ''}
-            <p class="text-sm leading-relaxed whitespace-pre-wrap">${text}</p>
-            ${timeStr ? `<span class="text-[9px] text-gray-400 mt-1.5 block">${timeStr}</span>` : ''}
+            ${msg.text ? `<p class="text-sm leading-relaxed whitespace-pre-wrap">${msg.text}</p>` : ''}
+            ${attachHtml}
+            <div class="flex items-center mt-1.5">
+                ${timeStr ? `<span class="text-[9px] text-gray-400">${timeStr}${editedStr}</span>` : ''}
+                ${editBtn}
+            </div>
         </div>
     </div>`;
+}
+function adminEditMsgInline(msgId, btnEl) {
+    const bubble = btnEl.closest('[style]');
+    const p = bubble ? bubble.querySelector('p') : null;
+    if (!p) return;
+    const cur = p.textContent;
+    const newText = prompt('ویرایش پیام:', cur);
+    if (!newText || newText.trim() === cur) return;
+    fetch('/api/admin/ticket-messages/' + msgId, {
+        method:'PUT', headers: userAuthHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify({text: newText.trim()})
+    }).then(r=>r.json()).then(d=>{ if(d.success) p.textContent = newText.trim(); else showToast(d.error||'خطا'); });
 }
 
 async function loadQAConversationMessages(ticketId) {
@@ -1016,7 +1219,7 @@ async function loadQAConversationMessages(ticketId) {
         }
 
         if (Array.isArray(msgs) && msgs.length > 0) {
-            c.innerHTML = msgs.map(m => renderMsgBubble(m.text, m.sender_type, new Date(m.created_at).toLocaleString('fa-IR'))).join('');
+            c.innerHTML = msgs.map(m => renderMsgBubble(m)).join('');
             c.scrollTop = c.scrollHeight;
             const replyDiv = document.getElementById('qa-conv-reply');
             const limitMsg = document.getElementById('qa-conv-limit-msg');
