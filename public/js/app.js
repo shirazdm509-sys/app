@@ -1393,11 +1393,40 @@ async function performGlobalSearch() {
 // ====================================================
 // Event Listeners و راه‌اندازی
 // ====================================================
+// ──────────────────────────────────────────────
+// آنالیتیکس سبک: ping برای ثبت کاربر آنلاین
+// ──────────────────────────────────────────────
+function _getVisitorId() {
+    try {
+        let id = localStorage.getItem('vid');
+        if (!id) {
+            id = (Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).slice(0, 24);
+            localStorage.setItem('vid', id);
+        }
+        return id;
+    } catch(e) { return null; }
+}
+function _analyticsPing() {
+    const vid = _getVisitorId();
+    if (!vid) return;
+    try {
+        fetch('/api/analytics/ping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visitor_id: vid }),
+            keepalive: true
+        }).catch(()=>{});
+    } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
     const si=document.getElementById('search-input');if(si)si.addEventListener('keypress',e=>{if(e.key==='Enter')performSearch();});
     const gsi=document.getElementById('global-search-input');if(gsi)gsi.addEventListener('keypress',e=>{if(e.key==='Enter')performGlobalSearch();});
     const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
     setupSwipe();
+    // Analytics ping: یک بار در ابتدا، سپس هر ۲ دقیقه
+    setTimeout(_analyticsPing, 2000);
+    setInterval(_analyticsPing, 120000);
 
     // ──────────────────────────────────────────────
     // مدیریت انتخاب متن (بدون منوی native مرورگر)

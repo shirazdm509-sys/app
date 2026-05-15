@@ -341,6 +341,10 @@ function initDb() {
         _defNav.forEach(([s,ic,lb,ac])=>mainDb.run(`INSERT OR IGNORE INTO nav_items (sort_order,icon,label,action) VALUES (?,?,?,?)`,[s,ic,lb,ac]));
         mainDb.run(`CREATE TABLE IF NOT EXISTS ticket_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, sort_order INTEGER DEFAULT 0, active INTEGER DEFAULT 1, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
         mainDb.run(`CREATE TABLE IF NOT EXISTS canned_responses (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, text TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        // Analytics: visitor sessions (lightweight - one row per visitor, last_seen updated on ping)
+        mainDb.run(`CREATE TABLE IF NOT EXISTS visitor_sessions (visitor_id TEXT PRIMARY KEY, first_seen DATETIME DEFAULT CURRENT_TIMESTAMP, last_seen DATETIME DEFAULT CURRENT_TIMESTAMP, ip TEXT, user_agent TEXT, country TEXT, device_type TEXT, total_visits INTEGER DEFAULT 1)`);
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_visitor_last_seen ON visitor_sessions(last_seen)`, () => {});
+        mainDb.run(`CREATE INDEX IF NOT EXISTS idx_visitor_first_seen ON visitor_sessions(first_seen)`, () => {});
         // Migration: add user_id to tickets if not exists
         mainDb.run(`ALTER TABLE tickets ADD COLUMN user_id INTEGER DEFAULT NULL`, () => {});
         mainDb.run(`ALTER TABLE tickets ADD COLUMN tracking_code TEXT`, () => {});
@@ -1038,6 +1042,95 @@ app.get('/api/tickets/:id',(req,res)=>{
         if(err||!row) return res.status(404).json({error:'یافت نشد'});
         res.json(row);
     });
+});
+
+// === ANALYTICS (lightweight visitor tracking) ===
+function _parseDevice(ua) {
+    if (!ua) return 'unknown';
+    if (/iPad|Tablet/i.test(ua)) return 'tablet';
+    if (/Mobile|Android|iPhone|Windows Phone/i.test(ua)) return 'mobile';
+    return 'desktop';
+}
+function _getClientIp(req) {
+    const xfwd = req.headers['x-forwarded-for'];
+    if (xfwd) return xfwd.split(',')[0].trim();
+    return (req.connection?.remoteAddress || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+}
+function _isPrivateIp(ip) {
+    if (!ip || ip === '::1' || ip === '127.0.0.1') return true;
+    return /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(ip);
+}
+// Fire-and-forget country lookup (only on new visitor)
+function _lookupCountry(ip, visitor_id) {
+    if (_isPrivateIp(ip)) return;
+    try {
+        const http = require('http');
+        const req = http.get(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=country,countryCode`, { timeout: 2500 }, (r) => {
+            let data = '';
+            r.on('data', c => data += c);
+            r.on('end', () => {
+                try {
+                    const obj = JSON.parse(data);
+                    if (obj && obj.country) {
+                        mainDb.run('UPDATE visitor_sessions SET country=? WHERE visitor_id=?', [obj.country, visitor_id]);
+                    }
+                } catch(e) {}
+            });
+        });
+        req.on('error', () => {});
+        req.on('timeout', () => req.destroy());
+    } catch(e) {}
+}
+// Ping endpoint - very lightweight, called every minute
+app.post('/api/analytics/ping', express.json({limit:'1kb'}), (req, res) => {
+    const visitor_id = (req.body && typeof req.body.visitor_id === 'string') ? req.body.visitor_id.slice(0, 64) : null;
+    if (!visitor_id || visitor_id.length < 8) return res.status(400).json({error:'invalid'});
+    const ua = (req.headers['user-agent'] || '').slice(0, 300);
+    const ip = _getClientIp(req).slice(0, 60);
+    const device = _parseDevice(ua);
+    // UPSERT: try update first, insert if not exists
+    mainDb.run(
+        'UPDATE visitor_sessions SET last_seen=CURRENT_TIMESTAMP, total_visits=total_visits+1 WHERE visitor_id=?',
+        [visitor_id],
+        function() {
+            if (this.changes === 0) {
+                mainDb.run(
+                    'INSERT OR IGNORE INTO visitor_sessions (visitor_id,ip,user_agent,device_type) VALUES (?,?,?,?)',
+                    [visitor_id, ip, ua, device],
+                    function() { _lookupCountry(ip, visitor_id); }
+                );
+            }
+            res.json({ok:1});
+        }
+    );
+});
+// Admin analytics endpoint
+app.get('/api/admin/analytics', adminAuth, (req, res) => {
+    const queries = {
+        online:  `SELECT COUNT(*) as c FROM visitor_sessions WHERE last_seen > datetime('now', '-5 minutes')`,
+        today:   `SELECT COUNT(*) as c FROM visitor_sessions WHERE date(last_seen) = date('now')`,
+        week:    `SELECT COUNT(*) as c FROM visitor_sessions WHERE last_seen >= datetime('now', '-7 days')`,
+        month:   `SELECT COUNT(*) as c FROM visitor_sessions WHERE last_seen >= datetime('now', 'start of month')`,
+        year:    `SELECT COUNT(*) as c FROM visitor_sessions WHERE last_seen >= datetime('now', 'start of year')`,
+        total:   `SELECT COUNT(*) as c FROM visitor_sessions`,
+        new_today: `SELECT COUNT(*) as c FROM visitor_sessions WHERE date(first_seen) = date('now')`,
+    };
+    const results = {};
+    let pending = Object.keys(queries).length + 2;
+    const done = () => { if (--pending === 0) res.json(results); };
+    Object.entries(queries).forEach(([key, sql]) => {
+        mainDb.get(sql, [], (err, row) => { results[key] = row ? row.c : 0; done(); });
+    });
+    mainDb.all(
+        `SELECT device_type as type, COUNT(*) as count FROM visitor_sessions GROUP BY device_type ORDER BY count DESC`,
+        [],
+        (err, rows) => { results.devices = rows || []; done(); }
+    );
+    mainDb.all(
+        `SELECT COALESCE(country,'نامشخص') as country, COUNT(*) as count FROM visitor_sessions GROUP BY country ORDER BY count DESC LIMIT 20`,
+        [],
+        (err, rows) => { results.countries = rows || []; done(); }
+    );
 });
 
 // === NOTIFICATIONS PUBLIC (broadcast - no login needed) ===
