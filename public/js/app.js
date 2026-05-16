@@ -123,8 +123,10 @@ async function init() {
         try { loadSettings(); } catch(e) {}
         try {
             const r = await fetch('/api/books');
+            // اگر پاسخ موفق نباشد (مثلاً 503 از Service Worker در حالت آفلاین) throw کن
+            if (!r.ok) throw new Error('Books fetch failed: ' + r.status);
             allBooks = await r.json();
-            if(!Array.isArray(allBooks)) allBooks = [];
+            if(!Array.isArray(allBooks)) throw new Error('Invalid books response');
             // کش لیست کتاب‌ها برای استفاده آفلاین
             try { localStorage.setItem('cached_books_list', JSON.stringify(allBooks)); } catch(e2) {}
         } catch(e) {
@@ -134,20 +136,19 @@ async function init() {
                 const cached = localStorage.getItem('cached_books_list');
                 if (cached) { allBooks = JSON.parse(cached); if(!Array.isArray(allBooks)) allBooks = []; }
             } catch(e2) { allBooks = []; }
-            // همیشه کتاب‌های دانلودشده از IndexedDB را ادغام کن
-            // (تا حتی با کش قدیمی یا ناقص، کتاب‌های آفلاین حتماً نمایش داده شوند)
-            try {
-                const offlineBooks = await getAllOfflineBooks();
-                const existingIds = new Set(allBooks.map(b => +b.id));
-                offlineBooks.forEach(b => {
-                    if (!existingIds.has(+b.id)) {
-                        allBooks.push({ id: b.id, title: b.title, author: b.author||'', cover: b.cover||'', page_count: b.page_count||0 });
-                    }
-                });
-            } catch(e3) {}
         }
+        // همیشه کتاب‌های دانلودشده از IndexedDB را ادغام کن
+        // (حتی اگر API کار کند یا نکند — کتاب‌های آفلاین باید همیشه نمایش داده شوند)
+        try {
+            const offlineBooks = await getAllOfflineBooks();
+            const existingIds = new Set(allBooks.map(b => +b.id));
+            offlineBooks.forEach(b => {
+                if (!existingIds.has(+b.id)) {
+                    allBooks.push({ id: b.id, title: b.title, author: b.author||'', cover: b.cover||'', page_count: b.page_count||0 });
+                }
+            });
+        } catch(e3) {}
         // اطمینان از بارگذاری کامل شناسه‌های آفلاین قبل از رندر
-        // (جلوگیری از race condition که باعث می‌شد کتاب‌های دانلودشده محو نمایش داده شوند)
         try { await loadOfflineBookIds(); } catch(e) {}
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
