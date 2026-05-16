@@ -134,14 +134,21 @@ async function init() {
                 const cached = localStorage.getItem('cached_books_list');
                 if (cached) { allBooks = JSON.parse(cached); if(!Array.isArray(allBooks)) allBooks = []; }
             } catch(e2) { allBooks = []; }
-            // اگر کشی نبود از IndexedDB کتاب‌های آفلاین بارگذاری شود
-            if (!allBooks.length) {
-                try {
-                    const offlineBooks = await getAllOfflineBooks();
-                    allBooks = offlineBooks.map(b => ({ id: b.id, title: b.title, author: b.author||'', cover: b.cover||'', page_count: b.page_count||0 }));
-                } catch(e3) {}
-            }
+            // همیشه کتاب‌های دانلودشده از IndexedDB را ادغام کن
+            // (تا حتی با کش قدیمی یا ناقص، کتاب‌های آفلاین حتماً نمایش داده شوند)
+            try {
+                const offlineBooks = await getAllOfflineBooks();
+                const existingIds = new Set(allBooks.map(b => +b.id));
+                offlineBooks.forEach(b => {
+                    if (!existingIds.has(+b.id)) {
+                        allBooks.push({ id: b.id, title: b.title, author: b.author||'', cover: b.cover||'', page_count: b.page_count||0 });
+                    }
+                });
+            } catch(e3) {}
         }
+        // اطمینان از بارگذاری کامل شناسه‌های آفلاین قبل از رندر
+        // (جلوگیری از race condition که باعث می‌شد کتاب‌های دانلودشده محو نمایش داده شوند)
+        try { await loadOfflineBookIds(); } catch(e) {}
         try { renderLibrary(); } catch(e) { console.warn('Render err:', e); }
         try { await loadBanners(); } catch(e) { console.warn('Banners err:', e); }
         try { await loadHomeShortcuts(); } catch(e) { console.warn('Shortcuts err:', e); }
