@@ -88,7 +88,7 @@ function openPdfBook(bookId) {
     window.open('/api/books/' + bookId + '/pdf', '_blank');
 }
 
-async function openBook(bookId) {
+async function openBook(bookId, targetPageNum) {
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     // اطمینان از حضور صفحه کتابخانه در navigation stack
     if (typeof _screenStack !== 'undefined' && _screenStack[_screenStack.length - 1] !== 'library') {
@@ -124,7 +124,8 @@ async function openBook(bookId) {
             index: index,
             name: item.name || 'بدون عنوان',
             text: item.text || '',
-            season: item.season || 'بدون فصل'
+            season: item.season || 'بدون فصل',
+            pageVal: item.page
         }));
 
         loadBookUserData();
@@ -133,15 +134,27 @@ async function openBook(bookId) {
         const slider=document.getElementById('page-slider');
         if(slider) slider.max=bookData.length-1;
 
-        currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');
-        if(currentIndex>=bookData.length || isNaN(currentIndex)) currentIndex=0;
+        if (targetPageNum !== undefined) {
+            // رفتن مستقیم به صفحه‌ای که جستجو آن را یافته
+            const idx = bookData.findIndex(p => String(p.pageVal) === String(targetPageNum));
+            currentIndex = idx >= 0 ? idx : 0;
+        } else {
+            currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');
+            if(currentIndex>=bookData.length || isNaN(currentIndex)) currentIndex=0;
+        }
 
         const book=allBooks.find(b=>b.id == bookId);
         document.getElementById('toc-book-title').textContent=book?book.title:'کتاب';
         document.getElementById('book-main-title').textContent=book?book.title:'کتاب';
 
         hideLoading();
-        openToc();
+        if (targetPageNum !== undefined) {
+            // باز کردن خواننده مستقیم بدون نمایش فهرست
+            goToPage(currentIndex);
+            openReader();
+        } else {
+            openToc();
+        }
     } catch(e) {
         console.error("Open Book Error:", e);
         hideLoading();
