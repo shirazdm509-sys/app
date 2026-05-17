@@ -1,11 +1,12 @@
 // Service Worker - مرکز نشر آثار
-const CACHE_NAME = 'nashr-asar-v27';
-const STATIC_CACHE = 'nashr-static-v27';
-const DYNAMIC_CACHE = 'nashr-dynamic-v27';
+const CACHE_NAME = 'nashr-asar-v28';
+const STATIC_CACHE = 'nashr-static-v28';
+const DYNAMIC_CACHE = 'nashr-dynamic-v28';
 
-// فقط فونت‌ها و فایل‌های ثابت را pre-cache می‌کنیم
+// صفحه اصلی و فونت‌ها را pre-cache می‌کنیم
 // فایل‌های JS/CSS با استراتژی network-first بارگذاری می‌شوند (همیشه به‌روز)
 const STATIC_ASSETS = [
+  '/',
   '/vendor/fa/webfonts/fa-solid-900.woff2',
   '/vendor/fa/webfonts/fa-regular-400.woff2',
   '/vendor/fa/webfonts/fa-brands-400.woff2',
