@@ -1456,7 +1456,7 @@ function _openSearchItem(i) {
     openBook(item.bookId, item.pageId, item.query);
 }
 
-function _openSearchMedia(i) {
+async function _openSearchMedia(i) {
     const m = window._gsMedia && window._gsMedia[i];
     if (!m) return;
     const tab = m.type === 'audio' ? 'audio' : 'video';
@@ -1465,10 +1465,22 @@ function _openSearchMedia(i) {
         navToScreen('media');
         if (typeof switchMediaTab === 'function') switchMediaTab(tab);
     });
-    setTimeout(function() {
+    try {
+        if (m.type === 'audio') {
+            // مستقیم همان دسته‌ی track را بارگذاری کن (categoryId از سرور)
+            await loadAudioPlaylist(m.categoryId, m.categoryName || '', 0);
+            const list = (typeof audioCurrentTracks !== 'undefined' && audioCurrentTracks) || [];
+            const idx = list.findIndex(t => String(t.id) === String(m.id));
+            selectAudioTrack(idx >= 0 ? idx : 0, true);
+        } else {
+            await loadVideoList(m.categoryId, m.categoryName || '', 0);
+            setTimeout(function() { playVideoItem(m.id); }, 200);
+        }
+    } catch(e) {
+        // fallback: روش جستجوی دسته‌ها
         if (m.type === 'audio') openAudioTrackById(m.id);
         else openVideoItemById(m.id);
-    }, 150);
+    }
 }
 
 // ====================================================
