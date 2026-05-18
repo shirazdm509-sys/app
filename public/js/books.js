@@ -123,6 +123,7 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         currentBookId=bookId;
         bookData=rows.map((item,index)=>({
             index: index,
+            rowId: item.ID,
             name: item.name || 'بدون عنوان',
             text: item.text || '',
             season: item.season || 'بدون فصل'
@@ -134,25 +135,29 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         const slider=document.getElementById('page-slider');
         if(slider) slider.max=bookData.length-1;
 
-        if (searchQuery) {
-            // یافتن صفحه با نرمال‌سازی فارسی/عربی + حذف HTML (همتای سمت سرور)
-            const nf = (typeof _normFa === 'function')
-                ? _normFa
-                : (s => (s||'').toString().toLowerCase());
-            const clean = s => nf((s == null ? '' : s.toString()).replace(/<[^>]*>/g, ' '));
-            const sq = nf(searchQuery);
-            const norm = bookData.map(p => clean(p.name) + ' ' + clean(p.text));
-            // ۱) تطبیق کامل عبارت
-            let idx = norm.findIndex(t => t.includes(sq));
-            // ۲) fallback: همه کلمات عبارت در یک صفحه
-            if (idx < 0) {
-                const words = sq.split(' ').filter(w => w.length > 1);
-                if (words.length) idx = norm.findIndex(t => words.every(w => t.includes(w)));
+        if (targetPageNum != null || searchQuery) {
+            let idx = -1;
+            // ۰) تطبیق دقیق با شناسه‌ی ردیف (قطعی‌ترین — از نتیجه‌ی سرور)
+            if (targetPageNum != null) {
+                idx = bookData.findIndex(p => p.rowId != null && String(p.rowId) === String(targetPageNum));
             }
-            // ۳) fallback: بلندترین کلمه
-            if (idx < 0) {
-                const words = sq.split(' ').filter(w => w.length > 1).sort((a, b) => b.length - a.length);
-                if (words.length) idx = norm.findIndex(t => t.includes(words[0]));
+            // ۱) تطبیق متنی با نرمال‌سازی فارسی/عربی + حذف HTML
+            if (idx < 0 && searchQuery) {
+                const nf = (typeof _normFa === 'function')
+                    ? _normFa
+                    : (s => (s||'').toString().toLowerCase());
+                const clean = s => nf((s == null ? '' : s.toString()).replace(/<[^>]*>/g, ' '));
+                const sq = nf(searchQuery);
+                const norm = bookData.map(p => clean(p.name) + ' ' + clean(p.text));
+                idx = norm.findIndex(t => t.includes(sq));
+                if (idx < 0) {
+                    const words = sq.split(' ').filter(w => w.length > 1);
+                    if (words.length) idx = norm.findIndex(t => words.every(w => t.includes(w)));
+                }
+                if (idx < 0) {
+                    const words = sq.split(' ').filter(w => w.length > 1).sort((a, b) => b.length - a.length);
+                    if (words.length) idx = norm.findIndex(t => t.includes(words[0]));
+                }
             }
             _searchHit = idx >= 0;
             currentIndex = idx >= 0 ? idx : 0;
@@ -166,11 +171,11 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         document.getElementById('book-main-title').textContent=book?book.title:'کتاب';
 
         hideLoading();
-        if (searchQuery && _searchHit) {
-            // کلمه در متن پیدا شد → مستقیم به همان صفحه
+        if ((targetPageNum != null || searchQuery) && _searchHit) {
+            // صفحه پیدا شد → مستقیم به همان صفحه‌ی متن
             goToPage(currentIndex);
         } else {
-            // عنوان مطابقت داشت ولی کلمه در متن نبود → فهرست
+            // پیدا نشد (یا فقط عنوان مطابقت داشت) → فهرست
             openToc();
         }
     } catch(e) {
