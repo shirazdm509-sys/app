@@ -134,14 +134,25 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         if(slider) slider.max=bookData.length-1;
 
         if (searchQuery) {
-            // یافتن صفحه با نرمال‌سازی فارسی/عربی (همتای سمت سرور)
+            // یافتن صفحه با نرمال‌سازی فارسی/عربی + حذف HTML (همتای سمت سرور)
             const nf = (typeof _normFa === 'function')
                 ? _normFa
                 : (s => (s||'').toString().toLowerCase());
+            const clean = s => nf((s == null ? '' : s.toString()).replace(/<[^>]*>/g, ' '));
             const sq = nf(searchQuery);
-            const idx = bookData.findIndex(p =>
-                nf(p.name).includes(sq) || nf(p.text).includes(sq)
-            );
+            const norm = bookData.map(p => clean(p.name) + ' ' + clean(p.text));
+            // ۱) تطبیق کامل عبارت
+            let idx = norm.findIndex(t => t.includes(sq));
+            // ۲) fallback: همه کلمات عبارت در یک صفحه
+            if (idx < 0) {
+                const words = sq.split(' ').filter(w => w.length > 1);
+                if (words.length) idx = norm.findIndex(t => words.every(w => t.includes(w)));
+            }
+            // ۳) fallback: بلندترین کلمه
+            if (idx < 0) {
+                const words = sq.split(' ').filter(w => w.length > 1).sort((a, b) => b.length - a.length);
+                if (words.length) idx = norm.findIndex(t => t.includes(words[0]));
+            }
             currentIndex = idx >= 0 ? idx : 0;
         } else {
             currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');

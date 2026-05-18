@@ -586,14 +586,19 @@ function _normFa(s) {
 function _sqlNorm(col) {
     return `REPLACE(REPLACE(REPLACE(LOWER(${col}),'ي','ی'),'ى','ی'),'ك','ک')`;
 }
+// نرمال‌سازی query هماهنگ با _sqlNorm (فقط ي/ى/ك) تا LIKE متقارن باشد
+function _sqlNormQ(s) {
+    return (s == null ? '' : s.toString()).toLowerCase()
+        .replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').trim();
+}
 
 app.get('/api/search', searchLimiter, async (req, res) => {
     let raw = (req.query.q || '').trim();
     if (raw.length > 80) raw = raw.slice(0, 80);
     raw = raw.replace(/[\x00-\x1f\x7f<>]/g, '').trim();
-    const q = _normFa(raw);
+    const q = _normFa(raw);                 // برای استخراج snippet
     if (!q || q.length < 2) return res.json({ books: [], pages: [], media: [] });
-    const like = `%${q}%`;
+    const like = `%${_sqlNormQ(raw)}%`;     // برای LIKE متقارن با ستون
 
     const result = { books: [], pages: [], media: [] };
 
