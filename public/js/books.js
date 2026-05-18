@@ -4,6 +4,7 @@
 let allBooks=[], currentBookId=null, bookData=[], currentIndex=0;
 let fontSize=16, currentTheme='light', currentFont='vazir', lineHeight=2.2;
 let uiVisible=true, bookmarks=[], notes={};
+let _searchHighlightQuery = null;
 let touchStartX=0, touchEndX=0;
 
 // ====================================================
@@ -172,7 +173,8 @@ async function openBook(bookId, targetPageNum, searchQuery) {
 
         hideLoading();
         if ((targetPageNum != null || searchQuery) && _searchHit) {
-            // صفحه پیدا شد → مستقیم به همان صفحه‌ی متن
+            // صفحه پیدا شد → مستقیم به همان صفحه‌ی متن + هایلایت کلمه جستجو
+            if (searchQuery) _searchHighlightQuery = searchQuery;
             goToPage(currentIndex);
         } else {
             // پیدا نشد (یا فقط عنوان مطابقت داشت) → فهرست
@@ -328,7 +330,7 @@ function goToPage(index) {
     let finalHTML=`<h2 class="text-3xl font-black mb-8 pb-4 border-b-2 border-brand-100 leading-snug">${page.name}</h2>`+htmlText;
     if(notes[currentIndex]) finalHTML+=`<div class="mt-12 pt-6 border-t border-dashed border-gray-300 bg-gray-50 p-4 rounded-2xl"><h3 class="text-sm font-bold text-gray-500 mb-2"><i class="fas fa-pen-alt ml-1"></i> یادداشت:</h3><p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">${notes[currentIndex]}</p></div>`;
     const tc=document.getElementById('text-content');
-    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';convertDOMNumbers(tc);applyHighlightsToPage();}
+    if(tc){tc.innerHTML=finalHTML;tc.style.fontSize=fontSize+'px';convertDOMNumbers(tc);applySearchHighlight();applyHighlightsToPage();}
     document.getElementById('header-title').textContent=page.name;
     document.getElementById('chapter-title').textContent=page.season||'';
     document.getElementById('page-counter').textContent=toFa(currentIndex+1)+' / '+toFa(bookData.length);
@@ -659,6 +661,55 @@ function setTextColor(c) {
 
 function togglePageMenu(){document.getElementById('page-action-menu').classList.toggle('hidden');}
 function copyPageText(){const p=bookData[currentIndex];if(!p)return;navigator.clipboard.writeText(p.name+'\n\n'+p.text.replace(/<[^>]*>/g,'')).then(()=>showToast('متن کپی شد'));document.getElementById('page-action-menu').classList.add('hidden');}
+
+// ====================================================
+// هایلایت کلمه جستجو (جستجوی سراسری)
+// ====================================================
+function _normIdxToOrigRange(origText, nf, normStart, normLen) {
+    let ni = 0, origStart = 0, origEnd = origText.length, foundStart = false;
+    for (let oi = 0; oi < origText.length; oi++) {
+        if (ni === normStart && !foundStart) { origStart = oi; foundStart = true; }
+        if (ni === normStart + normLen) { origEnd = oi; break; }
+        ni += nf(origText[oi]).length;
+    }
+    if (!foundStart) origStart = 0;
+    return [origStart, origEnd];
+}
+
+function applySearchHighlight() {
+    const tc = document.getElementById('text-content');
+    if (!tc || !_searchHighlightQuery) return;
+    const query = _searchHighlightQuery;
+    _searchHighlightQuery = null;
+    const nf = (typeof _normFa === 'function') ? _normFa : (s => (s||'').toString().toLowerCase());
+    const nq = nf(query);
+    if (!nq || nq.length < 2) return;
+    let firstMark = null, changed = true, iter = 0;
+    while (changed && iter < 300) {
+        changed = false; iter++;
+        const walker = document.createTreeWalker(tc, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            if (node.parentElement && node.parentElement.tagName === 'MARK') continue;
+            const origText = node.textContent;
+            const ni = nf(origText).indexOf(nq);
+            if (ni < 0) continue;
+            const [os, oe] = _normIdxToOrigRange(origText, nf, ni, nq.length);
+            const mark = document.createElement('mark');
+            mark.style.cssText = 'background:#fde047;border-radius:3px;padding:0 2px;color:inherit;';
+            mark.className = 'search-hl';
+            mark.textContent = origText.slice(os, oe);
+            const frag = document.createDocumentFragment();
+            if (os > 0) frag.appendChild(document.createTextNode(origText.slice(0, os)));
+            frag.appendChild(mark);
+            if (oe < origText.length) frag.appendChild(document.createTextNode(origText.slice(oe)));
+            node.parentNode.replaceChild(frag, node);
+            if (!firstMark) firstMark = mark;
+            changed = true; break;
+        }
+    }
+    if (firstMark) setTimeout(() => firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+}
 
 // ====================================================
 // هایلایت متن
