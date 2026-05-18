@@ -1459,11 +1459,16 @@ function _openSearchItem(i) {
 function _openSearchMedia(i) {
     const m = window._gsMedia && window._gsMedia[i];
     if (!m) return;
-    withoutHistory(function() { navToScreen('media'); });
+    const tab = m.type === 'audio' ? 'audio' : 'video';
+    // به media برو و تب درست را visible کن (بدون initMedia تا race نشود)
+    withoutHistory(function() {
+        navToScreen('media');
+        if (typeof switchMediaTab === 'function') switchMediaTab(tab);
+    });
     setTimeout(function() {
         if (m.type === 'audio') openAudioTrackById(m.id);
-        else if (m.type === 'video') openVideoItemById(m.id);
-    }, 200);
+        else openVideoItemById(m.id);
+    }, 150);
 }
 
 // ====================================================
