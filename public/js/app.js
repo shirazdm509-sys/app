@@ -1379,9 +1379,9 @@ async function performGlobalSearch() {
             </button>`).join('');
         }
         if (data.pages && data.pages.length) {
-            window._gsQuery = q;
+            window._gsItems = data.pages.map(p => ({ bookId: p.bookId, query: q }));
             html += `<h3 class="text-xs font-black text-gray-500 mb-2 mt-4 px-1"><i class="fas fa-file-alt ml-1 text-emerald-600"></i>یافت شده در متن کتاب‌ها</h3>`;
-            html += data.pages.map(p => `<button onclick="closeGlobalSearch();openBook(${p.bookId},undefined,window._gsQuery)" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-emerald-50 transition shadow-sm mb-2 block">
+            html += data.pages.map((p, i) => `<button onclick="closeGlobalSearch();_openSearchItem(${i})" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-emerald-50 transition shadow-sm mb-2 block">
                 <div class="flex items-center gap-2 mb-1">
                     ${p.bookCover?`<img src="${p.bookCover}" class="w-7 h-10 rounded object-cover shrink-0">`:`<div class="w-7 h-10 bg-emerald-50 rounded flex items-center justify-center shrink-0"><i class="fas fa-book text-emerald-300 text-xs"></i></div>`}
                     <div class="text-right min-w-0">
@@ -1397,6 +1397,12 @@ async function performGlobalSearch() {
     } catch(e) {
         c.innerHTML = `<div class="text-center py-12 text-red-400"><i class="fas fa-exclamation-circle text-3xl mb-3"></i><p class="text-sm font-bold">خطا در جستجو</p></div>`;
     }
+}
+
+function _openSearchItem(i) {
+    const item = window._gsItems && window._gsItems[i];
+    if (!item) return;
+    openBook(item.bookId, undefined, item.query);
 }
 
 // ====================================================
