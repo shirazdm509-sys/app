@@ -89,6 +89,7 @@ function openPdfBook(bookId) {
 }
 
 async function openBook(bookId, targetPageNum, searchQuery) {
+    let _searchHit = false;
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     // اطمینان از حضور صفحه کتابخانه در navigation stack
     if (typeof _screenStack !== 'undefined' && _screenStack[_screenStack.length - 1] !== 'library') {
@@ -153,6 +154,7 @@ async function openBook(bookId, targetPageNum, searchQuery) {
                 const words = sq.split(' ').filter(w => w.length > 1).sort((a, b) => b.length - a.length);
                 if (words.length) idx = norm.findIndex(t => t.includes(words[0]));
             }
+            _searchHit = idx >= 0;
             currentIndex = idx >= 0 ? idx : 0;
         } else {
             currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');
@@ -164,10 +166,11 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         document.getElementById('book-main-title').textContent=book?book.title:'کتاب';
 
         hideLoading();
-        if (searchQuery) {
-            // باز کردن خواننده مستقیم در صفحه یافت‌شده
+        if (searchQuery && _searchHit) {
+            // کلمه در متن پیدا شد → مستقیم به همان صفحه
             goToPage(currentIndex);
         } else {
+            // عنوان مطابقت داشت ولی کلمه در متن نبود → فهرست
             openToc();
         }
     } catch(e) {

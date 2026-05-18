@@ -1381,6 +1381,7 @@ async function performGlobalSearch() {
         const r = await fetch('/api/search?q=' + encodeURIComponent(q));
         const data = await r.json();
         let html = '';
+        window._gsQ = q;
         if (data.books && data.books.length) {
             html += `<h3 class="text-xs font-black text-gray-500 mb-2 px-1"><i class="fas fa-book ml-1 text-brand-600"></i>کتاب‌های مرتبط</h3>`;
             html += data.books.map(b => `<button data-act="book" data-book="${b.id}" class="gs-result w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-brand-50 transition shadow-sm flex items-center gap-3 mb-2">
@@ -1439,7 +1440,8 @@ function _initGlobalSearchDelegation() {
         const act = btn.getAttribute('data-act');
         closeGlobalSearch();
         if (act === 'book') {
-            openBook(parseInt(btn.getAttribute('data-book'), 10));
+            // عنوان کتاب مطابقت داشته — کلمه را در متن هم جستجو کن
+            openBook(parseInt(btn.getAttribute('data-book'), 10), undefined, window._gsQ);
         } else if (act === 'page') {
             _openSearchItem(parseInt(btn.getAttribute('data-idx'), 10));
         } else if (act === 'media') {
