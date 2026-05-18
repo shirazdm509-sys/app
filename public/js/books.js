@@ -134,10 +134,13 @@ async function openBook(bookId, targetPageNum, searchQuery) {
         if(slider) slider.max=bookData.length-1;
 
         if (searchQuery) {
-            // یافتن صفحه‌ای که متن جستجو در آن وجود دارد (قابل اعتمادترین روش)
-            const sq = searchQuery.toLowerCase();
+            // یافتن صفحه با نرمال‌سازی فارسی/عربی (همتای سمت سرور)
+            const nf = (typeof _normFa === 'function')
+                ? _normFa
+                : (s => (s||'').toString().toLowerCase());
+            const sq = nf(searchQuery);
             const idx = bookData.findIndex(p =>
-                p.name.toLowerCase().includes(sq) || p.text.toLowerCase().includes(sq)
+                nf(p.name).includes(sq) || nf(p.text).includes(sq)
             );
             currentIndex = idx >= 0 ? idx : 0;
         } else {

@@ -1359,6 +1359,19 @@ function closeGlobalSearch() {
     const m = document.getElementById('global-search-modal');
     if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
 }
+// نرمال‌سازی فارسی/عربی (همتای سمت سرور) — برای تطبیق متن در کلاینت
+function _normFa(s) {
+    return (s == null ? '' : s.toString()).toLowerCase()
+        .replace(/[يى]/g, 'ی')
+        .replace(/ك/g, 'ک')
+        .replace(/ة/g, 'ه')
+        .replace(/[أإآٱ]/g, 'ا')
+        .replace(/[ً-ْٰ]/g, '')
+        .replace(/‌/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 async function performGlobalSearch() {
     const q = document.getElementById('global-search-input').value.trim();
     if (!q) return;
@@ -1377,6 +1390,21 @@ async function performGlobalSearch() {
                     <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
                 </div>
             </button>`).join('');
+        }
+        if (data.media && data.media.length) {
+            window._gsMedia = data.media;
+            html += `<h3 class="text-xs font-black text-gray-500 mb-2 mt-4 px-1"><i class="fas fa-photo-film ml-1 text-purple-600"></i>صوت و ویدیو</h3>`;
+            html += data.media.map((m, i) => {
+                const icon = m.type === 'audio' ? 'fa-music' : 'fa-video';
+                const tag = m.type === 'audio' ? 'صوت' : 'ویدیو';
+                return `<button onclick="closeGlobalSearch();_openSearchMedia(${i})" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-purple-50 transition shadow-sm flex items-center gap-3 mb-2">
+                ${m.cover?`<img src="${m.cover}" class="w-12 h-12 rounded-lg object-cover shrink-0">`:`<div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center shrink-0"><i class="fas ${icon} text-purple-300"></i></div>`}
+                <div class="text-right min-w-0 flex-1">
+                    <h4 class="font-bold text-sm text-gray-800 mb-0.5 line-clamp-1">${m.title}</h4>
+                    <p class="text-xs text-gray-400"><span class="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[10px] ml-1">${tag}</span>${m.categoryName||''}</p>
+                </div>
+            </button>`;
+            }).join('');
         }
         if (data.pages && data.pages.length) {
             window._gsItems = data.pages.map(p => ({ bookId: p.bookId, query: q }));
@@ -1403,6 +1431,16 @@ function _openSearchItem(i) {
     const item = window._gsItems && window._gsItems[i];
     if (!item) return;
     openBook(item.bookId, undefined, item.query);
+}
+
+function _openSearchMedia(i) {
+    const m = window._gsMedia && window._gsMedia[i];
+    if (!m) return;
+    withoutHistory(function() { navToScreen('media'); });
+    setTimeout(function() {
+        if (m.type === 'audio') openAudioTrackById(m.id);
+        else if (m.type === 'video') openVideoItemById(m.id);
+    }, 200);
 }
 
 // ====================================================

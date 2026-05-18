@@ -570,83 +570,130 @@ app.get('/api/books/:id/pages',(req,res)=>{
 });
 
 // === API SEARCH ===
+// نرمال‌سازی فارسی/عربی: ی/ك/ة و حذف اعراب
+function _normFa(s) {
+    return (s == null ? '' : s.toString()).toLowerCase()
+        .replace(/[يى]/g, 'ی')              // ي ى → ی
+        .replace(/ك/g, 'ک')                       // ك → ک
+        .replace(/ة/g, 'ه')                       // ة → ه
+        .replace(/[أإآٱ]/g, 'ا')   // أ إ آ ٱ → ا
+        .replace(/[ً-ْٰ]/g, '')              // حذف اعراب
+        .replace(/‌/g, ' ')                            // نیم‌فاصله → فاصله
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+// عبارت SQL برای نرمال‌سازی همان دو حرف رایج (ی و ک) روی ستون
+function _sqlNorm(col) {
+    return `REPLACE(REPLACE(REPLACE(LOWER(${col}),'ي','ی'),'ى','ی'),'ك','ک')`;
+}
+
 app.get('/api/search', searchLimiter, async (req, res) => {
-    let q = (req.query.q || '').trim().toLowerCase();
-    if (!q || q.length < 2) return res.json({ books: [], pages: [] });
-    if (q.length > 80) q = q.slice(0, 80);
-    // حذف کاراکترهای خطرناک (کنترل، html, null byte)
-    q = q.replace(/[\x00-\x1f\x7f<>]/g, '').trim();
-    if (!q) return res.json({ books: [], pages: [] });
+    let raw = (req.query.q || '').trim();
+    if (raw.length > 80) raw = raw.slice(0, 80);
+    raw = raw.replace(/[\x00-\x1f\x7f<>]/g, '').trim();
+    const q = _normFa(raw);
+    if (!q || q.length < 2) return res.json({ books: [], pages: [], media: [] });
+    const like = `%${q}%`;
 
-    // Search in book titles/authors
-    mainDb.all(
-        `SELECT id,title,author,cover,page_count FROM books WHERE LOWER(title) LIKE ? OR LOWER(author) LIKE ? ORDER BY created_at DESC`,
-        [`%${q}%`, `%${q}%`],
-        async (err, bookMatches) => {
-            if (err) return res.status(500).json({ error: err.message });
+    const result = { books: [], pages: [], media: [] };
 
-            // Search in page content of all books
-            mainDb.all('SELECT id, title, author, cover, db_filename FROM books', [], async (err2, allB) => {
-                if (err2 || !allB) return res.json({ books: bookMatches || [], pages: [] });
+    // ۱) عنوان/نویسنده کتاب‌ها
+    await new Promise(resolve => {
+        mainDb.all(
+            `SELECT id,title,author,cover,page_count FROM books WHERE ${_sqlNorm('title')} LIKE ? OR ${_sqlNorm('author')} LIKE ? ORDER BY created_at DESC LIMIT 30`,
+            [like, like],
+            (err, rows) => { if (!err && rows) result.books = rows; resolve(); }
+        );
+    });
 
-                const pageResults = [];
-                const MAX_RESULTS = 20;
+    // ۲) رسانه: صوت، ویدیو، گالری + دسته‌ها
+    await new Promise(resolve => {
+        mainDb.all(
+            `SELECT t.id,t.title,t.cover,t.category_id,c.name AS cat_name
+             FROM audio_tracks t LEFT JOIN audio_categories c ON c.id=t.category_id
+             WHERE ${_sqlNorm('t.title')} LIKE ? OR ${_sqlNorm('t.artist')} LIKE ? LIMIT 20`,
+            [like, like],
+            (e1, audio) => {
+                (audio || []).forEach(a => result.media.push({ type: 'audio', id: a.id, title: a.title, cover: a.cover, categoryId: a.category_id, categoryName: a.cat_name || '' }));
+                mainDb.all(
+                    `SELECT v.id,v.title,v.thumbnail,v.category_id,c.name AS cat_name
+                     FROM video_items v LEFT JOIN video_categories c ON c.id=v.category_id
+                     WHERE ${_sqlNorm('v.title')} LIKE ? OR ${_sqlNorm('v.description')} LIKE ? LIMIT 20`,
+                    [like, like],
+                    (e2, videos) => {
+                        (videos || []).forEach(v => result.media.push({ type: 'video', id: v.id, title: v.title, cover: v.thumbnail, categoryId: v.category_id, categoryName: v.cat_name || '' }));
+                        resolve();
+                    }
+                );
+            }
+        );
+    });
 
-                for (const book of allB) {
-                    if (pageResults.length >= MAX_RESULTS) break;
-                    if (!book.db_filename) continue;
-                    const dbp = path.resolve(__dirname, 'books', path.basename(book.db_filename));
-                    if (!fs.existsSync(dbp)) continue;
+    // ۳) محتوای متن همه کتاب‌ها (همه کتاب‌ها جستجو می‌شوند)
+    const allB = await new Promise(resolve => {
+        mainDb.all('SELECT id, title, author, cover, db_filename FROM books', [], (e, rows) => resolve(rows || []));
+    });
 
-                    await new Promise(resolve => {
-                        const bDb = new sqlite3.Database(dbp, sqlite3.OPEN_READONLY, async openErr => {
-                            if (openErr) return resolve();
-                            const tbl = await findBestTable(bDb);
-                            if (!tbl) { bDb.close(); return resolve(); }
-                            bDb.all(`PRAGMA table_info("${tbl}")`, [], (_, cols) => {
-                                if (!cols) { bDb.close(); return resolve(); }
-                                const cn = cols.map(c => c.name), cnl = cn.map(c => c.toLowerCase().trim());
-                                const textCols = ['text', 'content', 'body', 'matn', 'description', 'html', 'متن'];
-                                const nameCols = ['name', 'title', 'subject', 'topic', 'heading', 'عنوان'];
-                                const pageCols = ['page', 'pagenumber', 'r'];
-                                const idCols = ['id', '_id', 'bookid', 'rowid'];
-                                const tcol = textCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
-                                const ncol = nameCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
-                                const pcol = pageCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
-                                const icol = idCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
-                                const searchCol = tcol !== undefined ? cn[tcol] : (ncol !== undefined ? cn[ncol] : null);
-                                if (!searchCol) { bDb.close(); return resolve(); }
-                                bDb.all(
-                                    `SELECT * FROM "${tbl}" WHERE LOWER("${searchCol}") LIKE ? LIMIT 5`,
-                                    [`%${q}%`],
-                                    (qErr, rows) => {
-                                        bDb.close();
-                                        if (!qErr && rows) {
-                                            rows.forEach((row, idx) => {
-                                                const getV = (ns) => { for (const k of Object.keys(row)) { if (ns.includes(k.toLowerCase().trim())) { let v = row[k]; if (Buffer.isBuffer(v)) v = v.toString('utf8'); return v; } } return null; };
-                                                const text = (getV(textCols) || '').toString();
-                                                const name = (getV(nameCols) || '').toString();
-                                                const pageNum = getV(pageCols) ?? idx;
-                                                const rowId = getV(idCols) ?? idx;
-                                                // Get snippet around match
-                                                const ltext = text.toLowerCase();
-                                                const pos = ltext.indexOf(q);
-                                                const snippet = pos >= 0 ? text.substring(Math.max(0, pos - 60), pos + 120) : text.substring(0, 180);
-                                                pageResults.push({ bookId: book.id, bookTitle: book.title, bookAuthor: book.author, bookCover: book.cover, pageId: rowId, pageName: name, pageNum, snippet });
-                                            });
-                                        }
-                                        resolve();
-                                    }
-                                );
-                            });
-                        });
-                    });
-                }
+    const PER_BOOK = 3;
+    const MAX_PAGES = 50;
 
-                res.json({ books: bookMatches || [], pages: pageResults });
+    for (const book of allB) {
+        if (result.pages.length >= MAX_PAGES) break;
+        if (!book.db_filename) continue;
+        const dbp = path.resolve(__dirname, 'books', path.basename(book.db_filename));
+        if (!fs.existsSync(dbp)) continue;
+
+        await new Promise(resolve => {
+            const bDb = new sqlite3.Database(dbp, sqlite3.OPEN_READONLY, async openErr => {
+                if (openErr) return resolve();
+                const tbl = await findBestTable(bDb);
+                if (!tbl) { bDb.close(); return resolve(); }
+                bDb.all(`PRAGMA table_info("${tbl}")`, [], (_, cols) => {
+                    if (!cols) { bDb.close(); return resolve(); }
+                    const cn = cols.map(c => c.name), cnl = cn.map(c => c.toLowerCase().trim());
+                    const textCols = ['text', 'content', 'body', 'matn', 'description', 'html', 'متن'];
+                    const nameCols = ['name', 'title', 'subject', 'topic', 'heading', 'عنوان'];
+                    const pageCols = ['page', 'pagenumber', 'r'];
+                    const idCols = ['id', '_id', 'bookid', 'rowid'];
+                    const tcol = textCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                    const ncol = nameCols.map(n => cnl.indexOf(n)).find(i => i !== -1);
+                    const tName = tcol !== undefined ? cn[tcol] : null;
+                    const nName = ncol !== undefined ? cn[ncol] : null;
+                    if (!tName && !nName) { bDb.close(); return resolve(); }
+                    // جستجو در هر دو ستون متن و عنوان
+                    const conds = [];
+                    if (tName) conds.push(`${_sqlNorm(`"${tName}"`)} LIKE ?`);
+                    if (nName) conds.push(`${_sqlNorm(`"${nName}"`)} LIKE ?`);
+                    const params = conds.map(() => like);
+                    bDb.all(
+                        `SELECT * FROM "${tbl}" WHERE ${conds.join(' OR ')} LIMIT ${PER_BOOK}`,
+                        params,
+                        (qErr, rows) => {
+                            bDb.close();
+                            if (!qErr && rows) {
+                                rows.forEach((row, idx) => {
+                                    const getV = (ns) => { for (const k of Object.keys(row)) { if (ns.includes(k.toLowerCase().trim())) { let v = row[k]; if (Buffer.isBuffer(v)) v = v.toString('utf8'); return v; } } return null; };
+                                    const text = (getV(textCols) || '').toString();
+                                    const name = (getV(nameCols) || '').toString();
+                                    const pageNum = getV(pageCols) ?? idx;
+                                    const rowId = getV(idCols) ?? idx;
+                                    const ntext = _normFa(text);
+                                    const pos = ntext.indexOf(q);
+                                    const src = pos >= 0 ? text : (name || text);
+                                    const sPos = pos >= 0 ? pos : 0;
+                                    const snippet = src.substring(Math.max(0, sPos - 60), sPos + 120).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                                    result.pages.push({ bookId: book.id, bookTitle: book.title, bookAuthor: book.author, bookCover: book.cover, pageId: rowId, pageName: name, pageNum, snippet });
+                                });
+                            }
+                            resolve();
+                        }
+                    );
+                });
             });
-        }
-    );
+        });
+    }
+
+    res.json(result);
 });
 
 // === API SETTINGS (PUBLIC) ===
