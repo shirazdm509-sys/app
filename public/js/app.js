@@ -1383,9 +1383,9 @@ async function performGlobalSearch() {
         let html = '';
         if (data.books && data.books.length) {
             html += `<h3 class="text-xs font-black text-gray-500 mb-2 px-1"><i class="fas fa-book ml-1 text-brand-600"></i>کتاب‌های مرتبط</h3>`;
-            html += data.books.map(b => `<button onclick="closeGlobalSearch();openBook(${b.id})" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-brand-50 transition shadow-sm flex items-center gap-3 mb-2">
-                ${b.cover?`<img src="${b.cover}" class="w-10 h-14 rounded-lg object-cover shrink-0">`:`<div class="w-10 h-14 bg-brand-50 rounded-lg flex items-center justify-center shrink-0"><i class="fas fa-book text-brand-300 text-sm"></i></div>`}
-                <div class="text-right min-w-0">
+            html += data.books.map(b => `<button data-act="book" data-book="${b.id}" class="gs-result w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-brand-50 transition shadow-sm flex items-center gap-3 mb-2">
+                ${b.cover?`<img src="${b.cover}" class="w-10 h-14 rounded-lg object-cover shrink-0 pointer-events-none">`:`<div class="w-10 h-14 bg-brand-50 rounded-lg flex items-center justify-center shrink-0 pointer-events-none"><i class="fas fa-book text-brand-300 text-sm"></i></div>`}
+                <div class="text-right min-w-0 pointer-events-none">
                     <h4 class="font-bold text-sm text-gray-800 mb-0.5 line-clamp-1">${b.title}</h4>
                     <p class="text-xs text-gray-400">${b.author||'ناشناس'}</p>
                 </div>
@@ -1397,9 +1397,9 @@ async function performGlobalSearch() {
             html += data.media.map((m, i) => {
                 const icon = m.type === 'audio' ? 'fa-music' : 'fa-video';
                 const tag = m.type === 'audio' ? 'صوت' : 'ویدیو';
-                return `<button onclick="closeGlobalSearch();_openSearchMedia(${i})" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-purple-50 transition shadow-sm flex items-center gap-3 mb-2">
-                ${m.cover?`<img src="${m.cover}" class="w-12 h-12 rounded-lg object-cover shrink-0">`:`<div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center shrink-0"><i class="fas ${icon} text-purple-300"></i></div>`}
-                <div class="text-right min-w-0 flex-1">
+                return `<button data-act="media" data-idx="${i}" class="gs-result w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-purple-50 transition shadow-sm flex items-center gap-3 mb-2">
+                ${m.cover?`<img src="${m.cover}" class="w-12 h-12 rounded-lg object-cover shrink-0 pointer-events-none">`:`<div class="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center shrink-0 pointer-events-none"><i class="fas ${icon} text-purple-300"></i></div>`}
+                <div class="text-right min-w-0 flex-1 pointer-events-none">
                     <h4 class="font-bold text-sm text-gray-800 mb-0.5 line-clamp-1">${m.title}</h4>
                     <p class="text-xs text-gray-400"><span class="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-[10px] ml-1">${tag}</span>${m.categoryName||''}</p>
                 </div>
@@ -1409,15 +1409,15 @@ async function performGlobalSearch() {
         if (data.pages && data.pages.length) {
             window._gsItems = data.pages.map(p => ({ bookId: p.bookId, query: q }));
             html += `<h3 class="text-xs font-black text-gray-500 mb-2 mt-4 px-1"><i class="fas fa-file-alt ml-1 text-emerald-600"></i>یافت شده در متن کتاب‌ها</h3>`;
-            html += data.pages.map((p, i) => `<button onclick="closeGlobalSearch();_openSearchItem(${i})" class="w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-emerald-50 transition shadow-sm mb-2 block">
-                <div class="flex items-center gap-2 mb-1">
+            html += data.pages.map((p, i) => `<button data-act="page" data-idx="${i}" class="gs-result w-full text-right p-3 bg-white rounded-xl border border-gray-100 hover:bg-emerald-50 transition shadow-sm mb-2 block">
+                <div class="flex items-center gap-2 mb-1 pointer-events-none">
                     ${p.bookCover?`<img src="${p.bookCover}" class="w-7 h-10 rounded object-cover shrink-0">`:`<div class="w-7 h-10 bg-emerald-50 rounded flex items-center justify-center shrink-0"><i class="fas fa-book text-emerald-300 text-xs"></i></div>`}
                     <div class="text-right min-w-0">
                         <span class="font-bold text-xs text-emerald-700">${p.bookTitle}</span>
                         ${p.pageName?`<span class="block text-[10px] text-gray-400">${p.pageName}</span>`:''}
                     </div>
                 </div>
-                <p class="text-xs text-gray-600 text-right leading-5 line-clamp-2 pr-1">${p.snippet}...</p>
+                <p class="text-xs text-gray-600 text-right leading-5 line-clamp-2 pr-1 pointer-events-none">${p.snippet}...</p>
             </button>`).join('');
         }
         if (!html) html = `<div class="text-center py-12 text-gray-400"><i class="fas fa-search text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">نتیجه‌ای برای «${q}» یافت نشد</p></div>`;
@@ -1425,6 +1425,27 @@ async function performGlobalSearch() {
     } catch(e) {
         c.innerHTML = `<div class="text-center py-12 text-red-400"><i class="fas fa-exclamation-circle text-3xl mb-3"></i><p class="text-sm font-bold">خطا در جستجو</p></div>`;
     }
+}
+
+// Event delegation: یک listener ثابت روی container نتایج
+// (با جایگزینی innerHTML از بین نمی‌رود و به onclick inline وابسته نیست)
+function _initGlobalSearchDelegation() {
+    const c = document.getElementById('global-search-results');
+    if (!c || c._gsBound) return;
+    c._gsBound = true;
+    c.addEventListener('click', function(e) {
+        const btn = e.target.closest('.gs-result');
+        if (!btn) return;
+        const act = btn.getAttribute('data-act');
+        closeGlobalSearch();
+        if (act === 'book') {
+            openBook(parseInt(btn.getAttribute('data-book'), 10));
+        } else if (act === 'page') {
+            _openSearchItem(parseInt(btn.getAttribute('data-idx'), 10));
+        } else if (act === 'media') {
+            _openSearchMedia(parseInt(btn.getAttribute('data-idx'), 10));
+        }
+    });
 }
 
 function _openSearchItem(i) {
@@ -1475,6 +1496,7 @@ function _analyticsPing() {
 document.addEventListener('DOMContentLoaded',()=>{
     const si=document.getElementById('search-input');if(si)si.addEventListener('keypress',e=>{if(e.key==='Enter')performSearch();});
     const gsi=document.getElementById('global-search-input');if(gsi)gsi.addEventListener('keypress',e=>{if(e.key==='Enter')performGlobalSearch();});
+    _initGlobalSearchDelegation();
     const slider=document.getElementById('page-slider');if(slider)slider.addEventListener('input',e=>goToPage(parseInt(e.target.value)));
     setupSwipe();
     // Analytics ping: یک بار در ابتدا، سپس هر ۲ دقیقه
@@ -1820,20 +1842,30 @@ async function registerServiceWorker() {
         window._swReg = reg;
         if (qaUser) { setTimeout(() => subscribeToPush(reg), 2000); }
 
-        // وقتی SW جدید نصب می‌شود، بنر بروزرسانی نشان بده
+        // به‌روزرسانی خودکار: وقتی SW جدید نصب شد، فوراً فعالش کن
+        // (بدون نیاز به کلیک کاربر) تا همیشه آخرین نسخه اجرا شود
+        function activateNewSW(worker) {
+            if (worker) worker.postMessage({ type: 'SKIP_WAITING' });
+        }
         function onNewSW(newWorker) {
             newWorker.addEventListener('statechange', function() {
-                if (newWorker.state === 'installed') {
-                    showUpdateBanner();
+                // فقط وقتی controller موجود است (به‌روزرسانی، نه نصب اول)
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    activateNewSW(newWorker);
                 }
             });
         }
-        if (reg.waiting) { showUpdateBanner(); }
+        if (reg.waiting && navigator.serviceWorker.controller) { activateNewSW(reg.waiting); }
         reg.addEventListener('updatefound', () => {
             onNewSW(reg.installing);
         });
-        // اگر SW در حال اجرا کنترل را تغییر داد، صفحه را reload کن
+        // هر بار بارگذاری، بررسی به‌روزرسانی SW
+        try { reg.update(); } catch(e) {}
+        // وقتی SW جدید کنترل را گرفت، یک‌بار صفحه را reload کن
+        let _reloaded = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (_reloaded) return;
+            _reloaded = true;
             window.location.reload();
         });
     } catch(e) { console.warn('SW registration failed:', e); }
