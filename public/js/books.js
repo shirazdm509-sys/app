@@ -88,7 +88,7 @@ function openPdfBook(bookId) {
     window.open('/api/books/' + bookId + '/pdf', '_blank');
 }
 
-async function openBook(bookId, targetPageNum) {
+async function openBook(bookId, targetPageNum, searchQuery) {
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     // اطمینان از حضور صفحه کتابخانه در navigation stack
     if (typeof _screenStack !== 'undefined' && _screenStack[_screenStack.length - 1] !== 'library') {
@@ -124,8 +124,7 @@ async function openBook(bookId, targetPageNum) {
             index: index,
             name: item.name || 'بدون عنوان',
             text: item.text || '',
-            season: item.season || 'بدون فصل',
-            pageVal: item.page
+            season: item.season || 'بدون فصل'
         }));
 
         loadBookUserData();
@@ -134,9 +133,12 @@ async function openBook(bookId, targetPageNum) {
         const slider=document.getElementById('page-slider');
         if(slider) slider.max=bookData.length-1;
 
-        if (targetPageNum !== undefined) {
-            // رفتن مستقیم به صفحه‌ای که جستجو آن را یافته
-            const idx = bookData.findIndex(p => String(p.pageVal) === String(targetPageNum));
+        if (searchQuery) {
+            // یافتن صفحه‌ای که متن جستجو در آن وجود دارد (قابل اعتمادترین روش)
+            const sq = searchQuery.toLowerCase();
+            const idx = bookData.findIndex(p =>
+                p.name.toLowerCase().includes(sq) || p.text.toLowerCase().includes(sq)
+            );
             currentIndex = idx >= 0 ? idx : 0;
         } else {
             currentIndex=parseInt(localStorage.getItem('book_'+bookId+'_page')||'0');
@@ -148,10 +150,9 @@ async function openBook(bookId, targetPageNum) {
         document.getElementById('book-main-title').textContent=book?book.title:'کتاب';
 
         hideLoading();
-        if (targetPageNum !== undefined) {
-            // باز کردن خواننده مستقیم بدون نمایش فهرست
+        if (searchQuery) {
+            // باز کردن خواننده مستقیم در صفحه یافت‌شده
             goToPage(currentIndex);
-            openReader();
         } else {
             openToc();
         }
