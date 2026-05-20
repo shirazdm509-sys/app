@@ -370,6 +370,9 @@ function initDb() {
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`, () => {});
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id)`, () => {});
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_user_notifications_notif ON user_notifications(notification_id)`, () => {});
+        // پاکسازی کپی‌های موجود و افزودن UNIQUE constraint برای جلوگیری از تکرار آینده
+        mainDb.run(`DELETE FROM user_notifications WHERE id NOT IN (SELECT MIN(id) FROM user_notifications GROUP BY user_id, notification_id)`, () => {});
+        mainDb.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_notif_unique ON user_notifications(user_id, notification_id)`, () => {});
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC)`, () => {});
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_books_sort ON books(sort_order)`, () => {});
         mainDb.run(`CREATE INDEX IF NOT EXISTS idx_push_subs_user ON push_subscriptions(user_id)`, () => {});
@@ -1196,11 +1199,13 @@ app.get('/api/notifications/public',(req,res)=>{
 // === NOTIFICATIONS (for logged in users) ===
 app.get('/api/notifications',userAuth,(req,res)=>{
     // Get broadcast notifications + ticket reply notifications for this user
+    // GROUP BY n.id برای جلوگیری از کپی در صورت وجود ردیف‌های تکراری در user_notifications
     mainDb.all(`
         SELECT n.id, n.title, n.message, n.type, n.created_at,
-               COALESCE(un.is_read,0) as is_read
+               COALESCE(MAX(un.is_read),0) as is_read
         FROM notifications n
         INNER JOIN user_notifications un ON un.notification_id=n.id AND un.user_id=?
+        GROUP BY n.id
         ORDER BY n.created_at DESC LIMIT 50
     `,[req.userId],(err,rows)=>{
         if(err) return res.status(500).json({error:err.message});
@@ -1210,7 +1215,11 @@ app.get('/api/notifications',userAuth,(req,res)=>{
 app.post('/api/notifications/read',userAuth,(req,res)=>{
     const notifId=+req.body.notification_id;
     if(isNaN(notifId)) return res.status(400).json({error:'شناسه نامعتبر'});
-    mainDb.run('INSERT OR REPLACE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,notifId],()=>res.json({success:true}));
+    // اول تلاش به آپدیت — اگر ردیفی نبود، INSERT کن (با کمک UNIQUE index کپی نمیشه)
+    mainDb.run('UPDATE user_notifications SET is_read=1 WHERE user_id=? AND notification_id=?',[req.userId,notifId],function(){
+        if (this.changes > 0) return res.json({success:true});
+        mainDb.run('INSERT OR IGNORE INTO user_notifications (user_id,notification_id,is_read) VALUES (?,?,1)',[req.userId,notifId],()=>res.json({success:true}));
+    });
 });
 app.post('/api/notifications/read-all',userAuth,(req,res)=>{
     mainDb.run('UPDATE user_notifications SET is_read=1 WHERE user_id=?',[req.userId],()=>res.json({success:true}));

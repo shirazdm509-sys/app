@@ -1297,18 +1297,30 @@ function closeNotifications() {
 function renderNotifications() {
     const c = document.getElementById('notif-list');
     if (!c) return;
+    // بنر فعال‌سازی push اگر کاربر لاگین است و هنوز permission نگرفته
+    let banner = '';
+    if (qaUser && 'Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        banner = `<div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-3">
+            <div class="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-bell text-amber-600 text-sm"></i></div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-amber-800">دریافت اعلان روی گوشی</p>
+                <p class="text-[11px] text-amber-700 mt-0.5">برای دیدن پیام‌های همگانی فعال کنید</p>
+            </div>
+            <button onclick="enableNotifications()" class="text-xs bg-amber-500 text-white font-bold px-3 py-2 rounded-full shrink-0">فعال‌سازی</button>
+        </div>`;
+    }
     if (!_notifications.length) {
-        c.innerHTML = `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">اعلانی وجود ندارد</p></div>`;
+        c.innerHTML = banner + `<div class="text-center py-10 text-gray-400"><i class="fas fa-bell text-4xl mb-3 opacity-30"></i><p class="text-sm font-bold">اعلانی وجود ندارد</p></div>`;
         return;
     }
-    c.innerHTML = _notifications.map(n => {
+    c.innerHTML = banner + _notifications.map(n => {
         const isBroadcast = n.type === 'broadcast';
         const icon = isBroadcast ? 'bullhorn' : 'ticket-alt';
         const badge = isBroadcast
             ? '<span class="text-[9px] font-bold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full mr-1">همگانی</span>'
             : '<span class="text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full mr-1">تیکت</span>';
         return `
-        <div class="bg-${n.is_read?'gray-50 border-gray-100':'brand-50 border-brand-100'} border rounded-2xl p-4 cursor-pointer" onclick="markNotifRead(${n.id},this)">
+        <div class="bg-${n.is_read?'gray-50 border-gray-100':'brand-50 border-brand-100'} border rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform" onclick="openNotifDetail(${n.id})">
             <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                     <div class="w-8 h-8 ${isBroadcast?'bg-teal-100':'bg-orange-100'} rounded-full flex items-center justify-center shrink-0"><i class="fas fa-${icon} ${isBroadcast?'text-teal-600':'text-orange-500'} text-xs"></i></div>
@@ -1326,15 +1338,32 @@ function renderNotifications() {
     }).join('');
 }
 
-function markNotifRead(id, el) {
-    if (!qaUser) return;
+function openNotifDetail(id) {
     const n = _notifications.find(x=>x.id===id);
-    if (n) n.is_read = 1;
-    renderNotifications();
-    fetch('/api/notifications/read', {method:'POST',headers:userAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({notification_id:id})}).catch(()=>{});
-    const badge = document.getElementById('notif-badge');
-    const unread = _notifications.filter(n => !n.is_read).length;
-    if (badge && unread===0) badge.classList.add('hidden');
+    if (!n) return;
+    const isBroadcast = n.type === 'broadcast';
+    const iconEl = document.getElementById('notif-detail-icon');
+    const iconWrap = document.getElementById('notif-detail-icon-wrap');
+    if (iconEl) iconEl.className = `fas fa-${isBroadcast?'bullhorn':'ticket-alt'} ${isBroadcast?'text-teal-600':'text-orange-500'} text-sm`;
+    if (iconWrap) iconWrap.className = `w-9 h-9 ${isBroadcast?'bg-teal-100':'bg-orange-100'} rounded-full flex items-center justify-center shrink-0`;
+    document.getElementById('notif-detail-title').textContent = n.title || '';
+    document.getElementById('notif-detail-message').textContent = n.message || '';
+    document.getElementById('notif-detail-date').textContent = new Date(n.created_at).toLocaleString('fa-IR');
+    document.getElementById('notif-detail-modal').classList.remove('hidden');
+    // علامت‌گذاری خوانده‌شده
+    if (qaUser && !n.is_read) {
+        n.is_read = 1;
+        renderNotifications();
+        fetch('/api/notifications/read', {method:'POST',headers:userAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({notification_id:id})}).catch(()=>{});
+        const badge = document.getElementById('notif-badge');
+        const unread = _notifications.filter(x => !x.is_read).length;
+        if (badge && unread===0) badge.classList.add('hidden');
+    }
+}
+
+function closeNotifDetail() {
+    const m = document.getElementById('notif-detail-modal');
+    if (m) m.classList.add('hidden');
 }
 
 async function markAllNotifsRead() {
@@ -1915,17 +1944,26 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function subscribeToPush(reg) {
-    if (!reg || !('pushManager' in reg)) return;
+    if (!reg || !('pushManager' in reg) || !('Notification' in window)) return;
     if (!qaUser) return;
     try {
-        const existing = await reg.pushManager.getSubscription();
-        if (existing) return;
-        const keyRes = await fetch('/api/push/vapid-public-key');
-        const { publicKey } = await keyRes.json();
-        const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey)
-        });
+        // اگر permission تعیین نشده، از کاربر بپرس
+        if (Notification.permission === 'default') {
+            const perm = await Notification.requestPermission();
+            if (perm !== 'granted') return;
+        }
+        if (Notification.permission !== 'granted') return;
+
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            const keyRes = await fetch('/api/push/vapid-public-key');
+            const { publicKey } = await keyRes.json();
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+        }
+        // همیشه subscription فعلی را به سرور بفرست (در صورت تغییر user_id یا backend)
         await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: userAuthHeaders({ 'Content-Type': 'application/json' }),
@@ -1933,6 +1971,23 @@ async function subscribeToPush(reg) {
         });
         console.log('Push subscribed');
     } catch(e) { console.warn('Push subscribe failed:', e); }
+}
+
+// درخواست permission و سابسکریب کردن — توسط UI صدا زده می‌شود
+async function enableNotifications() {
+    try {
+        const reg = window._swReg || await navigator.serviceWorker.getRegistration();
+        if (!reg) { showToast && showToast('سرویس‌ورکر هنوز آماده نشده'); return false; }
+        if (!qaUser) { showToast && showToast('برای دریافت اعلان، ابتدا وارد شوید'); return false; }
+        await subscribeToPush(reg);
+        if (Notification.permission === 'granted') {
+            showToast && showToast('اعلان‌ها فعال شد');
+            return true;
+        } else if (Notification.permission === 'denied') {
+            showToast && showToast('اجازه اعلان رد شده. از تنظیمات مرورگر فعال کنید');
+        }
+        return false;
+    } catch(e) { console.warn(e); return false; }
 }
 
 registerServiceWorker();
