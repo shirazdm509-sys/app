@@ -1324,8 +1324,10 @@ app.get('/api/books/:id/pdf',(req,res)=>{
         if(err||!b||b.book_type!=='pdf'||!b.pdf_filename) return res.status(404).end();
         const fp=safePath(path.join(__dirname,'books'), b.pdf_filename);
         if(!fp||!fs.existsSync(fp)) return res.status(404).end();
-        const safeTitle = (b.title||String(id)).replace(/[^؀-ۿ\w\s.-]/g,'').trim()||String(id);
-        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeTitle)}.pdf`);
+        const safeTitle = String(b.title||'').replace(/[^؀-ۿ\w\s.-]/g,'').trim();
+        const utf8Name = (safeTitle || `book-${id}`) + '.pdf';
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="book-${id}.pdf"; filename*=UTF-8''${encodeURIComponent(utf8Name)}`);
         res.sendFile(fp, err => { if (err && !res.headersSent) res.status(500).end(); });
     });
 });

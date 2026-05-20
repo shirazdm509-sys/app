@@ -88,7 +88,8 @@ function openPdfBook(bookId) {
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
     const a = document.createElement('a');
     a.href = '/api/books/' + bookId + '/pdf';
-    a.download = '';
+    a.target = '_blank';
+    a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
     setTimeout(() => document.body.removeChild(a), 100);
