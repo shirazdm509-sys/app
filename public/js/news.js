@@ -327,6 +327,17 @@ function renderWPSingle(post, screen) {
         });
         finalHtml += `</div>`;
     }
+    // گالری تصاویر — تصویر شاخص را حذف کن تا تکرار نشود
+    const featuredUrl = post._embedded && post._embedded['wp:featuredmedia'] ? (post._embedded['wp:featuredmedia'][0] || {}).source_url || '' : '';
+    const galleryImgs = (media.images || []).filter(src => src && src !== featuredUrl);
+    if (galleryImgs.length === 1) {
+        finalHtml += `<div class="mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100"><img src="${galleryImgs[0]}" class="w-full object-cover" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
+    } else if (galleryImgs.length > 1) {
+        finalHtml += `<div class="grid grid-cols-2 gap-2 mb-6">` +
+            galleryImgs.map(src =>
+                `<a href="${src}" target="_blank" rel="noopener" class="block rounded-xl overflow-hidden bg-gray-100 aspect-square"><img src="${src}" class="w-full h-full object-cover" loading="lazy" onerror="this.parentElement.style.display='none'"></a>`
+            ).join('') + `</div>`;
+    }
     finalHtml += media.cleanHtml;
 
     const prefix = screen;
@@ -336,7 +347,7 @@ function renderWPSingle(post, screen) {
     document.getElementById(`${prefix}-single-content`).style.fontSize = fontSize + 'px';
     convertDOMNumbers(document.getElementById(`${prefix}-single-content`));
 
-    let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+    let imgUrl = featuredUrl;
     const imgC = document.getElementById(`${prefix}-single-image`);
     if (imgUrl) { imgC.classList.remove('hidden'); imgC.querySelector('img').src = imgUrl; }
     else { imgC.classList.add('hidden'); }

@@ -387,6 +387,15 @@ async function showWPSingleView(postId) {
     media.videos.forEach(src => { finalHtml += `<video controls src="${src}" class="w-full rounded-2xl mb-6 shadow-sm bg-black"></video>`; });
 
     finalHtml += _buildAudioHtml(media.audioTracks);
+    // گالری تصاویر
+    const _featuredUrl = post._embedded && post._embedded['wp:featuredmedia'] ? (post._embedded['wp:featuredmedia'][0] || {}).source_url || '' : '';
+    const _galleryImgs = (media.images || []).filter(src => src && src !== _featuredUrl);
+    if (_galleryImgs.length === 1) {
+        finalHtml += `<div class="mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-100"><img src="${_galleryImgs[0]}" class="w-full object-cover" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`;
+    } else if (_galleryImgs.length > 1) {
+        finalHtml += `<div class="grid grid-cols-2 gap-2 mb-6">` +
+            _galleryImgs.map(src => `<a href="${src}" target="_blank" rel="noopener" class="block rounded-xl overflow-hidden bg-gray-100 aspect-square"><img src="${src}" class="w-full h-full object-cover" loading="lazy" onerror="this.parentElement.style.display='none'"></a>`).join('') + `</div>`;
+    }
     finalHtml += media.cleanHtml;
 
     const _spc = document.getElementById('single-post-content');
@@ -395,7 +404,7 @@ async function showWPSingleView(postId) {
     _spc.style.fontSize = fontSize + 'px';
     convertDOMNumbers(_spc);
 
-    let imgUrl = post._embedded && post._embedded['wp:featuredmedia'] ? post._embedded['wp:featuredmedia'][0].source_url : '';
+    let imgUrl = _featuredUrl;
     const imgContainer = document.getElementById('single-post-image');
     if (imgUrl) { imgContainer.classList.remove('hidden'); imgContainer.querySelector('img').src = imgUrl; }
     else { imgContainer.classList.add('hidden'); }
