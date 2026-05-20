@@ -8,7 +8,9 @@ let cachedNewsPosts = [];
 
 // باز کردن پست خبری درون اپ (از اسلایدر)
 async function openNewsPostInApp(postId, fallbackUrl) {
-    navToScreen('news');
+    // withoutHistory تا initNews صدا زده نشه و با showNewsSingle race نکنه
+    withoutHistory(() => navToScreen('news'));
+    try { history.pushState({ app: true, screen: 'news' }, '', '#news'); } catch(e) {}
     // اگر قبلاً لود شده
     const cached = cachedNewsPosts.find(p => p.id === postId);
     if (cached) { showNewsSingle(postId); return; }

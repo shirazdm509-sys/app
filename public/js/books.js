@@ -86,7 +86,12 @@ function renderLibrary() {
 // ====================================================
 function openPdfBook(bookId) {
     localStorage.setItem('book_'+bookId+'_last_read', Date.now().toString());
-    window.open('/api/books/' + bookId + '/pdf', '_blank');
+    const a = document.createElement('a');
+    a.href = '/api/books/' + bookId + '/pdf';
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
 }
 
 async function openBook(bookId, targetPageNum, searchQuery) {
