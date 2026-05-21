@@ -1413,7 +1413,19 @@ app.get('/api/admin/settings',adminAuth,(req,res)=>{
 app.post('/api/admin/settings',adminAuth,(req,res)=>{
     const u=req.body;if(!u||typeof u!=='object') return res.status(400).json({error:'داده نامعتبر'});
     const stmt=mainDb.prepare('INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES (?,?,CURRENT_TIMESTAMP)');
-    Object.entries(u).forEach(([k,v])=>stmt.run(san(k.toString()),san(v.toString())));
+    Object.entries(u).forEach(([k,v])=>{
+        const key=san(k.toString());
+        let val=san(v.toString());
+        // live_embed: if user pasted a full iframe embed code, extract just the src URL
+        if(key==='live_embed'){
+            const raw=(v||'').toString().trim();
+            if(raw.includes('<iframe')){
+                const m=raw.match(/src\s*=\s*["']([^"']+)["']/i);
+                val=(m&&m[1]&&/^https?:\/\//.test(m[1]))?m[1]:'';
+            }
+        }
+        stmt.run(key,val);
+    });
     stmt.finalize(err=>err?res.status(500).json({error:err.message}):res.json({success:true}));
 });
 // ذخیره assetlinks.json برای TWA Android
