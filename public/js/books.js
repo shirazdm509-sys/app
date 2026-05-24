@@ -895,6 +895,29 @@ function _restoreHighlight(tc, text, color) {
     }
 }
 
+function copySelectedText() {
+    restoreSelectionIfNeeded();
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) { hideHighlightToolbar(); return; }
+    const text = sel.toString().trim();
+    if (!text) { hideHighlightToolbar(); return; }
+    hideHighlightToolbar();
+    sel.removeAllRanges();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('متن کپی شد')).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); showToast('متن کپی شد');
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); showToast('متن کپی شد');
+    }
+}
+
 async function shareSelectedText() {
     restoreSelectionIfNeeded();
     const sel = window.getSelection();

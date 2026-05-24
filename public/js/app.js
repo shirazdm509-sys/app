@@ -1095,6 +1095,7 @@ async function renderQATickets() {
                     <span><i class="far fa-calendar ml-1"></i>${date}</span>
                     <div class="flex items-center gap-2">
                         ${t.tracking_code ? `<span class="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">${t.tracking_code}</span>` : ''}
+                        <button onclick="copyQATicket('${subjectEsc}','${firstMsgEsc}',event)" class="text-gray-400 hover:text-gray-600 px-1" title="کپی سوال"><i class="fas fa-copy text-[10px]"></i></button>
                         ${canEdit ? `<button onclick="editQATicket(${t.id},'${subjectEsc}','${firstMsgEsc}',event)" class="text-blue-400 hover:text-blue-600 px-1"><i class="fas fa-pen text-[10px]"></i></button>` : ''}
                         ${canEdit ? `<button onclick="deleteQATicket(${t.id},event)" class="text-red-400 hover:text-red-600 px-1"><i class="fas fa-trash text-[10px]"></i></button>` : ''}
                     </div>
@@ -1103,6 +1104,24 @@ async function renderQATickets() {
         }).join('');
     } catch(e) {
         c.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">خطا در بارگذاری سوالات</div>`;
+    }
+}
+
+function copyQATicket(subject, message, event) {
+    event.stopPropagation();
+    const text = subject + (message ? '\n\n' + message : '');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('سوال کپی شد')).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+            document.body.removeChild(ta); showToast('سوال کپی شد');
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); showToast('سوال کپی شد');
     }
 }
 
