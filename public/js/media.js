@@ -458,15 +458,32 @@ async function performMediaSearch(q) {
 // ====================================================
 // پخش زنده
 // ====================================================
+function _applyLivePageContent(s) {
+    const titleEl = document.getElementById('live-page-title');
+    const descEl = document.getElementById('live-page-description');
+    const title = (s && s.live_page_title || '').trim();
+    const desc = (s && s.live_page_description || '').trim();
+    if (titleEl) {
+        if (title) { titleEl.textContent = title; titleEl.classList.remove('hidden'); }
+        else { titleEl.textContent = ''; titleEl.classList.add('hidden'); }
+    }
+    if (descEl) {
+        if (desc) { descEl.textContent = desc; descEl.classList.remove('hidden'); }
+        else { descEl.textContent = ''; descEl.classList.add('hidden'); }
+    }
+}
+
 async function initLiveScreen() {
     const c = document.getElementById('live-embed-container');
     if (!c) return;
     c.innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-gray-500 gap-3"><i class="fas fa-satellite-dish text-4xl opacity-30 animate-pulse"></i><p class="text-sm font-bold opacity-50">در حال بارگذاری...</p></div>`;
+    _applyLivePageContent(null);
     try {
         const r = await fetch('/api/settings');
         const s = await r.json();
         const embedRaw = (s.live_embed || '').trim();
         const active = s.live_active === '1';
+        _applyLivePageContent(s);
         if (!active || !embedRaw) {
             c.innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-gray-400 gap-3"><i class="fas fa-satellite-dish text-4xl opacity-30"></i><p class="text-sm font-bold opacity-40">در حال حاضر پخش زنده‌ای وجود ندارد</p></div>`;
             return;

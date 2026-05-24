@@ -18,8 +18,8 @@
     <link href="/vendor/fonts/shabnam/font-face-local.css" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/fa/all.local.min.css">
 
-    <link rel="stylesheet" href="/css/tailwind.dist.css?v=42">
-    <link rel="stylesheet" href="/css/app.css?v=42">
+    <link rel="stylesheet" href="/css/tailwind.dist.css?v=43">
+    <link rel="stylesheet" href="/css/app.css?v=43">
 </head>
 <body class="font-vazir antialiased text-gray-800">
 
@@ -248,17 +248,20 @@
                 <!-- LIVE BANNER -->
                 <div id="home-live-banner" class="px-6 mt-4 mb-4" onclick="navToScreen('live')" style="display:none;">
                     <div class="bg-gradient-to-r from-red-600 to-rose-500 rounded-3xl p-4 flex items-center justify-between shadow-lg shadow-red-500/30 text-white cursor-pointer active:scale-95 transition-transform">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative shrink-0">
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-100 opacity-50"></span>
                                 <i class="fas fa-broadcast-tower"></i>
                             </div>
-                            <div>
-                                <h3 class="font-black text-sm">پخش زنده</h3>
-                                <p class="text-[10px] text-red-100 opacity-90">برای مشاهده کلیک کنید</p>
+                            <div class="min-w-0">
+                                <h3 id="home-live-title" class="font-black text-sm truncate">پخش زنده</h3>
+                                <p id="home-live-subtitle" class="text-[10px] text-red-100 opacity-90 truncate">برای مشاهده کلیک کنید</p>
                             </div>
                         </div>
-                        <span class="bg-white text-red-600 text-[10px] font-black tracking-widest px-3 py-1 rounded-full shadow-sm">LIVE</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span id="home-live-countdown" class="hidden bg-white/20 text-white text-[11px] font-black tracking-wider px-3 py-1 rounded-full font-mono"></span>
+                            <span id="home-live-badge" class="bg-white text-red-600 text-[10px] font-black tracking-widest px-3 py-1 rounded-full shadow-sm">LIVE</span>
+                        </div>
                     </div>
                 </div>
 
@@ -889,6 +892,7 @@
             </header>
             <div class="flex-1 overflow-y-auto pb-10 pt-6">
                 <div class="px-6">
+                    <h2 id="live-page-title" class="hidden text-lg font-black text-gray-800 mb-4 leading-relaxed"></h2>
                     <div class="bg-white rounded-3xl overflow-hidden shadow-lg shadow-red-500/10 border border-red-100">
                         <div id="live-embed-container" class="w-full bg-black">
                             <div class="flex flex-col items-center justify-center py-20 text-gray-500 gap-3">
@@ -897,6 +901,7 @@
                             </div>
                         </div>
                     </div>
+                    <div id="live-page-description" class="hidden mt-5 bg-white rounded-3xl p-5 shadow-sm border border-gray-100 text-gray-700 text-sm leading-loose whitespace-pre-line"></div>
                 </div>
             </div>
         </div>
@@ -1350,13 +1355,13 @@
 
 <script src="/vendor/pdfjs/pdf.min.js"></script>
 <script>if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.min.js';</script>
-<script src="/js/dist/utils.min.js?v=42"></script>
-<script src="/js/dist/offline.min.js?v=42"></script>
-<script src="/js/dist/books.min.js?v=42"></script>
-<script src="/js/dist/lectures.min.js?v=42"></script>
-<script src="/js/dist/media.min.js?v=42"></script>
-<script src="/js/dist/news.min.js?v=42"></script>
-<script src="/js/dist/app.min.js?v=42"></script>
+<script src="/js/dist/utils.min.js?v=43"></script>
+<script src="/js/dist/offline.min.js?v=43"></script>
+<script src="/js/dist/books.min.js?v=43"></script>
+<script src="/js/dist/lectures.min.js?v=43"></script>
+<script src="/js/dist/media.min.js?v=43"></script>
+<script src="/js/dist/news.min.js?v=43"></script>
+<script src="/js/dist/app.min.js?v=43"></script>
 
 <!-- PWA Install Modal -->
 <div id="pwa-install-modal" class="hidden fixed inset-0 z-[9999] flex items-end justify-center p-4" style="background:rgba(0,0,0,0.5)" onclick="closePwaModal()">

@@ -1107,6 +1107,45 @@ async function renderQATickets() {
     }
 }
 
+let _liveCountdownTimer = null;
+function setupLiveCountdown(s) {
+    const cdEl = document.getElementById('home-live-countdown');
+    const badgeEl = document.getElementById('home-live-badge');
+    const subEl = document.getElementById('home-live-subtitle');
+    if (!cdEl) return;
+    if (_liveCountdownTimer) { clearInterval(_liveCountdownTimer); _liveCountdownTimer = null; }
+    cdEl.classList.add('hidden');
+    if (s.live_active !== '1') return;
+    if (s.live_countdown_enabled !== '1' || !s.live_countdown_start) return;
+    const target = new Date(s.live_countdown_start).getTime();
+    if (isNaN(target)) return;
+    const tick = () => {
+        const diff = target - Date.now();
+        if (diff <= 0) {
+            cdEl.classList.add('hidden');
+            if (badgeEl) badgeEl.classList.remove('hidden');
+            if (subEl) subEl.textContent = 'اکنون پخش شروع شده — برای مشاهده کلیک کنید';
+            clearInterval(_liveCountdownTimer); _liveCountdownTimer = null;
+            return;
+        }
+        const totalSec = Math.floor(diff / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const hours = Math.floor((totalSec % 86400) / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        const pad = n => String(n).padStart(2, '0');
+        let txt;
+        if (days > 0) txt = (typeof toFa==='function'?toFa(days):days) + ' روز ' + (typeof toFa==='function'?toFa(pad(hours)):pad(hours)) + ':' + (typeof toFa==='function'?toFa(pad(mins)):pad(mins));
+        else txt = (typeof toFa==='function'?toFa(pad(hours)):pad(hours)) + ':' + (typeof toFa==='function'?toFa(pad(mins)):pad(mins)) + ':' + (typeof toFa==='function'?toFa(pad(secs)):pad(secs));
+        cdEl.textContent = txt;
+        cdEl.classList.remove('hidden');
+        if (badgeEl) badgeEl.classList.add('hidden');
+        if (subEl) subEl.textContent = 'تا شروع پخش';
+    };
+    tick();
+    _liveCountdownTimer = setInterval(tick, 1000);
+}
+
 function copyQATicket(subject, message, event) {
     event.stopPropagation();
     const text = subject + (message ? '\n\n' + message : '');

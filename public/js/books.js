@@ -531,6 +531,11 @@ function applySettingsObject(s) {
     }
     const liveBanner = document.getElementById('home-live-banner');
     if (liveBanner) liveBanner.style.display = s.live_active === '1' ? '' : 'none';
+    const liveTitle = document.getElementById('home-live-title');
+    if (liveTitle) liveTitle.textContent = (s.live_banner_title && s.live_banner_title.trim()) || 'پخش زنده';
+    const liveSub = document.getElementById('home-live-subtitle');
+    if (liveSub) liveSub.textContent = (s.live_banner_subtitle && s.live_banner_subtitle.trim()) || 'برای مشاهده کلیک کنید';
+    if (typeof setupLiveCountdown === 'function') setupLiveCountdown(s);
     window._siteSettings = s;
 }
 

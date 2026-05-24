@@ -71,6 +71,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     <button onclick="switchTab('slider')" id="tab-btn-slider" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-images w-5"></i>اسلایدر</button>
     <button onclick="switchTab('banners')" id="tab-btn-banners" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-ad w-5"></i>بنرها</button>
     <button onclick="switchTab('videogallery')" id="tab-btn-videogallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-film w-5"></i>گالری ویدیو</button>
+    <button onclick="switchTab('live')" id="tab-btn-live" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-broadcast-tower w-5"></i>پخش زنده</button>
     <button onclick="switchTab('gallery')" id="tab-btn-gallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-camera w-5"></i>گالری عکس</button>
     <button onclick="switchTab('audiogallery')" id="tab-btn-audiogallery" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition"><i class="fas fa-headphones w-5"></i>گالری صوت</button>
     <button onclick="switchTab('support')" id="tab-btn-support" class="tab-inactive w-full flex items-center gap-3 p-3 rounded-xl text-sm font-bold transition relative"><i class="fas fa-headset w-5"></i>پشتیبانی<span id="support-badge" class="hidden absolute left-2 top-2 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"></span></button>
@@ -492,6 +493,90 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
     </div>
   </div>
 
+  <!-- LIVE STREAM TAB -->
+  <div id="tab-live" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+
+    <!-- Live stream URL/embed -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-broadcast-tower text-red-600 ml-2"></i>تنظیمات پخش زنده</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">آدرس یا کد امبد پخش زنده</label>
+          <textarea id="s-live_embed" rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500 font-mono text-xs resize-y" placeholder="فقط آدرس را وارد کنید:&#10;https://www.aparat.com/embed/live/نام‌کانال&#10;&#10;یا کد iframe کامل را paste کنید — آدرس به‌طور خودکار استخراج می‌شود"></textarea>
+          <p class="text-xs text-gray-400 mt-1">می‌توانید آدرس مستقیم یا کد کامل iframe را وارد کنید.</p>
+        </div>
+        <div class="flex items-center justify-between p-4 bg-red-50 rounded-xl">
+          <div>
+            <p class="font-bold text-sm text-gray-800">پخش زنده فعال</p>
+            <p class="text-xs text-gray-500 mt-1">اگر فعال باشد، بنر پخش زنده در صفحه اصلی نمایش داده می‌شود</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="s-live_active" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Home banner -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-flag text-red-600 ml-2"></i>بنر صفحه اصلی</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">عنوان بنر</label>
+          <input type="text" id="s-live_banner_title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500" placeholder="پخش زنده">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">زیرنویس بنر</label>
+          <input type="text" id="s-live_banner_subtitle" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500" placeholder="برای مشاهده کلیک کنید">
+        </div>
+      </div>
+    </div>
+
+    <!-- Countdown timer -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-hourglass-half text-red-600 ml-2"></i>شمارش معکوس شروع پخش</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="flex items-center justify-between p-4 bg-amber-50 rounded-xl">
+          <div>
+            <p class="font-bold text-sm text-gray-800">نمایش شمارش معکوس</p>
+            <p class="text-xs text-gray-500 mt-1">روی بنر صفحه اصلی تا زمان شروع پخش شمارش معکوس نمایش داده می‌شود</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="s-live_countdown_enabled" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">زمان شروع پخش</label>
+          <input type="datetime-local" id="s-live_countdown_start" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500">
+          <p class="text-xs text-gray-400 mt-1">پس از این زمان، شمارش معکوس پایان یافته و پیام «اکنون پخش شروع شده» نمایش داده می‌شود</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live page content -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-lg font-black mb-5 border-b pb-4"><i class="fas fa-file-alt text-red-600 ml-2"></i>محتوای صفحه پخش زنده</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">عنوان (بالای ویدیو)</label>
+          <input type="text" id="s-live_page_title" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500" placeholder="مثلاً: سخنرانی ویژه شب قدر">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-2">متن (زیر ویدیو)</label>
+          <textarea id="s-live_page_description" rows="5" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-red-500 resize-y" placeholder="توضیحات یا متن مرتبط با پخش زنده — می‌توانید چند خط بنویسید"></textarea>
+          <p class="text-xs text-gray-400 mt-1">خطوط جدید (Enter) به صورت پاراگراف نمایش داده می‌شوند.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="saveLiveSettings()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-sm transition flex-1 text-sm"><i class="fas fa-save ml-2"></i>ذخیره تنظیمات پخش زنده</button>
+      <button onclick="loadLiveSettings()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-6 py-3.5 rounded-xl text-sm"><i class="fas fa-sync-alt ml-2"></i>بازنشانی</button>
+    </div>
+  </div>
+
   <!-- AUDIO GALLERY TAB -->
   <div id="tab-audiogallery" class="hidden flex-1 overflow-y-auto p-6 flex flex-col gap-6">
     <!-- استخراج خودکار کاور -->
@@ -811,12 +896,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-xs font-bold text-gray-500 mb-2">نام سایت</label><input type="text" id="s-site_name" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
         <div><label class="block text-xs font-bold text-gray-500 mb-2">زیرنویس</label><input type="text" id="s-site_subtitle" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500"></div>
-        <div class="md:col-span-2">
-          <label class="block text-xs font-bold text-gray-500 mb-2">آدرس یا کد امبد پخش زنده</label>
-          <textarea id="s-live_embed" rows="3" class="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl outline-none focus:border-teal-500 font-mono text-xs resize-y" placeholder="فقط آدرس را وارد کنید:&#10;https://www.aparat.com/embed/live/نام‌کانال&#10;&#10;یا کد iframe کامل را paste کنید — آدرس به‌طور خودکار استخراج می‌شود"></textarea>
-          <p class="text-xs text-gray-400 mt-1">می‌توانید آدرس مستقیم یا کد کامل iframe را وارد کنید. فراموش نکنید گزینه «پخش زنده فعال» را هم تیک بزنید.</p>
-        </div>
-        <div class="flex items-end gap-3"><label class="block text-xs font-bold text-gray-500 mb-2 w-full">پخش زنده فعال<input type="checkbox" id="s-live_active" class="mr-2 mt-2"></label></div>
       </div>
     </div>
 
@@ -1237,8 +1316,8 @@ async function checkUnreadSupport() {
 }
 
 function switchTab(tab) {
-  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',analytics:'آمار بازدید',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا',shortcuts:'آیکن‌های خانه',linkshortcuts:'لینک‌های خانه'};
-  const tabs=['books','slider','banners','videogallery','gallery','audiogallery','support','broadcast','analytics','users','settings','pagecontent','shortcuts','linkshortcuts'];
+  const tabNames={books:'مدیریت کتاب‌ها',slider:'اسلایدر',banners:'بنرها',videogallery:'گالری ویدیو',live:'پخش زنده',gallery:'گالری عکس',audiogallery:'گالری صوت',support:'پشتیبانی',broadcast:'پیام همگانی',analytics:'آمار بازدید',users:'کاربران',settings:'تنظیمات',pagecontent:'صفحات محتوا',shortcuts:'آیکن‌های خانه',linkshortcuts:'لینک‌های خانه'};
+  const tabs=['books','slider','banners','videogallery','live','gallery','audiogallery','support','broadcast','analytics','users','settings','pagecontent','shortcuts','linkshortcuts'];
   tabs.forEach(t=>{
     document.getElementById('tab-'+t).classList.add('hidden');
     document.getElementById('tab-'+t).classList.remove('flex');
@@ -1255,6 +1334,7 @@ function switchTab(tab) {
   if(tab==='slider') { loadSliders(); loadSliderSettings(); loadNewsSliders(); }
   if(tab==='banners') { loadBanners(); loadBannerSettings(); }
   if(tab==='videogallery') loadVideoGalleryAdmin();
+  if(tab==='live') loadLiveSettings();
   if(tab==='gallery') loadGalleryAdmin();
   if(tab==='audiogallery') loadAudioGalleryAdmin();
   if(tab==='support'){
@@ -2558,12 +2638,58 @@ async function deleteUser(id,name){
   }catch(e){}
 }
 
+// LIVE STREAM
+function _toLocalDatetimeInputValue(isoOrEmpty){
+  if(!isoOrEmpty) return '';
+  const d = new Date(isoOrEmpty);
+  if(isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+async function loadLiveSettings(){
+  try{
+    const r=await adminFetch('/api/admin/settings');
+    const s=await r.json();
+    const embed=document.getElementById('s-live_embed'); if(embed) embed.value=s.live_embed||'';
+    const active=document.getElementById('s-live_active'); if(active) active.checked=s.live_active==='1';
+    const bt=document.getElementById('s-live_banner_title'); if(bt) bt.value=s.live_banner_title||'';
+    const bst=document.getElementById('s-live_banner_subtitle'); if(bst) bst.value=s.live_banner_subtitle||'';
+    const pt=document.getElementById('s-live_page_title'); if(pt) pt.value=s.live_page_title||'';
+    const pd=document.getElementById('s-live_page_description'); if(pd) pd.value=s.live_page_description||'';
+    const cen=document.getElementById('s-live_countdown_enabled'); if(cen) cen.checked=s.live_countdown_enabled==='1';
+    const cst=document.getElementById('s-live_countdown_start'); if(cst) cst.value=_toLocalDatetimeInputValue(s.live_countdown_start);
+  }catch(e){}
+}
+async function saveLiveSettings(){
+  const startInput=document.getElementById('s-live_countdown_start').value;
+  let startIso='';
+  if(startInput){
+    const d=new Date(startInput);
+    if(!isNaN(d.getTime())) startIso=d.toISOString();
+  }
+  const data={
+    live_embed:document.getElementById('s-live_embed').value,
+    live_active:document.getElementById('s-live_active').checked?'1':'0',
+    live_banner_title:document.getElementById('s-live_banner_title').value,
+    live_banner_subtitle:document.getElementById('s-live_banner_subtitle').value,
+    live_page_title:document.getElementById('s-live_page_title').value,
+    live_page_description:document.getElementById('s-live_page_description').value,
+    live_countdown_enabled:document.getElementById('s-live_countdown_enabled').checked?'1':'0',
+    live_countdown_start:startIso,
+  };
+  try{
+    const r=await adminFetch('/api/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(r.ok) showToast('تنظیمات پخش زنده ذخیره شد');
+    else showToast('خطا در ذخیره',false);
+  }catch(e){}
+}
+
 // SETTINGS
 async function loadSettings(){
   try{
     const r=await adminFetch('/api/admin/settings');
     const s=await r.json();
-    ['site_name','site_subtitle','primary_color','secondary_color','live_embed','pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color',
+    ['site_name','site_subtitle','primary_color','secondary_color','pwa_name','pwa_short_name','pwa_description','pwa_theme_color','pwa_bg_color',
      'splash_title','splash_subtitle','splash_bg_color','splash_spinner_color'].forEach(k=>{
       const el=document.getElementById('s-'+k);
       if(el) el.value=s[k]||'';
@@ -2583,8 +2709,6 @@ async function loadSettings(){
       if(prev&&ph){prev.src=s.splash_icon_url;prev.classList.remove('hidden');ph.classList.add('hidden');}
     }
     updateSplashPreview();
-    const liveActive=document.getElementById('s-live_active');
-    if(liveActive) liveActive.checked=s.live_active==='1';
     const darkModeEnabled=document.getElementById('s-dark_mode_enabled');
     if(darkModeEnabled) darkModeEnabled.checked=s.dark_mode_enabled!=='0';
     if(s.logo_url){
@@ -2610,8 +2734,6 @@ async function saveSettings(){
     site_subtitle:document.getElementById('s-site_subtitle').value,
     primary_color:document.getElementById('s-primary_color').value,
     secondary_color:document.getElementById('s-secondary_color').value,
-    live_embed:document.getElementById('s-live_embed').value,
-    live_active:document.getElementById('s-live_active').checked?'1':'0',
     pwa_name:document.getElementById('s-pwa_name').value,
     pwa_short_name:document.getElementById('s-pwa_short_name').value,
     pwa_description:document.getElementById('s-pwa_description').value,
