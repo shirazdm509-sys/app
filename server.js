@@ -840,13 +840,15 @@ app.get('/api/proxy', proxyLimiter, (req, res) => {
 // === پروکسی عمومی برای WordPress REST API ===
 // مسیریابی درخواست‌های WP API از سرور (دور زدن CORS و مشکلات شبکه در سمت کلاینت)
 const _wpCache = new Map();
-const WP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 دقیقه
+const WP_CACHE_TTL_MS = 5 * 60 * 1000;    // 5 دقیقه — دوره تازگی
+const WP_CACHE_STALE_MS = 24 * 60 * 60 * 1000; // 24 ساعت — دوره stale (وقتی WP دسترسی ندارد)
 const WP_CACHE_MAX_ENTRIES = 200;
 function _wpCacheGet(key) {
     const e = _wpCache.get(key);
     if (!e) return null;
-    if (Date.now() - e.t > WP_CACHE_TTL_MS) { _wpCache.delete(key); return null; }
-    return e.body;
+    // پاک کردن کامل تنها بعد از ۲۴ ساعت
+    if (Date.now() - e.t > WP_CACHE_STALE_MS) { _wpCache.delete(key); return null; }
+    return { body: e.body, stale: Date.now() - e.t > WP_CACHE_TTL_MS };
 }
 function _wpCacheSet(key, body) {
     if (_wpCache.size >= WP_CACHE_MAX_ENTRIES) {
@@ -855,31 +857,42 @@ function _wpCacheSet(key, body) {
     }
     _wpCache.set(key, { body, t: Date.now() });
 }
+const {request: _httpsReq} = require('https');
 app.get('/api/wp', (req, res) => {
     const wpPath = req.query.path;
     if (!wpPath || typeof wpPath !== 'string') return res.status(400).json({error:'path required'});
     // فقط مسیرهای ایمن مجاز هستند
-    if (!/^[a-zA-Z0-9\/_\-?=&%+.,]+$/.test(wpPath)) return res.status(400).json({error:'invalid path'});
-    const cached = _wpCacheGet(wpPath);
-    if (cached) {
+    if (!/^[a-zA-Z0-9\/_\-?=&%+.,\[\]]+$/.test(wpPath)) return res.status(400).json({error:'invalid path'});
+    const cacheEntry = _wpCacheGet(wpPath);
+    // cache تازه → مستقیم برگردان
+    if (cacheEntry && !cacheEntry.stale) {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('Cache-Control', 'public, max-age=300');
         res.setHeader('X-WP-Cache', 'HIT');
-        return res.end(cached);
+        return res.end(cacheEntry.body);
     }
     const WP_BASE = 'https://dastgheibqoba.info/wp-json/wp/v2/';
     const fullUrl = WP_BASE + wpPath;
-    const {request: httpsReq} = require('https');
-    const pr = httpsReq(fullUrl, {
+    const pr = _httpsReq(fullUrl, {
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 11)',
-            'Accept': 'application/json',
-            'Accept-Encoding': 'gzip, deflate'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'application/json, */*',
+            'Accept-Language': 'fa,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+            'Cache-Control': 'no-cache',
         },
-        timeout: 15000
+        timeout: 12000
     }, (wpRes) => {
         const enc = wpRes.headers['content-encoding'] || '';
-        if (wpRes.statusCode !== 200) return res.status(wpRes.statusCode).json({error:'WP API error'});
+        if (wpRes.statusCode !== 200) {
+            // اگر stale cache داریم، به جای خطا آن را برگردان
+            if (cacheEntry) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.setHeader('X-WP-Cache', 'STALE');
+                return res.end(cacheEntry.body);
+            }
+            return res.status(wpRes.statusCode).json({error:'WP API error'});
+        }
         const chunks = [];
         const collect = (stream) => {
             stream.on('data', c => chunks.push(c));
@@ -888,6 +901,8 @@ app.get('/api/wp', (req, res) => {
                 _wpCacheSet(wpPath, body);
                 res.setHeader('Content-Type', 'application/json; charset=utf-8');
                 res.setHeader('Cache-Control', 'public, max-age=300');
+                // X-WP-Total و X-WP-TotalPages را منتقل کن (برای pagination)
+                ['x-wp-total','x-wp-totalpages'].forEach(h => { if (wpRes.headers[h]) res.setHeader(h, wpRes.headers[h]); });
                 res.setHeader('X-WP-Cache', 'MISS');
                 res.end(body);
             });
@@ -896,8 +911,26 @@ app.get('/api/wp', (req, res) => {
         else if (enc === 'deflate') collect(wpRes.pipe(zlib.createInflate()));
         else collect(wpRes);
     });
-    pr.on('error', e => { if (!res.headersSent) res.status(502).json({error: e.message}); });
-    pr.on('timeout', () => { pr.destroy(); if (!res.headersSent) res.status(504).json({error:'timeout'}); });
+    pr.on('error', e => {
+        if (res.headersSent) return;
+        // اگر stale cache داریم، به جای خطای شبکه آن را برگردان
+        if (cacheEntry) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('X-WP-Cache', 'STALE');
+            return res.end(cacheEntry.body);
+        }
+        res.status(502).json({error: e.message});
+    });
+    pr.on('timeout', () => {
+        pr.destroy();
+        if (res.headersSent) return;
+        if (cacheEntry) {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('X-WP-Cache', 'STALE');
+            return res.end(cacheEntry.body);
+        }
+        res.status(504).json({error:'timeout'});
+    });
     pr.end();
 });
 

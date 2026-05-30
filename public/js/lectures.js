@@ -4,8 +4,15 @@ function _pnh(fn){ pushNavHistory(fn,'lectures'); }
 // متغیرهای سخنرانی‌ها
 // ====================================================
 // همه درخواست‌های WP API از طریق سرور پروکسی می‌شوند (رفع CORS و مشکلات شبکه)
-function wpFetch(path) {
-    return fetch('/api/wp?path=' + encodeURIComponent(path));
+// اگر پروکسی سرور به WordPress دسترسی نداشت، مرورگر مستقیم متصل می‌شود
+const _WP_DIRECT = 'https://dastgheibqoba.info/wp-json/wp/v2/';
+async function wpFetch(path) {
+    try {
+        const res = await fetch('/api/wp?path=' + encodeURIComponent(path));
+        if (res.ok) return res;
+        // پروکسی خطا داد (سرور نمی‌تواند به WordPress وصل شود) — مستقیم از مرورگر امتحان کن
+    } catch(e) { /* خطای شبکه — مستقیم امتحان */ }
+    return fetch(_WP_DIRECT + path);
 }
 let allWPCats = [];
 let wpState = { view: 'main', mainCat: { id: null, name: '' }, currentCat: { id: null, name: '' } };
