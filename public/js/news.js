@@ -309,8 +309,26 @@ function renderWPPostsList(posts, screen) {
     }).join('');
 }
 
-function renderWPSingle(post, screen) {
+async function renderWPSingle(post, screen) {
+    const prefix0 = screen;
+    // هدر را فوری نمایش بده
+    document.getElementById(`${prefix0}-single-title`).innerHTML = post.title.rendered;
+    document.getElementById(`${prefix0}-single-date`).textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
+    const featuredUrl0 = post._embedded && post._embedded['wp:featuredmedia'] ? (post._embedded['wp:featuredmedia'][0] || {}).source_url || '' : '';
+    const imgC0 = document.getElementById(`${prefix0}-single-image`);
+    if (featuredUrl0) { imgC0.classList.remove('hidden'); imgC0.querySelector('img').src = featuredUrl0; }
+    else { imgC0.classList.add('hidden'); }
+
     const media = extractMediaFromPost(post);
+
+    // پلی‌لیست صوتی: اگر فقط یک تراک استخراج شده، بقیه را از media endpoint بگیر
+    if ((media.audioTracks.length === 0) || (media.hasAudioPlaylist && media.audioTracks.length < 2)) {
+        const extra = await _fetchPostAudioTracks(post.id);
+        if (extra.length > media.audioTracks.length) {
+            media.audioTracks = _mergeAudioTracks(extra, media.audioTracks);
+        }
+    }
+
     let finalHtml = '';
     media.iframes.forEach(src => { finalHtml += `<div class="h_iframe-aparat_embed_frame mb-6 rounded-2xl overflow-hidden shadow-sm border border-gray-200"><span style="display: block;padding-top: 57%"></span><iframe scrolling="no" allowFullScreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" src="${src}"></iframe></div>`; });
     media.videos.forEach(src => { finalHtml += `<video controls src="${src}" class="w-full rounded-2xl mb-6 shadow-sm bg-black"></video>`; });
@@ -341,16 +359,11 @@ function renderWPSingle(post, screen) {
     finalHtml += media.cleanHtml;
 
     const prefix = screen;
-    document.getElementById(`${prefix}-single-title`).innerHTML = post.title.rendered;
-    document.getElementById(`${prefix}-single-date`).textContent = toFa(new Date(post.date).toLocaleDateString('fa-IR'));
-    document.getElementById(`${prefix}-single-content`).innerHTML = finalHtml;
-    document.getElementById(`${prefix}-single-content`).style.fontSize = fontSize + 'px';
-    convertDOMNumbers(document.getElementById(`${prefix}-single-content`));
-
-    let imgUrl = featuredUrl;
-    const imgC = document.getElementById(`${prefix}-single-image`);
-    if (imgUrl) { imgC.classList.remove('hidden'); imgC.querySelector('img').src = imgUrl; }
-    else { imgC.classList.add('hidden'); }
+    const contentEl = document.getElementById(`${prefix}-single-content`);
+    contentEl.innerHTML = finalHtml;
+    contentEl.style.fontSize = fontSize + 'px';
+    convertDOMNumbers(contentEl);
+    _fixContentLinks(contentEl);
 }
 
 // ناوبری مستقیم برای لینک‌های داخلی بنر

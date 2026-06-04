@@ -329,12 +329,56 @@ function extractMediaFromPost(post) {
         if (el.innerHTML.trim() === '' || el.innerHTML === '&nbsp;' || el.textContent.trim() === '') el.remove();
     });
 
+    // آیا محتوا پلی‌لیست صوتی وردپرس دارد؟ (وردپرس گاهی اسکریپت تراک‌ها را در REST حذف می‌کند
+    // و فقط یک <audio> باقی می‌ماند — در این حالت باید بقیه تراک‌ها از media endpoint گرفته شوند)
+    const hasAudioPlaylist = /wp-playlist-script|class=["'][^"']*wp-playlist[^"']*["']/i.test(rawHtml);
+
     return {
         iframes:     [...new Set(iframes)],
         videos:      [...new Set(videos)],
         audioTracks, // [{src, title, duration, thumb}]
         audios:      audioTracks.map(t => t.src), // backward compat
         images:      [...new Set(images)],
-        cleanHtml:   tempDiv.innerHTML
+        cleanHtml:   tempDiv.innerHTML,
+        hasAudioPlaylist
     };
+}
+
+// لینک‌های داخل محتوای WP را در مرورگر/تب جدید باز کن
+// (در حالت standalone PWA لینک بدون target باز نمی‌شود)
+function _fixContentLinks(container) {
+    if (!container) return;
+    container.querySelectorAll('a[href]').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        if (/^https?:\/\//i.test(href)) {
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
+}
+
+// گرفتن تراک‌های صوتی پیوست‌شده به یک پست از media endpoint وردپرس
+async function _fetchPostAudioTracks(postId) {
+    try {
+        const mr = await wpFetch(`media?parent=${postId}&media_type=audio&per_page=50&orderby=date&order=asc`);
+        if (!mr.ok) return [];
+        const items = await mr.json();
+        if (!Array.isArray(items)) return [];
+        return items.map(item => ({
+            src: item.source_url || '',
+            title: (item.title && item.title.rendered) ? item.title.rendered : '',
+            duration: (item.media_details && item.media_details.length_formatted) || '',
+            thumb: ''
+        })).filter(t => t.src);
+    } catch(e) { return []; }
+}
+
+// ادغام دو لیست تراک با حذف تکراری بر اساس src (ترتیب لیست اول حفظ می‌شود)
+function _mergeAudioTracks(base, extra) {
+    const out = base.slice();
+    const seen = new Set(base.map(t => t.src));
+    (extra || []).forEach(t => {
+        if (t.src && !seen.has(t.src)) { seen.add(t.src); out.push(t); }
+    });
+    return out;
 }

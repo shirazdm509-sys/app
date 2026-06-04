@@ -381,6 +381,15 @@ async function showWPSingleView(postId) {
 
     const media = extractMediaFromPost(post);
 
+    // پلی‌لیست صوتی: اگر فقط یک تراک استخراج شده (وردپرس اسکریپت تراک‌ها را حذف کرده)،
+    // بقیه تراک‌ها را از media endpoint بگیر
+    if ((media.audioTracks.length === 0) || (media.hasAudioPlaylist && media.audioTracks.length < 2)) {
+        const extra = await _fetchPostAudioTracks(postId);
+        if (extra.length > media.audioTracks.length) {
+            media.audioTracks = _mergeAudioTracks(extra, media.audioTracks);
+        }
+    }
+
     // برای تک‌فایل بدون عنوان: از عنوان پست استفاده کن
     if (media.audioTracks.length === 1 && !media.audioTracks[0].title) {
         const _td = document.createElement('div');
@@ -408,6 +417,7 @@ async function showWPSingleView(postId) {
     const _spc = document.getElementById('single-post-content');
     _spc.innerHTML = finalHtml;
     _paInitAll(_spc);
+    _fixContentLinks(_spc);
     _spc.style.fontSize = fontSize + 'px';
     convertDOMNumbers(_spc);
 
@@ -415,29 +425,6 @@ async function showWPSingleView(postId) {
     const imgContainer = document.getElementById('single-post-image');
     if (imgUrl) { imgContainer.classList.remove('hidden'); imgContainer.querySelector('img').src = imgUrl; }
     else { imgContainer.classList.add('hidden'); }
-
-    // Fallback: if still no audio, query WP media API directly for this post's audio attachments
-    if (media.audioTracks.length === 0) {
-        try {
-            const mr = await wpFetch(`media?parent=${postId}&media_type=audio&per_page=20`);
-            if (mr.ok) {
-                const items = await mr.json();
-                if (Array.isArray(items) && items.length > 0) {
-                    const tracks = items.map(item => ({
-                        src: item.source_url || '',
-                        title: (item.title && item.title.rendered) ? item.title.rendered : '',
-                        duration: '',
-                        thumb: ''
-                    })).filter(t => t.src);
-                    if (tracks.length > 0) {
-                        const _spc2 = document.getElementById('single-post-content');
-                        _spc2.insertAdjacentHTML('afterbegin', _buildAudioHtml(tracks));
-                        _paInitAll(_spc2);
-                    }
-                }
-            }
-        } catch(e) {}
-    }
 }
 
 function wpNavBack() {
